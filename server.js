@@ -62,26 +62,6 @@ setTimeout(() => {
     }
   }));
 
-  // Add a diagnostic endpoint
-  app.get('/api/status', (req, res) => {
-    res.json({
-      status: 'ok',
-      message: 'Express proxy server is running',
-      vitePort: 5174,
-      timestamp: new Date().toISOString()
-    });
-  });
-  
-  // Add a diagnostic endpoint for checking arrow component
-  app.get('/api/arrow', (req, res) => {
-    res.json({
-      status: 'ok',
-      message: 'Arrow component is set up',
-      component: 'ArrowIcon',
-      timestamp: new Date().toISOString()
-    });
-  });
-
   // Error handling in case port 5000 is already in use
   app.listen(port, '0.0.0.0', () => {
     console.log(`Express proxy server running at http://localhost:${port}`);
