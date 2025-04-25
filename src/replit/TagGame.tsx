@@ -78,10 +78,14 @@ const TagGame: React.FC<TagGameProps> = ({
 
   // Define helper functions
   const initializeMaze = (allWalls: boolean = false) => {
+    // Get current values from form inputs
+    const currentWidth = parseInt(widthInput) || width;
+    const currentHeight = parseInt(heightInput) || height;
+    
     const newMaze: Cell[][] = [];
-    for (let y = 0; y < height; y++) {
+    for (let y = 0; y < currentHeight; y++) {
       const row: Cell[] = [];
-      for (let x = 0; x < width; x++) {
+      for (let x = 0; x < currentWidth; x++) {
         row.push({
           x,
           y,
@@ -103,6 +107,10 @@ const TagGame: React.FC<TagGameProps> = ({
   
   // Helper function for recursive backtracking maze generation
   const getUnvisitedNeighbors = (cell: Cell, maze: Cell[][], step: number = 2) => {
+    // Get current values from form inputs
+    const currentWidth = parseInt(widthInput) || width;
+    const currentHeight = parseInt(heightInput) || height;
+    
     const neighbors: Cell[] = [];
     const directions = [
       { x: 0, y: -step },  // Up
@@ -115,7 +123,10 @@ const TagGame: React.FC<TagGameProps> = ({
       const newX = cell.x + dir.x;
       const newY = cell.y + dir.y;
 
-      if (newX >= 0 && newX < width && newY >= 0 && newY < height && !maze[newY][newX].isVisited) {
+      if (newX >= 0 && newX < currentWidth && 
+          newY >= 0 && newY < currentHeight && 
+          maze[newY] && maze[newY][newX] && 
+          !maze[newY][newX].isVisited) {
         neighbors.push(maze[newY][newX]);
       }
     }
@@ -156,12 +167,18 @@ const TagGame: React.FC<TagGameProps> = ({
 
   // Improved findRandomEmptyCell that scans all available positions and randomly selects one
   const findRandomEmptyCell = (currentMaze: Cell[][], excludePositions: Set<string>) => {
+    // Get current values from form inputs
+    const currentWidth = parseInt(widthInput) || width;
+    const currentHeight = parseInt(heightInput) || height;
+    
     // Find all available cells
     const availableCells: {x: number, y: number}[] = [];
     
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (!currentMaze[y][x].isWall && !excludePositions.has(`${x},${y}`)) {
+    for (let y = 0; y < currentHeight; y++) {
+      for (let x = 0; x < currentWidth; x++) {
+        if (currentMaze[y] && currentMaze[y][x] && 
+            !currentMaze[y][x].isWall && 
+            !excludePositions.has(`${x},${y}`)) {
           availableCells.push({x, y});
         }
       }
@@ -200,12 +217,12 @@ const TagGame: React.FC<TagGameProps> = ({
       const scale = currentTerrainIntensity * size;
 
       // Diamond step - calculate center point
-      if (x + half < width && y + half < height) {
+      if (x + half < currentWidth && y + half < currentHeight) {
         const avg = (
           newMaze[y][x].elevation +
-          newMaze[y][Math.min(x + size, width - 1)].elevation +
-          newMaze[Math.min(y + size, height - 1)][x].elevation +
-          newMaze[Math.min(y + size, height - 1)][Math.min(x + size, width - 1)].elevation
+          newMaze[y][Math.min(x + size, currentWidth - 1)].elevation +
+          newMaze[Math.min(y + size, currentHeight - 1)][x].elevation +
+          newMaze[Math.min(y + size, currentHeight - 1)][Math.min(x + size, currentWidth - 1)].elevation
         ) / 4;
         
         newMaze[y + half][x + half].elevation = 
@@ -221,12 +238,12 @@ const TagGame: React.FC<TagGameProps> = ({
       ];
 
       for (const [px, py] of points) {
-        if (px < width && py < height) {
+        if (px < currentWidth && py < currentHeight) {
           const values = [];
           if (py - half >= 0) values.push(newMaze[py - half][px].elevation);
-          if (py + half < height) values.push(newMaze[py + half][px].elevation);
+          if (py + half < currentHeight) values.push(newMaze[py + half][px].elevation);
           if (px - half >= 0) values.push(newMaze[py][px - half].elevation);
-          if (px + half < width) values.push(newMaze[py][px + half].elevation);
+          if (px + half < currentWidth) values.push(newMaze[py][px + half].elevation);
           
           const avg = values.reduce((a, b) => a + b, 0) / values.length;
           newMaze[py][px].elevation = 
@@ -292,8 +309,12 @@ const TagGame: React.FC<TagGameProps> = ({
   
   // Make sure there is a path from start to any point in the maze
   const makePathPossible = (maze: Cell[][]) => {
+    // Get current values from form inputs
+    const currentWidth = parseInt(widthInput) || width;
+    const currentHeight = parseInt(heightInput) || height;
+    
     // Create a visited matrix
-    const visited: boolean[][] = Array(height).fill(false).map(() => Array(width).fill(false));
+    const visited: boolean[][] = Array(currentHeight).fill(false).map(() => Array(currentWidth).fill(false));
     const queue: [number, number][] = [[0, 0]];
     visited[0][0] = true;
 
@@ -306,7 +327,8 @@ const TagGame: React.FC<TagGameProps> = ({
         const newX = x + dx;
         const newY = y + dy;
 
-        if (newX >= 0 && newX < width && newY >= 0 && newY < height &&
+        if (newX >= 0 && newX < currentWidth && newY >= 0 && newY < currentHeight &&
+            maze[newY] && maze[newY][newX] &&
             !visited[newY][newX] && !maze[newY][newX].isWall) {
           visited[newY][newX] = true;
           queue.push([newX, newY]);
@@ -315,9 +337,9 @@ const TagGame: React.FC<TagGameProps> = ({
     }
 
     // Create a path from (0,0) to all unreachable areas
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (!visited[y][x] && !maze[y][x].isWall) {
+    for (let y = 0; y < currentHeight; y++) {
+      for (let x = 0; x < currentWidth; x++) {
+        if (maze[y] && maze[y][x] && !visited[y][x] && !maze[y][x].isWall) {
           // Find a path to this isolated cell
           let cx = x, cy = y;
           while (!visited[cy][cx]) {
@@ -329,7 +351,8 @@ const TagGame: React.FC<TagGameProps> = ({
               const nx = cx + dx;
               const ny = cy + dy;
               
-              if (nx >= 0 && nx < width && ny >= 0 && ny < height && visited[ny][nx]) {
+              if (nx >= 0 && nx < currentWidth && ny >= 0 && ny < currentHeight && 
+                  maze[ny] && maze[ny][nx] && visited[ny][nx]) {
                 // Connect to this cell
                 maze[cy][cx].isWall = false;
                 visited[cy][cx] = true;
@@ -342,7 +365,9 @@ const TagGame: React.FC<TagGameProps> = ({
               // Move toward 0,0
               if (cx > 0) cx--;
               else if (cy > 0) cy--;
-              maze[cy][cx].isWall = false;
+              if (maze[cy] && maze[cy][cx]) {
+                maze[cy][cx].isWall = false;
+              }
             }
           }
         }
@@ -429,11 +454,18 @@ const TagGame: React.FC<TagGameProps> = ({
       [-1,  1], [0,  1], [1,  1]
     ];
 
+    // Get current values from form inputs
+    const currentWidth = parseInt(widthInput) || width;
+    const currentHeight = parseInt(heightInput) || height;
+
     for (const [dx, dy] of directions) {
       const newX = cell.x + dx;
       const newY = cell.y + dy;
 
-      if (newX >= 0 && newX < width && newY >= 0 && newY < height && !maze[newY][newX].isWall) {
+      if (newX >= 0 && newX < currentWidth && 
+          newY >= 0 && newY < currentHeight && 
+          maze[newY] && maze[newY][newX] && 
+          !maze[newY][newX].isWall) {
         neighbors.push(maze[newY][newX]);
       }
     }
@@ -451,8 +483,18 @@ const TagGame: React.FC<TagGameProps> = ({
 
 
   const findPath = useCallback((start: { x: number; y: number }, goal: { x: number; y: number }) => {
+    // Check for valid coordinates first
+    if (!maze[start.y] || !maze[start.y][start.x] || !maze[goal.y] || !maze[goal.y][goal.x]) {
+      return [];
+    }
+    
     const startCell = maze[start.y][start.x];
     const goalCell = maze[goal.y][goal.x];
+    
+    // Additional validation
+    if (startCell.isWall || goalCell.isWall) {
+      return [];
+    }
     
     const openSet: Cell[] = [startCell];
     const closedSet: Cell[] = [];
