@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ArrowIcon from '../components/ArrowIcon';
 
 // Types for our ecosystem
-interface Robot {
+interface Agent {
   id: number;
   x: number;
   y: number;
@@ -44,8 +44,8 @@ interface Cell {
   resources: string[];
 }
 
-// Decision-making utility for robots
-const makeDecision = (robot: Robot, grid: Cell[][], resources: Resource[], _robots: Robot[]) => {
+// Decision-making utility for agents
+const makeDecision = (agent: Agent, grid: Cell[][], resources: Resource[], _agents: Agent[]) => {
   // Using _agents naming convention to indicate an unused parameter
   const decisions = {
     pathfinder: 'Looking for optimal paths through complex terrain',
@@ -148,7 +148,7 @@ const generateGrid = (width: number, height: number): Cell[][] => {
 };
 
 // Component definition
-const RobotEcosystem: React.FC = () => {
+const AIEcosystem: React.FC = () => {
   const gridWidth = 20;
   const gridHeight = 15;
   const cellSize = 30;
