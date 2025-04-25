@@ -1336,40 +1336,74 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
               const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
               
               // Normalize weight to determine line thickness (positive = thicker, negative = thinner)
-              const thickness = path.weight > 0 
-                ? Math.min(4, 1 + path.weight / 3) 
-                : Math.max(0.5, 1 + path.weight / 10);
+              // Make high values (>10) much more prominent
+              const thickness = path.weight > 10
+                ? Math.min(8, 4 + (path.weight - 10) / 2) // Extra thick for very high values
+                : path.weight > 0 
+                  ? Math.min(4, 1 + path.weight / 3) 
+                  : Math.max(0.5, 1 + path.weight / 10);
                 
-              // Opacity based on absolute weight
-              const opacity = Math.min(0.9, 0.3 + Math.abs(path.weight) / 8);
+              // Opacity based on absolute weight - higher for higher values
+              const opacity = path.weight > 10
+                ? 0.95 // Very high opacity for top values
+                : Math.min(0.9, 0.3 + Math.abs(path.weight) / 8);
+              
+              // Calculate the midpoint of the line for value label
+              const midX = (startX + endX) / 2;
+              const midY = (startY + endY) / 2;
+              
+              // Adjust midpoint slightly off the line so text is more visible
+              const perpAngle = angle + 90; // perpendicular to line angle
+              const offsetDistance = 10; // distance from line
+              const labelX = midX + offsetDistance * Math.cos(perpAngle * Math.PI / 180);
+              const labelY = midY + offsetDistance * Math.sin(perpAngle * Math.PI / 180);
               
               return (
-                <div
-                  key={`path-${index}`}
-                  className="absolute"
-                  style={{
-                    backgroundColor: path.color === 'red' ? '#ef4444' : 
-                                     path.color === 'yellow' ? '#eab308' : 
-                                     path.color === 'green' ? '#22c55e' : 
-                                     path.color === 'blue' ? '#3b82f6' : 
-                                     '#a855f7', // Purple default
-                    left: `${startX}px`,
-                    top: `${startY}px`,
-                    width: `${length}px`,
-                    height: `${thickness}px`,
-                    transformOrigin: 'left',
-                    transform: `rotate(${angle}deg)`,
-                    opacity: opacity,
-                    // Add a glow effect for positive values
-                    boxShadow: path.weight > 0 ? `0 0 ${Math.min(6, path.weight * 2)}px rgba(${path.color === 'red' ? '239, 68, 68' : 
-                                               path.color === 'yellow' ? '234, 179, 8' :
-                                               path.color === 'green' ? '34, 197, 94' :
-                                               path.color === 'blue' ? '59, 130, 246' :
-                                               '168, 85, 247'}, 0.5)` : 'none',
-                    zIndex: 15 + Math.floor(Math.abs(path.weight))
-                  }}
-                  title={`Item value: ${path.weight.toFixed(1)}`}
-                />
+                <div key={`path-group-${index}`}>
+                  {/* Value label above the line */}
+                  <div 
+                    className="absolute z-40 bg-white bg-opacity-75 px-1 rounded shadow-sm text-xs font-bold"
+                    style={{
+                      left: `${labelX}px`,
+                      top: `${labelY}px`,
+                      transform: 'translate(-50%, -50%)',
+                      color: path.color === 'red' ? '#ef4444' : 
+                             path.color === 'yellow' ? '#b45309' : 
+                             path.color === 'green' ? '#22c55e' : 
+                             path.color === 'blue' ? '#3b82f6' : 
+                             '#a855f7', // Purple default
+                    }}
+                  >
+                    {path.weight.toFixed(1)}
+                  </div>
+                  
+                  {/* The actual connection line */}
+                  <div
+                    className="absolute"
+                    style={{
+                      backgroundColor: path.color === 'red' ? '#ef4444' : 
+                                       path.color === 'yellow' ? '#eab308' : 
+                                       path.color === 'green' ? '#22c55e' : 
+                                       path.color === 'blue' ? '#3b82f6' : 
+                                       '#a855f7', // Purple default
+                      left: `${startX}px`,
+                      top: `${startY}px`,
+                      width: `${length}px`,
+                      height: `${thickness}px`,
+                      transformOrigin: 'left',
+                      transform: `rotate(${angle}deg)`,
+                      opacity: opacity,
+                      // Add a glow effect for positive values
+                      boxShadow: path.weight > 0 ? `0 0 ${Math.min(6, path.weight * 2)}px rgba(${path.color === 'red' ? '239, 68, 68' : 
+                                                 path.color === 'yellow' ? '234, 179, 8' :
+                                                 path.color === 'green' ? '34, 197, 94' :
+                                                 path.color === 'blue' ? '59, 130, 246' :
+                                                 '168, 85, 247'}, 0.5)` : 'none',
+                      zIndex: 15 + Math.floor(Math.abs(path.weight))
+                    }}
+                    title={`Item value: ${path.weight.toFixed(1)}`}
+                  />
+                </div>
               );
             })}
           </div>
