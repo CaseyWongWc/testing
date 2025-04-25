@@ -136,6 +136,10 @@ const TagGame: React.FC<TagGameProps> = ({
   
   // Generate a maze using recursive backtracking
   const generateRecursiveBacktrackingMaze = () => {
+    // Get current values from form inputs
+    const currentWidth = parseInt(widthInput) || width;
+    const currentHeight = parseInt(heightInput) || height;
+    
     const newMaze = initializeMaze(true);
     const stack: Cell[] = [];
     const start = newMaze[0][0];
@@ -156,7 +160,12 @@ const TagGame: React.FC<TagGameProps> = ({
 
         const dx = next.x - current.x;
         const dy = next.y - current.y;
-        newMaze[current.y + dy/2][current.x + dx/2].isWall = false;
+        const midY = current.y + Math.floor(dy/2);
+        const midX = current.x + Math.floor(dx/2);
+        
+        if (midY >= 0 && midY < currentHeight && midX >= 0 && midX < currentWidth) {
+          newMaze[midY][midX].isWall = false;
+        }
 
         stack.push(next);
       }
@@ -264,6 +273,10 @@ const TagGame: React.FC<TagGameProps> = ({
 
   // Generate a maze using Prim's algorithm
   const generatePrimsMaze = () => {
+    // Get current values from form inputs
+    const currentWidth = parseInt(widthInput) || width;
+    const currentHeight = parseInt(heightInput) || height;
+    
     const newMaze = initializeMaze(true);
     const walls: Cell[] = [];
     
@@ -271,8 +284,8 @@ const TagGame: React.FC<TagGameProps> = ({
     newMaze[0][0].isWall = false;
     
     // Add walls around the starting cell
-    if (width > 2) walls.push(newMaze[0][2]);
-    if (height > 2) walls.push(newMaze[2][0]);
+    if (currentWidth > 2) walls.push(newMaze[0][2]);
+    if (currentHeight > 2) walls.push(newMaze[2][0]);
 
     while (walls.length > 0) {
       const randomIndex = Math.floor(Math.random() * walls.length);
@@ -285,16 +298,22 @@ const TagGame: React.FC<TagGameProps> = ({
         wall.isWall = false;
         neighbor.isWall = false;
 
-        // Connect the cells
+        // Connect the cells - with safety checks
         const dx = neighbor.x - wall.x;
         const dy = neighbor.y - wall.y;
-        newMaze[wall.y + dy/2][wall.x + dx/2].isWall = false;
+        const midY = wall.y + Math.floor(dy/2);
+        const midX = wall.x + Math.floor(dx/2);
+        
+        if (midY >= 0 && midY < currentHeight && midX >= 0 && midX < currentWidth) {
+          newMaze[midY][midX].isWall = false;
+        }
 
         // Add new walls
         for (const dir of [{x:0,y:-2}, {x:2,y:0}, {x:0,y:2}, {x:-2,y:0}]) {
           const newX = neighbor.x + dir.x;
           const newY = neighbor.y + dir.y;
-          if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+          if (newX >= 0 && newX < currentWidth && newY >= 0 && newY < currentHeight &&
+              newMaze[newY] && newMaze[newY][newX]) {
             const newWall = newMaze[newY][newX];
             if (newWall.isWall && !walls.includes(newWall)) {
               walls.push(newWall);
@@ -483,6 +502,10 @@ const TagGame: React.FC<TagGameProps> = ({
 
 
   const findPath = useCallback((start: { x: number; y: number }, goal: { x: number; y: number }) => {
+    // Get current values from form inputs
+    const currentWidth = parseInt(widthInput) || width;
+    const currentHeight = parseInt(heightInput) || height;
+    
     // Check for valid coordinates first
     if (!maze[start.y] || !maze[start.y][start.x] || !maze[goal.y] || !maze[goal.y][goal.x]) {
       return [];
@@ -567,7 +590,7 @@ const TagGame: React.FC<TagGameProps> = ({
     }
 
     return [];
-  }, [maze, width, height]);
+  }, [maze, widthInput, heightInput, width, height]);
 
   // Update paths for all robots
   const updatePaths = useCallback(() => {
