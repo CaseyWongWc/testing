@@ -16,6 +16,42 @@ interface Item {
   weight?: number; // Current calculated weight/importance of this item
 }
 
+// Perception system (Shoulders)
+interface Shoulders {
+  visibleEntities: Item[]; // Items currently visible to the robot
+  contextualInfo: {
+    dangerLevel: number;
+    resourcePriority: 'strength' | 'gold' | 'food' | 'water' | 'balanced';
+    environmentState: 'safe' | 'caution' | 'urgent';
+  };
+  
+  // Methods
+  analyzeVisibleEntities: () => Item[]; // Returns list of items the robot can currently see
+  interpretEnvironment: () => { [key: string]: any }; // Returns contextual information about surroundings
+}
+
+// Decision making system (Knees)
+interface Knees {
+  movementPlan: Cell[];
+  targetItem: Item | null;
+  strategy: 'direct' | 'cautious' | 'opportunistic';
+  
+  // Methods
+  selectMovementStrategy: () => 'direct' | 'cautious' | 'opportunistic';
+  executeEvasionOrPursuit: () => void;
+}
+
+// Movement execution system (Toes)
+interface Toes {
+  currentPosition: { x: number, y: number };
+  visibleTiles: { x: number, y: number }[];
+  movementSpeed: number;
+  
+  // Methods
+  updateVisibleTiles: () => { x: number, y: number }[];
+  pathToTarget: (target: { x: number, y: number }) => Cell[];
+}
+
 interface Robot {
   x: number;
   y: number;
@@ -37,6 +73,11 @@ interface Robot {
   status: string;
   activeValueType: 'strength' | 'gold' | 'food' | 'water' | 'balanced';
   history: string[];
+  
+  // New component-based movement system
+  shoulders: Shoulders;
+  knees: Knees;
+  toes: Toes;
 }
 
 interface Cell {
@@ -72,7 +113,9 @@ const ITEM_TYPES = [
   { type: 'gold', name: 'Gold Coin', color: 'bg-yellow-500' },
   { type: 'food', name: 'Food Ration', color: 'bg-green-500' },
   { type: 'water', name: 'Water Flask', color: 'bg-blue-500' },
-  { type: 'balanced', name: 'Balanced Resource', color: 'bg-purple-500' }
+  { type: 'balanced', name: 'Balanced Resource', color: 'bg-purple-500' },
+  { type: 'watermelon', name: 'Watermelon', color: 'bg-teal-500' },
+  { type: 'poisondelightflask', name: 'Poison Delight Flask', color: 'bg-pink-500' }
 ];
 
 // Value descriptions for item types
@@ -238,6 +281,194 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     return false;
   };
 
+  // Function to determine which tiles are visible from a given position
+  const getVisibleTiles = (x: number, y: number, visibilityRange = 5): {x: number, y: number}[] => {
+    const visibleTiles: {x: number, y: number}[] = [];
+    
+    // Check all tiles within the visibility range using a circle-like approach
+    for (let dy = -visibilityRange; dy <= visibilityRange; dy++) {
+      for (let dx = -visibilityRange; dx <= visibilityRange; dx++) {
+        // Calculate distance to check if within visibility circle
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance <= visibilityRange) {
+          const tileX = x + dx;
+          const tileY = y + dy;
+          
+          // Check if tile is within maze bounds
+          if (tileX >= 0 && tileX < width && tileY >= 0 && tileY < height) {
+            // Only add if there's line of sight (not blocked by walls)
+            if (!isLineBlocked(x, y, tileX, tileY)) {
+              visibleTiles.push({x: tileX, y: tileY});
+            }
+          }
+        }
+      }
+    }
+    
+    return visibleTiles;
+  };
+  
+  // Identify which items are visible to the robot
+  const analyzeVisibleEntities = (robotX: number, robotY: number, allItems: Item[]): Item[] => {
+    // Get all visible tiles from current robot position
+    const visibleTiles = getVisibleTiles(robotX, robotY);
+    
+    // Create a set of visible tile coordinates for efficient lookup
+    const visibleTileSet = new Set(visibleTiles.map(tile => `${tile.x},${tile.y}`));
+    
+    // Filter items to only include those on visible tiles
+    return allItems.filter(item => 
+      !item.collected && visibleTileSet.has(`${item.x},${item.y}`)
+    );
+  };
+  
+  // Interpret the environment based on visible items and robot state
+  const interpretEnvironment = (
+    robot: Robot, 
+    visibleItems: Item[]
+  ): { resourcePriority: string, urgency: number, itemValues: {[key: string]: number} } => {
+    // Determine resource priority based on current inventory vs thresholds
+    const strengthNeed = Math.max(0, robot.thresholds.strength - robot.inventory.strengthTotal);
+    const goldNeed = Math.max(0, robot.thresholds.gold - robot.inventory.goldTotal);
+    const foodNeed = Math.max(0, robot.thresholds.food - robot.inventory.foodTotal);
+    const waterNeed = Math.max(0, robot.thresholds.water - robot.inventory.waterTotal);
+    
+    // Find highest need
+    const needs = [
+      { type: 'strength', value: strengthNeed },
+      { type: 'gold', value: goldNeed },
+      { type: 'food', value: foodNeed },
+      { type: 'water', value: waterNeed }
+    ];
+    
+    // Sort by need value
+    needs.sort((a, b) => b.value - a.value);
+    
+    // Calculate urgency level (0-1) based on how far below threshold
+    const maxThreshold = Math.max(
+      robot.thresholds.strength,
+      robot.thresholds.gold,
+      robot.thresholds.food,
+      robot.thresholds.water
+    );
+    
+    const urgency = needs[0].value / maxThreshold;
+    
+    // Calculate value of each visible item based on current needs
+    const itemValues: {[key: string]: number} = {};
+    
+    visibleItems.forEach(item => {
+      itemValues[item.id] = calculateItemValue(item, robot);
+    });
+    
+    return {
+      resourcePriority: needs[0].value > 0 ? needs[0].type : 'balanced',
+      urgency,
+      itemValues
+    };
+  };
+  
+  // Execute movement toward a specific target
+  const pathToTarget = (
+    startX: number, 
+    startY: number, 
+    targetX: number, 
+    targetY: number, 
+    currentMaze: Cell[][]
+  ): Cell[] => {
+    // Make sure we have valid start and end points
+    if (
+      startX < 0 || startX >= width || startY < 0 || startY >= height ||
+      targetX < 0 || targetX >= width || targetY < 0 || targetY >= height ||
+      currentMaze[startY][startX].isWall || currentMaze[targetY][targetX].isWall
+    ) {
+      return [];
+    }
+    
+    // Use A* algorithm to find a path
+    const openSet: Cell[] = [];
+    const closedSet: Set<string> = new Set();
+    
+    // Clone the maze to avoid modifying the original
+    const mazeCopy = currentMaze.map(row => 
+      row.map(cell => ({ ...cell, f: 0, g: 0, h: 0, parent: null, isPath: false }))
+    );
+    
+    const startCell = mazeCopy[startY][startX];
+    const goalCell = mazeCopy[targetY][targetX];
+    
+    // Initialize start node
+    startCell.g = 0;
+    startCell.h = heuristic(startCell, goalCell);
+    startCell.f = startCell.g + startCell.h;
+    openSet.push(startCell);
+    
+    while (openSet.length > 0) {
+      // Find node with lowest f score
+      let currentIndex = 0;
+      for (let i = 1; i < openSet.length; i++) {
+        if (openSet[i].f < openSet[currentIndex].f) {
+          currentIndex = i;
+        }
+      }
+      
+      const current = openSet[currentIndex];
+      
+      // If we've reached the goal
+      if (current.x === goalCell.x && current.y === goalCell.y) {
+        // Reconstruct path
+        const path: Cell[] = [];
+        let temp = current;
+        
+        while (temp.parent) {
+          path.push(temp);
+          temp = temp.parent;
+        }
+        
+        // Mark path cells for visualization
+        path.forEach(cell => {
+          mazeCopy[cell.y][cell.x].isPath = true;
+        });
+        
+        return path.reverse();
+      }
+      
+      // Move current from open to closed set
+      openSet.splice(currentIndex, 1);
+      closedSet.add(`${current.x},${current.y}`);
+      
+      // Check all neighbors
+      const neighbors = getValidNeighbors(current, mazeCopy);
+      
+      for (const neighbor of neighbors) {
+        // Skip if already evaluated
+        if (closedSet.has(`${neighbor.x},${neighbor.y}`)) continue;
+        
+        // Calculate tentative g score
+        const tentativeG = current.g + 1; // Basic cost of 1 per step
+        
+        const neighborCell = mazeCopy[neighbor.y][neighbor.x];
+        
+        // Check if we have a better path to this neighbor
+        if (!openSet.includes(neighborCell)) {
+          openSet.push(neighborCell);
+        } else if (tentativeG >= neighborCell.g) {
+          continue; // Not a better path
+        }
+        
+        // This path is the best so far, record it
+        neighborCell.parent = current;
+        neighborCell.g = tentativeG;
+        neighborCell.h = heuristic(neighborCell, goalCell);
+        neighborCell.f = neighborCell.g + neighborCell.h;
+      }
+    }
+    
+    // No path found
+    return [];
+  };
+
   const initializeMaze = () => {
     // Create an empty maze
     const newMaze: Cell[][] = [];
@@ -265,9 +496,16 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     setMaze(newMaze);
     
     // Initialize robot
+    const robotX = 1;
+    const robotY = 1;
+    
+    // Get visible tiles at robot position
+    const visibleTiles = getVisibleTiles(robotX, robotY);
+    
+    // Initialize robot with our new component architecture
     const newRobot: Robot = {
-      x: 1,
-      y: 1,
+      x: robotX,
+      y: robotY,
       path: [],
       pathIndex: 0,
       inventory: {
@@ -285,7 +523,33 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       },
       status: "Initializing...",
       activeValueType: 'balanced',
-      history: ["Robot activated and ready to collect items."]
+      history: ["Robot activated and ready to collect items."],
+      
+      // Initialize new component-based movement system
+      shoulders: {
+        visibleEntities: [],
+        contextualInfo: {
+          dangerLevel: 0,
+          resourcePriority: 'balanced',
+          environmentState: 'safe'
+        },
+        analyzeVisibleEntities: () => [], // Will be populated after items are created
+        interpretEnvironment: () => ({ }) // Will be populated after items are created
+      },
+      knees: {
+        movementPlan: [],
+        targetItem: null,
+        strategy: 'direct',
+        selectMovementStrategy: () => 'direct',
+        executeEvasionOrPursuit: () => {}
+      },
+      toes: {
+        currentPosition: { x: robotX, y: robotY },
+        visibleTiles: visibleTiles,
+        movementSpeed: 1,
+        updateVisibleTiles: () => visibleTiles,
+        pathToTarget: (target) => []
+      }
     };
     
     setRobot(newRobot);
@@ -303,6 +567,26 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     }
     
     setItems(newItems);
+    
+    // Now update the robot's shoulder and toe functions with proper implementations
+    if (newRobot) {
+      const visibleItems = analyzeVisibleEntities(newRobot.x, newRobot.y, newItems);
+      
+      newRobot.shoulders.visibleEntities = visibleItems;
+      newRobot.shoulders.analyzeVisibleEntities = () => 
+        analyzeVisibleEntities(newRobot.x, newRobot.y, newItems);
+        
+      newRobot.shoulders.interpretEnvironment = () => 
+        interpretEnvironment(newRobot, visibleItems);
+        
+      newRobot.toes.updateVisibleTiles = () => 
+        getVisibleTiles(newRobot.x, newRobot.y);
+        
+      newRobot.toes.pathToTarget = (target) => 
+        pathToTarget(newRobot.x, newRobot.y, target.x, target.y, newMaze);
+        
+      setRobot(newRobot);
+    }
   };
 
   const generateItem = (id: number, maze: Cell[][], usedPositions: Set<string>): Item => {
@@ -517,6 +801,23 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
   };
 
   const calculateItemValue = (item: Item, robot: Robot): number => {
+    // Calculate raw sum of all values (for weight label - attraction/repulsion)
+    const rawSum = item.strengthValue + item.goldValue + item.foodValue + item.waterValue;
+    
+    // Update the item's weight property for visual representation
+    // This will determine how attractive (positive) or repulsive (negative) the item appears
+    const updatedItem = {...item};
+    updatedItem.weight = rawSum;
+    
+    // Find items with matching id in our state and update their weight
+    const itemIndex = items.findIndex(i => i.id === item.id);
+    if (itemIndex >= 0) {
+      const newItems = [...items];
+      newItems[itemIndex] = {...newItems[itemIndex], weight: rawSum};
+      // Don't call setItems here to avoid unnecessary re-renders
+      // We'll use the weight value directly in our calculation
+    }
+    
     // Determine which resource the robot needs most based on thresholds
     const strengthNeed = robot.thresholds.strength - robot.inventory.strengthTotal;
     const goldNeed = robot.thresholds.gold - robot.inventory.goldTotal;
