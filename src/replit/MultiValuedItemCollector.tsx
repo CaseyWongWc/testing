@@ -13,6 +13,7 @@ interface Item {
   foodValue: number;
   waterValue: number;
   color: string;
+  weight?: number; // Current calculated weight/importance of this item
 }
 
 interface Robot {
@@ -47,6 +48,15 @@ interface Cell {
   g: number;
   h: number;
   parent: Cell | null | undefined;
+}
+
+interface DirectPath {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  color: string;
+  weight: number;
 }
 
 interface MultiValuedItemCollectorProps {
@@ -129,7 +139,11 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
   const [isThinking, setIsThinking] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [directPaths, setDirectPaths] = useState<DirectPath[]>([]);
   const robotIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const lastFrameTimeRef = useRef<number | null>(null);
+  const accumulatedTimeRef = useRef<number>(0);
 
   // Initialize the maze
   useEffect(() => {
@@ -143,8 +157,86 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       if (robotIntervalRef.current) {
         clearInterval(robotIntervalRef.current);
       }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
     };
   }, []);
+  
+  // Update direct paths visualizing the connections to nearby items
+  const updateDirectPaths = useCallback(() => {
+    if (!robot) return;
+    
+    const newPaths: DirectPath[] = [];
+    const visibleItems = items.filter(item => !item.collected);
+    
+    // Only show paths to the 5 closest items for performance and readability
+    const itemsWithDistances = visibleItems.map(item => {
+      const distance = Math.abs(robot.x - item.x) + Math.abs(robot.y - item.y);
+      // Calculate item value for the current robot state
+      const value = calculateItemValue(item, robot);
+      return { item, distance, value };
+    });
+    
+    // Sort by distance and take top 5
+    const closestItems = itemsWithDistances
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 5);
+    
+    // Create paths
+    for (const { item, value } of closestItems) {
+      // Only connect if not blocked by walls using line of sight check
+      if (!isLineBlocked(robot.x, robot.y, item.x, item.y)) {
+        // Extract item type color from bg-color-500 format
+        const colorMatch = item.color.match(/bg-(\w+)-\d+/);
+        const color = colorMatch ? colorMatch[1] : 'gray';
+        
+        // Create the path
+        newPaths.push({
+          x1: robot.x,
+          y1: robot.y,
+          x2: item.x,
+          y2: item.y,
+          color: color,
+          weight: value
+        });
+      }
+    }
+    
+    setDirectPaths(newPaths);
+  }, [robot, items]);
+  
+  // Check if a direct line is blocked by walls (for line-of-sight checking)
+  const isLineBlocked = (x1: number, y1: number, x2: number, y2: number): boolean => {
+    const dx = Math.abs(x2 - x1);
+    const dy = Math.abs(y2 - y1);
+    const sx = x1 < x2 ? 1 : -1;
+    const sy = y1 < y2 ? 1 : -1;
+    let err = dx - dy;
+
+    let x = x1;
+    let y = y1;
+
+    while (true) {
+      // If we're at a wall, the line is blocked
+      if (maze[y]?.[x]?.isWall) return true;
+      
+      // If we've reached the destination, the line is not blocked
+      if (x === x2 && y === y2) break;
+
+      const e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        x += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        y += sy;
+      }
+    }
+
+    return false;
+  };
 
   const initializeMaze = () => {
     // Create an empty maze
@@ -531,7 +623,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
   };
 
   const startRobotLogic = () => {
-    if (isRunning || !robot) return;
+    if (isRunning || !robot || animationFrameRef.current) return;
     
     setIsRunning(true);
     setRobot(prev => prev ? { 
@@ -540,7 +632,49 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       history: [...prev.history, "Started item collection process."]
     } : null);
     
-    robotIntervalRef.current = setInterval(moveRobot, 600);
+    // Reset animation timing references
+    lastFrameTimeRef.current = null;
+    accumulatedTimeRef.current = 0;
+    
+    // Start animation loop using requestAnimationFrame for smoother movement
+    const animate = (timestamp: number) => {
+      if (!isRunning || !robot) {
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
+        }
+        return;
+      }
+      
+      // Initialize lastFrameTime on first frame
+      if (!lastFrameTimeRef.current) {
+        lastFrameTimeRef.current = timestamp;
+      }
+      
+      const deltaTime = timestamp - lastFrameTimeRef.current;
+      lastFrameTimeRef.current = timestamp;
+      
+      // Accumulate time until we reach our movement interval
+      accumulatedTimeRef.current += deltaTime;
+      const moveInterval = 600; // time between moves in ms
+      
+      if (accumulatedTimeRef.current >= moveInterval) {
+        accumulatedTimeRef.current = 0;
+        moveRobot();
+        
+        // Update direct paths visualization after each move
+        updateDirectPaths();
+      }
+      
+      // Continue animation loop
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    
+    // Start the animation loop
+    animationFrameRef.current = requestAnimationFrame(animate);
+    
+    // Initial path visualization
+    updateDirectPaths();
   };
 
   const stopRobotLogic = () => {
