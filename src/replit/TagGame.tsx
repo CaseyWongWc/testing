@@ -7,6 +7,7 @@ interface Cell {
   isWall: boolean;
   isPath: boolean;
   elevation: number; // Added elevation for terrain features
+  isVisited?: boolean; // Used for maze generation algorithms
   f: number;
   g: number;
   h: number;
@@ -61,6 +62,11 @@ const TagGame: React.FC<TagGameProps> = ({
   const [lastTagLocation, setLastTagLocation] = useState<{ x: number, y: number } | null>(null);
   const [continuousPlay, setContinuousPlay] = useState(false);
   const [expandedRobot, setExpandedRobot] = useState<number | null>(null);
+  const [mazeAlgorithm, setMazeAlgorithm] = useState<MazeAlgorithm>('none');
+  const [widthInput, setWidthInput] = useState(width.toString());
+  const [heightInput, setHeightInput] = useState(height.toString());
+  const [wallDensityInput, setWallDensityInput] = useState(wallDensity.toString());
+  const [terrainIntensityInput, setTerrainIntensityInput] = useState(terrainIntensity.toString());
   
   const lastFrameTimeRef = useRef<number>(0);
   const accumulatedTimeRef = useRef<number>(0);
@@ -71,7 +77,7 @@ const TagGame: React.FC<TagGameProps> = ({
   const MAX_MOVEMENTS = 10; // Maximum number of movements to store per robot
 
   // Define helper functions
-  const initializeMaze = () => {
+  const initializeMaze = (allWalls: boolean = false) => {
     const newMaze: Cell[][] = [];
     for (let y = 0; y < height; y++) {
       const row: Cell[] = [];
@@ -79,9 +85,10 @@ const TagGame: React.FC<TagGameProps> = ({
         row.push({
           x,
           y,
-          isWall: false,
+          isWall: allWalls,
           isPath: false,
           elevation: 50, // Default elevation
+          isVisited: false, // Initialize as not visited
           f: 0,
           g: 0,
           h: 0,
@@ -91,6 +98,59 @@ const TagGame: React.FC<TagGameProps> = ({
       }
       newMaze.push(row);
     }
+    return newMaze;
+  };
+  
+  // Helper function for recursive backtracking maze generation
+  const getUnvisitedNeighbors = (cell: Cell, maze: Cell[][], step: number = 2) => {
+    const neighbors: Cell[] = [];
+    const directions = [
+      { x: 0, y: -step },  // Up
+      { x: step, y: 0 },   // Right
+      { x: 0, y: step },   // Down
+      { x: -step, y: 0 }   // Left
+    ];
+
+    for (const dir of directions) {
+      const newX = cell.x + dir.x;
+      const newY = cell.y + dir.y;
+
+      if (newX >= 0 && newX < width && newY >= 0 && newY < height && !maze[newY][newX].isVisited) {
+        neighbors.push(maze[newY][newX]);
+      }
+    }
+
+    return neighbors;
+  };
+  
+  // Generate a maze using recursive backtracking
+  const generateRecursiveBacktrackingMaze = () => {
+    const newMaze = initializeMaze(true);
+    const stack: Cell[] = [];
+    const start = newMaze[0][0];
+    start.isWall = false;
+    start.isVisited = true;
+    stack.push(start);
+
+    while (stack.length > 0) {
+      const current = stack[stack.length - 1];
+      const neighbors = getUnvisitedNeighbors(current, newMaze);
+
+      if (neighbors.length === 0) {
+        stack.pop();
+      } else {
+        const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+        next.isVisited = true;
+        next.isWall = false;
+
+        const dx = next.x - current.x;
+        const dy = next.y - current.y;
+        newMaze[current.y + dy/2][current.x + dx/2].isWall = false;
+
+        stack.push(next);
+      }
+    }
+
     return newMaze;
   };
 
@@ -180,20 +240,140 @@ const TagGame: React.FC<TagGameProps> = ({
     return newMaze;
   };
 
-  const generateMaze = () => {
-    let newMaze = initializeMaze();
+  // Generate a maze using Prim's algorithm
+  const generatePrimsMaze = () => {
+    const newMaze = initializeMaze(true);
+    const walls: Cell[] = [];
     
-    // First generate terrain
-    newMaze = generateTerrain(newMaze);
+    // Start with the top-left cell
+    newMaze[0][0].isWall = false;
     
-    // Then add walls
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (Math.random() < wallDensity) {
-          newMaze[y][x].isWall = true;
+    // Add walls around the starting cell
+    if (width > 2) walls.push(newMaze[0][2]);
+    if (height > 2) walls.push(newMaze[2][0]);
+
+    while (walls.length > 0) {
+      const randomIndex = Math.floor(Math.random() * walls.length);
+      const wall = walls[randomIndex];
+      walls.splice(randomIndex, 1);
+
+      const neighbors = getUnvisitedNeighbors(wall, newMaze, 2);
+      if (neighbors.length > 0) {
+        const neighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+        wall.isWall = false;
+        neighbor.isWall = false;
+
+        // Connect the cells
+        const dx = neighbor.x - wall.x;
+        const dy = neighbor.y - wall.y;
+        newMaze[wall.y + dy/2][wall.x + dx/2].isWall = false;
+
+        // Add new walls
+        for (const dir of [{x:0,y:-2}, {x:2,y:0}, {x:0,y:2}, {x:-2,y:0}]) {
+          const newX = neighbor.x + dir.x;
+          const newY = neighbor.y + dir.y;
+          if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+            const newWall = newMaze[newY][newX];
+            if (newWall.isWall && !walls.includes(newWall)) {
+              walls.push(newWall);
+            }
+          }
         }
       }
     }
+
+    return newMaze;
+  };
+  
+  // Make sure there is a path from start to any point in the maze
+  const makePathPossible = (maze: Cell[][]) => {
+    // Create a visited matrix
+    const visited: boolean[][] = Array(height).fill(false).map(() => Array(width).fill(false));
+    const queue: [number, number][] = [[0, 0]];
+    visited[0][0] = true;
+
+    // BFS to find all reachable cells
+    while (queue.length > 0) {
+      const [x, y] = queue.shift()!;
+      
+      const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+      for (const [dx, dy] of directions) {
+        const newX = x + dx;
+        const newY = y + dy;
+
+        if (newX >= 0 && newX < width && newY >= 0 && newY < height &&
+            !visited[newY][newX] && !maze[newY][newX].isWall) {
+          visited[newY][newX] = true;
+          queue.push([newX, newY]);
+        }
+      }
+    }
+
+    // Create a path from (0,0) to all unreachable areas
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (!visited[y][x] && !maze[y][x].isWall) {
+          // Find a path to this isolated cell
+          let cx = x, cy = y;
+          while (!visited[cy][cx]) {
+            // Try to connect to an adjacent visited cell
+            let connected = false;
+            const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+            
+            for (const [dx, dy] of directions) {
+              const nx = cx + dx;
+              const ny = cy + dy;
+              
+              if (nx >= 0 && nx < width && ny >= 0 && ny < height && visited[ny][nx]) {
+                // Connect to this cell
+                maze[cy][cx].isWall = false;
+                visited[cy][cx] = true;
+                connected = true;
+                break;
+              }
+            }
+            
+            if (!connected) {
+              // Move toward 0,0
+              if (cx > 0) cx--;
+              else if (cy > 0) cy--;
+              maze[cy][cx].isWall = false;
+            }
+          }
+        }
+      }
+    }
+  };
+
+  const generateMaze = () => {
+    let newMaze: Cell[][];
+    
+    // Choose maze generation algorithm based on selected option
+    switch (mazeAlgorithm) {
+      case 'recursive-backtracking':
+        newMaze = generateRecursiveBacktrackingMaze();
+        break;
+      case 'prims':
+        newMaze = generatePrimsMaze();
+        break;
+      case 'none':
+      default:
+        // Generate a random maze with walls
+        newMaze = initializeMaze();
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            if (Math.random() < wallDensity) {
+              newMaze[y][x].isWall = true;
+            }
+          }
+        }
+    }
+    
+    // Apply terrain to the maze
+    newMaze = generateTerrain(newMaze);
+    
+    // Make sure a path exists through the maze
+    makePathPossible(newMaze);
 
     const newRobots: Robot[] = [];
     const usedPositions = new Set<string>();
@@ -232,7 +412,11 @@ const TagGame: React.FC<TagGameProps> = ({
 
   const getValidNeighbors = (cell: Cell) => {
     const neighbors: Cell[] = [];
-    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+    const directions = [
+      [-1, -1], [0, -1], [1, -1],
+      [-1,  0],          [1,  0],
+      [-1,  1], [0,  1], [1,  1]
+    ];
 
     for (const [dx, dy] of directions) {
       const newX = cell.x + dx;
@@ -247,7 +431,10 @@ const TagGame: React.FC<TagGameProps> = ({
   };
 
   const heuristic = (a: Cell, b: Cell) => {
-    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    // Use diagonal distance for 8-directional movement
+    const dx = Math.abs(a.x - b.x);
+    const dy = Math.abs(a.y - b.y);
+    return Math.SQRT2 * Math.min(dx, dy) + Math.abs(dx - dy);
   };
 
 
@@ -300,7 +487,18 @@ const TagGame: React.FC<TagGameProps> = ({
       for (const neighbor of neighbors) {
         if (closedSet.includes(neighbor)) continue;
 
-        const tentativeG = current.g + 1;
+        // Check if this is a diagonal move
+        const isDiagonal = Math.abs(neighbor.x - current.x) === 1 && Math.abs(neighbor.y - current.y) === 1;
+        const movementCost = isDiagonal ? Math.SQRT2 : 1;
+        
+        // Calculate elevation difference cost
+        const elevationDiff = Math.abs(neighbor.elevation - current.elevation);
+        const elevationCost = elevationDiff * 0.1; // Make elevation differences matter
+        
+        // Total cost is base movement cost plus elevation cost
+        const totalCost = movementCost + elevationCost;
+        
+        const tentativeG = current.g + totalCost;
 
         if (!openSet.includes(neighbor)) {
           openSet.push(neighbor);
@@ -581,9 +779,116 @@ const TagGame: React.FC<TagGameProps> = ({
     }
   };
 
+  // Apply maze settings and generate new maze
+  const applySettings = () => {
+    // Parse input values, using defaults if invalid
+    const newWidth = parseInt(widthInput) || width;
+    const newHeight = parseInt(heightInput) || height;
+    const newWallDensity = parseFloat(wallDensityInput) || wallDensity;
+    const newTerrainIntensity = parseFloat(terrainIntensityInput) || terrainIntensity;
+    
+    // Set all values at once to trigger only one re-render
+    // Note that setState only updates the React state variable, not the original prop value
+    // So we need to remember the NEW values for use in the next render
+    
+    setMaze([]);
+    setRobots([]);
+    
+    // Regenerate maze with new settings
+    setTimeout(() => {
+      generateMaze();
+    }, 0);
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-8">
       <div className="w-full md:w-64 space-y-4">
+        {/* Maze controls */}
+        <div className="bg-white p-4 rounded-lg shadow-md">
+          <h3 className="text-lg font-medium mb-3">Maze Settings</h3>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Width
+              </label>
+              <input
+                type="number"
+                className="w-full rounded border p-1 text-sm"
+                value={widthInput}
+                onChange={(e) => setWidthInput(e.target.value)}
+                min="5"
+                max="40"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Height
+              </label>
+              <input
+                type="number"
+                className="w-full rounded border p-1 text-sm"
+                value={heightInput}
+                onChange={(e) => setHeightInput(e.target.value)}
+                min="5"
+                max="30"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Wall Density ({(parseFloat(wallDensityInput) * 100).toFixed(0)}%)
+              </label>
+              <input
+                type="range"
+                className="w-full"
+                min="0.1"
+                max="0.6"
+                step="0.05"
+                value={wallDensityInput}
+                onChange={(e) => setWallDensityInput(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Terrain Intensity ({(parseFloat(terrainIntensityInput) * 100).toFixed(0)}%)
+              </label>
+              <input
+                type="range"
+                className="w-full"
+                min="0.1"
+                max="1.0"
+                step="0.1"
+                value={terrainIntensityInput}
+                onChange={(e) => setTerrainIntensityInput(e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Maze Algorithm
+              </label>
+              <select
+                className="w-full rounded border p-1 text-sm"
+                value={mazeAlgorithm}
+                onChange={(e) => setMazeAlgorithm(e.target.value as MazeAlgorithm)}
+              >
+                <option value="none">Random Walls</option>
+                <option value="recursive-backtracking">Recursive Backtracking</option>
+                <option value="prims">Prim's Algorithm</option>
+              </select>
+            </div>
+            
+            <button
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded"
+              onClick={applySettings}
+            >
+              Generate New Maze
+            </button>
+          </div>
+        </div>
         {robots.map(robot => (
           <div 
             key={robot.id}
