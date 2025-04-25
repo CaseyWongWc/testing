@@ -6,6 +6,7 @@ interface Cell {
   y: number;
   isWall: boolean;
   isPath: boolean;
+  elevation: number; // Added elevation for terrain features
   f: number;
   g: number;
   h: number;
@@ -39,13 +40,17 @@ interface TagGameProps {
   height?: number;
   wallDensity?: number;
   robotCount?: number;
+  terrainIntensity?: number;  // Added terrain intensity parameter
 }
+
+type MazeAlgorithm = 'none' | 'recursive-backtracking' | 'prims' | 'recursive-division';
 
 const TagGame: React.FC<TagGameProps> = ({ 
   width = 20, 
   height = 15, 
   wallDensity = 0.3, 
-  robotCount = 4 
+  robotCount = 4,
+  terrainIntensity = 0.5  // Default terrain intensity
 }) => {
   const [maze, setMaze] = useState<Cell[][]>([]);
   const [robots, setRobots] = useState<Robot[]>([]);
@@ -76,6 +81,7 @@ const TagGame: React.FC<TagGameProps> = ({
           y,
           isWall: false,
           isPath: false,
+          elevation: 50, // Default elevation
           f: 0,
           g: 0,
           h: 0,
@@ -88,18 +94,99 @@ const TagGame: React.FC<TagGameProps> = ({
     return newMaze;
   };
 
+  // Improved findRandomEmptyCell that scans all available positions and randomly selects one
   const findRandomEmptyCell = (currentMaze: Cell[][], excludePositions: Set<string>) => {
-    let x, y;
-    do {
-      x = Math.floor(Math.random() * width);
-      y = Math.floor(Math.random() * height);
-    } while (currentMaze[y][x].isWall || excludePositions.has(`${x},${y}`));
-    return { x, y };
+    // Find all available cells
+    const availableCells: {x: number, y: number}[] = [];
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (!currentMaze[y][x].isWall && !excludePositions.has(`${x},${y}`)) {
+          availableCells.push({x, y});
+        }
+      }
+    }
+    
+    // If no cells are available, return a default position
+    if (availableCells.length === 0) {
+      return { x: 1, y: 1 };
+    }
+    
+    // Return a random available cell
+    const randomIndex = Math.floor(Math.random() * availableCells.length);
+    return availableCells[randomIndex];
+  };
+
+  // Generate diamond-square terrain
+  const generateTerrain = (newMaze: Cell[][]) => {
+    const size = Math.max(width, height);
+    const maxSize = Math.pow(2, Math.ceil(Math.log2(size)));
+    
+    // Set initial corner elevations
+    newMaze[0][0].elevation = Math.random() * 100;
+    newMaze[0][Math.min(width-1, maxSize-1)].elevation = Math.random() * 100;
+    newMaze[Math.min(height-1, maxSize-1)][0].elevation = Math.random() * 100;
+    newMaze[Math.min(height-1, maxSize-1)][Math.min(width-1, maxSize-1)].elevation = Math.random() * 100;
+
+    const generateStep = (x: number, y: number, size: number, offset: number) => {
+      if (size < 2) return;
+
+      const half = size / 2;
+      const scale = terrainIntensity * size;
+
+      // Diamond step - calculate center point
+      if (x + half < width && y + half < height) {
+        const avg = (
+          newMaze[y][x].elevation +
+          newMaze[y][Math.min(x + size, width - 1)].elevation +
+          newMaze[Math.min(y + size, height - 1)][x].elevation +
+          newMaze[Math.min(y + size, height - 1)][Math.min(x + size, width - 1)].elevation
+        ) / 4;
+        
+        newMaze[y + half][x + half].elevation = 
+          Math.max(0, Math.min(100, avg + (Math.random() * 2 - 1) * scale));
+      }
+
+      // Square step - calculate midpoints of each side
+      const points = [
+        [x + half, y],
+        [x + size, y + half],
+        [x + half, y + size],
+        [x, y + half]
+      ];
+
+      for (const [px, py] of points) {
+        if (px < width && py < height) {
+          const values = [];
+          if (py - half >= 0) values.push(newMaze[py - half][px].elevation);
+          if (py + half < height) values.push(newMaze[py + half][px].elevation);
+          if (px - half >= 0) values.push(newMaze[py][px - half].elevation);
+          if (px + half < width) values.push(newMaze[py][px + half].elevation);
+          
+          const avg = values.reduce((a, b) => a + b, 0) / values.length;
+          newMaze[py][px].elevation = 
+            Math.max(0, Math.min(100, avg + (Math.random() * 2 - 1) * scale));
+        }
+      }
+
+      // Recursive calls for the four quadrants
+      generateStep(x, y, half, offset / 2);
+      generateStep(x + half, y, half, offset / 2);
+      generateStep(x, y + half, half, offset / 2);
+      generateStep(x + half, y + half, half, offset / 2);
+    };
+
+    generateStep(0, 0, maxSize, terrainIntensity * 100);
+    return newMaze;
   };
 
   const generateMaze = () => {
-    const newMaze = initializeMaze();
+    let newMaze = initializeMaze();
     
+    // First generate terrain
+    newMaze = generateTerrain(newMaze);
+    
+    // Then add walls
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         if (Math.random() < wallDensity) {
@@ -162,6 +249,8 @@ const TagGame: React.FC<TagGameProps> = ({
   const heuristic = (a: Cell, b: Cell) => {
     return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
   };
+
+
 
   const findPath = useCallback((start: { x: number; y: number }, goal: { x: number; y: number }) => {
     const startCell = maze[start.y][start.x];
@@ -372,9 +461,7 @@ const TagGame: React.FC<TagGameProps> = ({
         accumulatedTimeRef.current = 0;
 
         const newRobots = [...robots];
-        let tagHappened = false;
-        let anyRobotMoved = false;
-
+        
         // Move all robots simultaneously
         newRobots.forEach(robot => {
           if (robot.path.length > robot.pathIndex) {
@@ -384,7 +471,6 @@ const TagGame: React.FC<TagGameProps> = ({
             robot.x = nextCell.x;
             robot.y = nextCell.y;
             robot.pathIndex++;
-            anyRobotMoved = true;
 
             // Add movement to this robot's movement history
             const movement: Movement = {
@@ -412,7 +498,27 @@ const TagGame: React.FC<TagGameProps> = ({
                 robot.isIt = true;
                 it.isIt = false;
                 robot.lastTagTime = now;
-                tagHappened = true;
+                
+                // Teleport the previous "it" robot to a random location to prevent tag-backs
+                const usedPositions = new Set(newRobots.map(r => `${r.x},${r.y}`));
+                const teleportPos = findRandomEmptyCell(maze, usedPositions);
+                const originalPos = { x: it.x, y: it.y }; // Store original position
+                
+                // Update position
+                it.x = teleportPos.x;
+                it.y = teleportPos.y;
+                
+                // Add teleport to movement log
+                const teleportMovement: Movement = {
+                  robotId: it.id,
+                  from: originalPos,
+                  to: { x: teleportPos.x, y: teleportPos.y },
+                  type: 'move', // Using move type to show the teleport as a special movement
+                  timestamp: now
+                };
+                
+                // Add the teleport to the movement history
+                it.movements = [teleportMovement, ...it.movements.slice(0, MAX_MOVEMENTS - 1)];
 
                 // Add tag event to both robots' movement history
                 const tagMovement: Movement = {
@@ -443,14 +549,12 @@ const TagGame: React.FC<TagGameProps> = ({
         // Update robots in one batch
         setRobots(newRobots);
 
-        // Update paths after each cycle
-        // This ensures all robots have fresh paths for next round
-        if (tagHappened || !anyRobotMoved) {
-          // Using setTimeout to avoid immediate state updates which can cause infinite loops
-          setTimeout(() => {
-            updatePaths();
-          }, 0);
-        }
+        // Always update paths after each cycle (like in FollowMe)
+        // This ensures all robots continuously redraw their paths
+        // Using setTimeout to avoid immediate state updates which can cause infinite loops
+        setTimeout(() => {
+          updatePaths();
+        }, 0);
       }
 
       animationFrameId = requestAnimationFrame(animate);
@@ -491,7 +595,14 @@ const TagGame: React.FC<TagGameProps> = ({
               className="flex items-center gap-2 mb-2 cursor-pointer"
               onClick={() => toggleExpandRobot(robot.id)}
             >
-              <Bot className={`w-5 h-5 text-${robot.color}-500`} />
+              <Bot className={`w-5 h-5 ${
+                robot.color === 'blue' ? 'text-blue-500' :
+                robot.color === 'red' ? 'text-red-500' :
+                robot.color === 'green' ? 'text-green-500' :
+                robot.color === 'purple' ? 'text-purple-500' :
+                robot.color === 'orange' ? 'text-orange-500' :
+                'text-blue-500'
+              }`} />
               <span className="font-medium">
                 Robot {robot.id + 1} {robot.isIt ? "(IT)" : ""}
               </span>
@@ -521,9 +632,21 @@ const TagGame: React.FC<TagGameProps> = ({
                           <span className="text-red-500 font-medium">Tagged!</span>
                         ) : (
                           <>
-                            <span>({movement.from.x}, {movement.from.y})</span>
-                            <ArrowRight className="w-3 h-3" />
-                            <span>({movement.to.x}, {movement.to.y})</span>
+                            {/* Check for teleport (significant distance change) */}
+                            {Math.abs(movement.from.x - movement.to.x) > 2 || 
+                             Math.abs(movement.from.y - movement.to.y) > 2 ? (
+                              <>
+                                <span>({movement.from.x}, {movement.from.y})</span>
+                                <span className="text-purple-500 font-medium px-1">Teleported</span>
+                                <span>({movement.to.x}, {movement.to.y})</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>({movement.from.x}, {movement.from.y})</span>
+                                <ArrowRight className="w-3 h-3" />
+                                <span>({movement.to.x}, {movement.to.y})</span>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
@@ -720,6 +843,13 @@ const TagGame: React.FC<TagGameProps> = ({
                   <span className="text-red-500 text-xs font-bold">TAG!</span>
                 </div>
                 <span>Tag Location</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 flex items-center justify-center">
+                  <span className="text-purple-500 text-xs font-medium">Teleport</span>
+                </div>
+                <span>Teleportation (after tag)</span>
               </div>
             </div>
           </div>
