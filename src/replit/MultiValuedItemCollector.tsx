@@ -684,11 +684,19 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       robotIntervalRef.current = null;
     }
     
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
     setRobot(prev => prev ? {
       ...prev,
       status: "Paused",
       history: [...prev.history, "Collection process paused."]
     } : null);
+    
+    // Clear directPaths when stopping
+    setDirectPaths([]);
   };
 
   const moveRobot = () => {
@@ -945,6 +953,56 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
           {/* Render items */}
           {items.map(item => renderItem(item))}
           
+          {/* Render direct paths to visualize item weights */}
+          <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 15 }}>
+            {directPaths.map((path, index) => {
+              const startX = path.x1 * 20 + 10;
+              const startY = path.y1 * 20 + 10;
+              const endX = path.x2 * 20 + 10;
+              const endY = path.y2 * 20 + 10;
+              
+              const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
+              const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+              
+              // Normalize weight to determine line thickness (positive = thicker, negative = thinner)
+              const thickness = path.weight > 0 
+                ? Math.min(4, 1 + path.weight / 3) 
+                : Math.max(0.5, 1 + path.weight / 10);
+                
+              // Opacity based on absolute weight
+              const opacity = Math.min(0.9, 0.3 + Math.abs(path.weight) / 8);
+              
+              return (
+                <div
+                  key={`path-${index}`}
+                  className="absolute"
+                  style={{
+                    backgroundColor: path.color === 'red' ? '#ef4444' : 
+                                     path.color === 'yellow' ? '#eab308' : 
+                                     path.color === 'green' ? '#22c55e' : 
+                                     path.color === 'blue' ? '#3b82f6' : 
+                                     '#a855f7', // Purple default
+                    left: `${startX}px`,
+                    top: `${startY}px`,
+                    width: `${length}px`,
+                    height: `${thickness}px`,
+                    transformOrigin: 'left',
+                    transform: `rotate(${angle}deg)`,
+                    opacity: opacity,
+                    // Add a glow effect for positive values
+                    boxShadow: path.weight > 0 ? `0 0 ${Math.min(6, path.weight * 2)}px rgba(${path.color === 'red' ? '239, 68, 68' : 
+                                               path.color === 'yellow' ? '234, 179, 8' :
+                                               path.color === 'green' ? '34, 197, 94' :
+                                               path.color === 'blue' ? '59, 130, 246' :
+                                               '168, 85, 247'}, 0.5)` : 'none',
+                    zIndex: 15 + Math.floor(Math.abs(path.weight))
+                  }}
+                  title={`Item value: ${path.weight.toFixed(1)}`}
+                />
+              );
+            })}
+          </div>
+          
           {/* Render robot */}
           {robot && (
             <div 
@@ -996,6 +1054,10 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
             <div className="flex items-center">
               <div className="w-4 h-4 rounded-full bg-purple-500 mr-1"></div>
               <span className="text-sm">Balanced Item</span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-5 h-1 bg-green-500 mr-1"></div>
+              <span className="text-sm">Value Connection</span>
             </div>
           </div>
         </div>
@@ -1131,11 +1193,19 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
             <div className="mt-2">
               <h4 className="font-medium text-sm">Uncollected Items</h4>
               <div className="space-y-1 mt-1">
-                {items.filter(i => !i.collected).map(item => (
-                  <div key={item.id} className="text-xs bg-white p-1 rounded">
-                    {item.name} ({item.x}, {item.y}) - S:{item.strengthValue} G:{item.goldValue} F:{item.foodValue} W:{item.waterValue}
-                  </div>
-                ))}
+                {items.filter(i => !i.collected).map(item => {
+                  // Calculate current value for this item based on robot's current state
+                  const itemValue = robot ? calculateItemValue(item, robot) : 0;
+                  
+                  return (
+                    <div key={item.id} className="text-xs bg-white p-1 rounded">
+                      {item.name} ({item.x}, {item.y}) - S:{item.strengthValue} G:{item.goldValue} F:{item.foodValue} W:{item.waterValue}
+                      <span className={`ml-1 font-medium ${itemValue > 0 ? 'text-green-500' : itemValue < 0 ? 'text-red-500' : 'text-gray-500'}`}>
+                        Value: {itemValue.toFixed(1)}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             
