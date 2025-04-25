@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import MazeGame from './components/MazeGame';
 import TerrainGame from './components/TerrainGame';
 import FruitCollector from './components/FruitCollector';
@@ -11,6 +11,7 @@ import RobotTrading from './components/RobotTrading';
 import RogueLikeGame from './components/RogueLikeGame';
 import Combat from './combat/Combat.tsx';
 import ReplitScene from './replit/ReplitScene';
+import ArrowIcon from './components/ArrowIcon';
 
 type GameType = 
   | 'maze' 
@@ -24,7 +25,8 @@ type GameType =
   | 'trading' 
   | 'rogue'
   | 'other-apps'
-  | 'combat';
+  | 'combat'
+  | 'replit';
 
 function App() {
   const [activeGame, setActiveGame] = useState<GameType>('maze');
@@ -40,6 +42,11 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col items-center gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow-sm p-3 flex items-center justify-center w-full mb-2">
+            <h1 className="text-2xl font-bold text-blue-600 flex items-center">
+              AI Simulation Framework <ArrowIcon size={24} color="#2563eb" className="ml-2" />
+            </h1>
+          </div>
           <div className="bg-white rounded-lg shadow-sm p-1 flex gap-1 flex-wrap">
             <button
               onClick={() => setActiveGame('maze')}
