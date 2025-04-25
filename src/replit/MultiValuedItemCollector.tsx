@@ -46,7 +46,7 @@ interface Cell {
   f: number;
   g: number;
   h: number;
-  parent: Cell | null;
+  parent: Cell | null | undefined;
 }
 
 interface MultiValuedItemCollectorProps {

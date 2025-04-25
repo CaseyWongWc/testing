@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { MultiValuedItemCollector } from './MultiValuedItemCollector';
 
 const Scene7: React.FC = () => {
