@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Bot, HelpCircle, Play, Pause, Timer, FastForward, Hammer, ArrowRight, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
+import { Bot, HelpCircle, Play, Pause, Timer, FastForward, Hammer, ArrowRight } from 'lucide-react';
 
 interface Cell {
   x: number;
@@ -55,7 +55,6 @@ const TagGame: React.FC<TagGameProps> = ({
   const [movements, setMovements] = useState<Movement[]>([]);
   const [lastTagLocation, setLastTagLocation] = useState<{ x: number, y: number } | null>(null);
   const [continuousPlay, setContinuousPlay] = useState(false);
-  const [teleportCount, setTeleportCount] = useState(0);
   
   const lastFrameTimeRef = useRef<number>(0);
   const accumulatedTimeRef = useRef<number>(0);
@@ -63,9 +62,11 @@ const TagGame: React.FC<TagGameProps> = ({
   const colors = ['blue', 'red', 'green', 'purple', 'orange'];
   const TAG_COOLDOWN = 2000;
 
+  // Initialize game on mount only, not on every prop change
   useEffect(() => {
     generateMaze();
-  }, [width, height, wallDensity, robotCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const initializeMaze = () => {
     const newMaze: Cell[][] = [];
@@ -133,7 +134,6 @@ const TagGame: React.FC<TagGameProps> = ({
     setRobots(newRobots);
     setMovements([]);
     setLastTagLocation(null);
-    setTeleportCount(0);
     setIsAnimating(false);
     setContinuousPlay(false);
   };
@@ -338,14 +338,20 @@ const TagGame: React.FC<TagGameProps> = ({
   };
 
   useEffect(() => {
-    let animationFrameId: number;
-    const UNIVERSAL_CLOCK = 1000; // 1 second base clock
+    // Do the initial path calculation outside the animation frame
+    if (isAnimating || continuousPlay) {
+      updatePaths();
+    }
     
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAnimating, continuousPlay]);
+  
+  // Separate effect for the animation loop
+  useEffect(() => {
+    if (!isAnimating && !continuousPlay) return;
+    
+    let animationFrameId: number;
     const animate = (timestamp: number) => {
-      if (!isAnimating && !continuousPlay) {
-        return;
-      }
-
       if (!lastFrameTimeRef.current) {
         lastFrameTimeRef.current = timestamp;
       }
@@ -374,6 +380,7 @@ const TagGame: React.FC<TagGameProps> = ({
             robot.pathIndex++;
             anyRobotMoved = true;
 
+            // Collect all movement updates to do in one batch
             setMovements(prev => [{
               robotId: robot.id,
               from: prevPos,
@@ -410,23 +417,25 @@ const TagGame: React.FC<TagGameProps> = ({
           }
         }
 
+        // Update robots in one batch
         setRobots(newRobots);
 
         // Update paths if needed
         if (tagHappened || !anyRobotMoved) {
-          updatePaths();
+          // Using setTimeout to avoid immediate state updates which can cause infinite loops
+          setTimeout(() => {
+            updatePaths();
+          }, 0);
         }
       }
 
       animationFrameId = requestAnimationFrame(animate);
     };
 
-    if (isAnimating || continuousPlay) {
-      lastFrameTimeRef.current = 0;
-      accumulatedTimeRef.current = 0;
-      updatePaths(); // Initial path calculation
-      animationFrameId = requestAnimationFrame(animate);
-    }
+    // Start animation
+    lastFrameTimeRef.current = 0;
+    accumulatedTimeRef.current = 0;
+    animationFrameId = requestAnimationFrame(animate);
 
     return () => {
       if (animationFrameId) {
@@ -434,6 +443,9 @@ const TagGame: React.FC<TagGameProps> = ({
       }
     };
   }, [isAnimating, continuousPlay, robots, maze, moveSpeed, updatePaths]);
+  
+  // Constant for clock
+  const UNIVERSAL_CLOCK = 1000;
 
   return (
     <div className="flex flex-col md:flex-row gap-8">
