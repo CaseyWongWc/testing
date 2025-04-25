@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Bot, HelpCircle, Play, Pause, Timer, FastForward, Hammer, ArrowRight } from 'lucide-react';
 
 interface Cell {
