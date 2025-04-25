@@ -4,6 +4,7 @@ import WeightedDecisions from './WeightedDecisions';
 import Pathfinder from './Pathfinder';
 import BeeHiveSimulation from './BeeHiveSimulation';
 import AIEcosystem from './AIEcosystem';
+import TagGame from './TagGame';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 const ReplitScene: React.FC = () => {
@@ -80,7 +81,7 @@ const ReplitScene: React.FC = () => {
         {scene === 'scene2' && <ErrorBoundary><Pathfinder /></ErrorBoundary>}
         {scene === 'scene3' && <ErrorBoundary><BeeHiveSimulation /></ErrorBoundary>}
         {scene === 'scene4' && <ErrorBoundary><AIEcosystem /></ErrorBoundary>}
-        {scene === 'scene5' && <div>Scene 5 Content</div>}
+        {scene === 'scene5' && <ErrorBoundary><TagGame width={25} height={15} wallDensity={0.25} robotCount={4} /></ErrorBoundary>}
         {scene === 'scene6' && <div>Scene 6 Content</div>}
         {scene === 'scene7' && <div>Scene 7 Content</div>}
         {scene === 'scene8' && <div>Scene 8 Content</div>}
