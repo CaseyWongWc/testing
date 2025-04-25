@@ -11,7 +11,7 @@ import RobotTrading from './components/RobotTrading';
 import RogueLikeGame from './components/RogueLikeGame';
 import Combat from './combat/Combat.tsx';
 import ReplitScene from './replit/ReplitScene';
-import Scene7 from './components/Scene7';
+import Scene7 from './replit/Scene7';
 import ArrowIcon from './components/ArrowIcon';
 
 type GameType = 
