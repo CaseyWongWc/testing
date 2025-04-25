@@ -19,6 +19,10 @@ externalPort = 5000
 localPort = 5174
 externalPort = 80
 
+[[ports]]
+localPort = 5175
+externalPort = 3001
+
 [workflows]
 runButton = "Run"
 
@@ -30,3 +34,24 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
+
+[[workflows.workflow]]
+name = "arrow"
+mode = "sequential"
+author = 27304601
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"Starting AI Simulation Server with Express proxy...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server.js"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"Starting AI Simulation Server...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server.js"
