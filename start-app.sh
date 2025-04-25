@@ -1,3 +1,5 @@
 #!/bin/bash
-echo "Starting AI Simulation Framework..."
-npm run dev
+pkill -f "node server.js" || true
+pkill -f vite || true
+sleep 2
+node server.js
