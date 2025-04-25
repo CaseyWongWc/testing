@@ -1,0 +1,165 @@
+CS3560 Homework 3
+Be sure to read this document carefully. You are responsible to read and understand all of these
+instructions. If you have questions, be sure to ask, either in class, by email, or at office hours.
+Description
+Homework 3 is an extended group project. The class will be divided into groups of about 4 people.
+The smallest sized group would be 3 people, the largest about 6 people. There are several phases to
+this homework, and it is expected that everyone in the group participates and contributes to the work.
+Your group will be designing a WSS (Wilderness Survival System), which is described below. You will
+need to do the following things:
+1. During today's class, your group will begin discussing the project and assigning roles. Talk
+through the requirements to see if you all have the same understanding of what is being
+requested.
+2. Your group will then produce a Class Diagram for your system. In addition to listing all of the
+classes and their relationships, you will also list all the essential attributes of each class and
+also show the methods, or actions, that each class performs. Note that there are several places
+where class hierarchy can (and should) be used, with super classes and sub classes.
+Polymorphism and inheritance should be used!
+3. For any class that performs complex actions, and you should have at least two or three that do,
+you need to provide a state diagram showing how the object will perform that complex action.
+4. Next you will make some Use Cases documenting the various types of interaction that the
+objects can have with WSS. For this project, we are extending the Use Case and Interaction
+Diagrams a bit: rather than actors being external users in the system, we can use Traders and
+the Player as actors, and they can have some interaction sequences captured in these
+diagrams.
+5. For each Use Case, draw some Sequence Models showing typical scenarios.
+6. For any complex operations, draw Activity Diagrams showing how these operations are
+implemented through the actions of various objects.
+7. Homework 3 consists of all of these Diagrams. Homework 3 is due on Apr 8, 2025.
+8. Homework 4, due at the end of the class, will be your implementation of WSS. In addition,
+during the last couple of class sessions of the semester, the teams will present their WSS
+designs to the class.
+So what is WSS?
+At the very top-level, the Wilderness Survival System (WSS) is a game that contains a map and a
+player. The player starts on the west (left) edge of the map and attempts to move across the map,
+exiting somewhere on the east (right) edge of the map. However, there are perils and costs for moving
+through the map, so the player might not actually get all the way across the map.The Map
+The map is a rectangular area, made of a number of squares. We can consider each square being
+about 5 miles on a side. The map has a width (number of squares between the west and east side)
+and a height (number of squares between the north and south side). For example, the map might have
+a width of 20 and a height of 10, representing an area of 100 miles wide and 50 miles tall.
+Each of the squares in the map has a certain type of terrain, such as "plains", "mountain", "desert",
+"swamp", and "forest". You can add other terrain types if you wish.
+When WSS starts, it should ask the user for the size of the map, and also it can ask for different
+"difficulties". It is up to your group to decide how many difficulties your program will have. WSS will
+then make the map of that size, and based on the difficulty selection will populate the squares with
+some pattern of terrain. You should document the strategy you use for each difficulty to decide the
+terrain in each square.
+Terrain
+Let's talk about the terrain. Each type of terrain has three costs: movement cost (how much energy
+does it take to "cross" the square), water cost (how much water…), and food cost (how much food…).
+For simplicity, these costs apply when you enter the square. So to enter, the player must have enough
+'movement', water, and food. If any of these costs are too high, the player cannot enter that square.
+When the player enters a square, these costs are deducted from the player's reserves. Your team can
+decide, for each type of terrain, what the three costs are for that terrain. However, make decisions that
+make sense!
+If the player decides to stand still for one turn, staying in the same cell, then there would be no
+movement cost, and in fact the player will regain '2' units of movement. However, the player will still
+require water and food, but at ½ the normal rate.
+Items
+Sometimes there are items in the map. So any square can contain one or more items, although many
+squares will not have any items. So what are the items?
+● Food Bonus. This provides extra food for the player.
+● Water Bonus.
+● Gold Bonus. The player can collect some gold coins at this location.
+● Trader (see below)
+Most of the time, the bonus is a one-time deal. Once the player "takes" the food bonus, it is gone.
+However, sometimes a bonus may be marked as "repeating", which means the user can take this
+bonus multiple times, although only once per day (turn). So for example, if there was a stream running
+through this square, there would be a repeating water bonus. There might be a repeating food bonus if
+there was a herd of animals, but if there was just one animal, it would not be repeating. Gold would
+probably not be repeating. A Trader would always be repeating. After the player enters a square, the
+player can collect any of the items in that square.Trader
+What is this Trader? A Trader is a person in that square. The player can suggest a trade. For
+example, the player can say "I'll give you 2 food and 1 gold for 3 water". The trader can then counter
+with another trade, or the trader can accept. If the trader gives another offer, then the player can either
+accept or give another offer. This process repeats until one party either accepts or rejects the offer.
+Each offer consists of the amount of gold, water, and food being offered for the amount of gold, water,
+and food being requested.
+To make things interesting, you can have multiple types of trader (the player cannot distinguish which is
+which). You might have some traders that get mad after so many counter-offers that they quit, some
+might change their minds, and so on. Be creative. Come up with some interesting state diagrams
+showing how this trader makes decisions. Also assume that the trader has an infinite supply, so you
+could keep trading with the same trader. However, don't make the trader too generous, because
+otherwise the player could just keep asking and asking for more things. Try to keep things fairly
+balanced.
+As your program is populating the map with the terrain, it can also add the items and the traders.
+Again, don't make too many of them, as this will make the game too easy.
+Player
+Speaking of easy, that was the easy part, the map. Now we come to the player. The player has a
+maximum strength, maximum water, maximum food, and it also has a current strength, current water,
+current food, and current gold. It starts with given values for strength, water, and food (the same value
+in both the maximum and current values), and starts with no gold. As the player spends movement
+points, the current strength goes down. The current water and current food values also go down by the
+terrain costs. If the person collects bonuses or trades, the current values go up. However, the current
+values can never exceed the maximum values.
+When you are initializing the map, you can also initialize the player. Again, you can make things more
+interesting by having different types of player (they have different combinations of maximum values).
+There are two other features that distinguish different types of player: Vision and Brain. Each player will
+have a Vision object and a Brain object.
+Vision
+The Vision object looks into the neighboring map squares, looking for things of interest. The Vision
+object has a number of methods (procedures), each of which returns a Path. A Path is a short
+sequence of moves: MoveNorth, MoveSouth, MoveEast, MoveWest. The path should also give a
+summary of the movement cost, water cost, and food cost to complete the path. Diagonal moves are
+also possible: MoveNorthEast, and so on. There are different subclasses of Vision, with each subclass
+being able to examine a subset of the neighboring squares.So, for example, the Cautious Vision can see the square to the north of the player's current location
+(one above), to the south (one below), and to the east (one to the right).
+These are the procedures that are available in the Vision class:
+● closestFood -- This procedure looks into all of the squares that are available to the Vision,
+searching for a square that has a food bonus. It will return the path (sequence of moves) that
+will lead the player to the closest source of food. If there are multiple squares with food, and
+they all have the same distance, prefer the path that takes the smallest movement cost, and if
+there are still multiple possibilities, take the square that is furthest to the east (since the overall
+goal is to get to the east side of the map).
+● closestWater
+● closestGold
+● closestTrader
+● easiestPath -- This looks for the square that takes the least movement cost to get to.
+● secondClosestFood -- This is similar to closestFood, but gives the second-best choice. The
+player may really need food, but also wants to optimize going east (for example), so it may ask
+for the second choice to give it more options to choose from.
+● secondClosestWater
+● secondClosestGold
+● secondClosestTrader
+Brain
+The Brain object has one method, makeMove. This object will look at the various attributes of the
+player (the current levels), and will call the Vision object to find what is nearby, then examine the terrain,
+and decide what to do. It will then tell the player to move one step in some direction. Alternatively, it
+could decide to stay in the current square for another turn. Once it moves the player to a new square, it
+can collect bonuses, and make trades with any trader.It is recommended that the team make a couple of Brain subclasses, with different strategies. What
+strategy to use for each is up to the team! You will most likely be making State Diagrams showing the
+algorithm the Brain uses to make its decisions.
+The Program
+For Homework 3, your group will be creating the class diagrams, state diagrams, interaction diagrams,
+use cases, and any other documentation to help your team plan your implementation of WSS. In a
+couple of weeks, the teams will present their diagrams (at least a few of the diagrams).
+For Homework 4, which is due at the end of the class, you will be writing an implementation of WSS.
+Your team can use Java, C++, or another language of your choosing. Your program can have a fancy
+GUI if you want, or you can have a simple text interface. Either is fine, the choice will not affect your
+grade (except if you do an exceptional job, you may earn a bonus).
+When the program starts, it should ask for the size of the map and the difficulty setting. It will then
+create a player, choosing the Vision and Brain from your list of options, then have the player try moving
+from the west to east edge of the map. Whether the player actually gets to the other side does not
+affect your grade. What you are being graded on is your design, your diagrams, and your coding style.
+You can write basic versions of the various methods and get a reasonable grade, or you can go all-out,
+probably have a lot more fun, and maybe score bonus points.
+As an option, your program could generate the map, then create several instances of the player,
+sending them one at a time through the map (be sure to reset the items for each player). You could
+then give a report indicating which player/vision/brain combinations made it through.
+A third option would be to create several players, then send them through at the same time, so they are
+competing for resources in the map.
+Collaboration vs Cheating
+Recall that Cal Poly's Academic Integrity policy states that all homework should be your own work. You
+should not turn in someone else's work with your name on it. However, this is a group project, you will
+work on the assignment together, turning in joint work.
+Grading
+Your score will be computed as follows:
+● 20%: Do you have a comprehensive set of Classes?
+● 30%: Do your State Diagrams adequately describe the behavior of the complex routines?
+● 25%: Does your Interaction Modelling show how two objects interact?
+● 15%:Have you covered all of the requirements?
+● 10%: Did you follow all of the instructions?Turning In Homework
+You will submit your homework to Blackboard.
+Due Date
+The homework is due on Apr 13, by the end of the day.
