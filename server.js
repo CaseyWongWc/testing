@@ -2,12 +2,21 @@ import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { spawn } from 'child_process';
 
-// Start the Vite development server
-console.log('Starting Vite development server...');
-const vite = spawn('npx', ['vite', '--host', '0.0.0.0'], {
-  stdio: 'inherit',
-  shell: true
-});
+// Check if we're running in direct npm run dev mode
+const isDirectViteMode = process.argv.includes('--direct-vite');
+
+// Start the Vite development server if we're not in direct mode
+let vite;
+if (!isDirectViteMode) {
+  console.log('Starting Vite development server...');
+  vite = spawn('npx', ['vite', '--host', '0.0.0.0', '--port', '5174'], {
+    stdio: 'inherit',
+    shell: true,
+    env: { ...process.env, VITE_SOME_KEY: 'force-port-5174' }
+  });
+} else {
+  console.log('Running in direct Vite mode, skipping Vite launch');
+}
 
 // Give Vite a moment to start
 setTimeout(() => {
@@ -17,9 +26,12 @@ setTimeout(() => {
   // Proxy all requests to the Vite dev server
   // Vite usually runs on port 5173, but it may select another port if 5173 is in use
   app.use('/', createProxyMiddleware({
-    target: 'http://localhost:5173',
+    target: 'http://0.0.0.0:5174', // Using 0.0.0.0 instead of localhost for better container/VM compatibility
     changeOrigin: true,
     ws: true, // proxy websockets
+    onProxyReq: (proxyReq, req, res) => {
+      console.log(`Proxying request: ${req.method} ${req.url}`);
+    },
     onError: (err, req, res) => {
       console.error('Proxy error:', err);
       res.writeHead(500, {
@@ -29,10 +41,20 @@ setTimeout(() => {
     }
   }));
 
+  // Add a diagnostic endpoint
+  app.get('/api/status', (req, res) => {
+    res.json({
+      status: 'ok',
+      message: 'Express proxy server is running',
+      vitePort: 5174,
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Error handling in case port 5000 is already in use
   app.listen(port, '0.0.0.0', () => {
     console.log(`Express proxy server running at http://localhost:${port}`);
-    console.log(`Proxying requests to Vite development server`);
+    console.log(`Proxying requests to Vite development server at http://0.0.0.0:5174`);
   }).on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.error(`Port ${port} is already in use. Please free up the port or use a different one.`);
