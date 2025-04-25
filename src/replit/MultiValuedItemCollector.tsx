@@ -213,28 +213,39 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     const newPaths: DirectPath[] = [];
     const visibleItems = items.filter(item => !item.collected);
     
-    // Only show paths to the 5 closest items for performance and readability
-    const itemsWithDistances = visibleItems.map(item => {
+    // Calculate value for all items to find the range
+    const itemsWithValues = visibleItems.map(item => {
       const distance = Math.abs(robot.x - item.x) + Math.abs(robot.y - item.y);
-      // Calculate item value for the current robot state
+      // Calculate raw value (sum of resource values)
+      const rawSum = item.strengthValue + item.goldValue + item.foodValue + item.waterValue;
+      // Calculate contextualized value for robot's current needs
       const value = calculateItemValue(item, robot);
-      return { item, distance, value };
+      return { item, distance, value, rawSum };
     });
     
-    // Sort by distance and take top 5
-    const closestItems = itemsWithDistances
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 5);
+    // Find highest value item to compare with
+    let maxValue = -Infinity;
+    let minValue = Infinity;
     
-    // Create paths
-    for (const { item, value } of closestItems) {
+    itemsWithValues.forEach(({ value }) => {
+      if (value > maxValue) maxValue = value;
+      if (value < minValue) minValue = value;
+    });
+    
+    // Sort by value in descending order and prioritize paths to top 8 items
+    const valueItems = itemsWithValues
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+    
+    // Create paths with thicker lines for higher values
+    for (const { item, value, rawSum } of valueItems) {
       // Only connect if not blocked by walls using line of sight check
       if (!isLineBlocked(robot.x, robot.y, item.x, item.y)) {
         // Extract item type color from bg-color-500 format
         const colorMatch = item.color.match(/bg-(\w+)-\d+/);
         const color = colorMatch ? colorMatch[1] : 'gray';
         
-        // Create the path
+        // Create the path, using rawSum as the simple weight label
         newPaths.push({
           x1: robot.x,
           y1: robot.y,
@@ -843,16 +854,8 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     
     // Update the item's weight property for visual representation
     // This will determine how attractive (positive) or repulsive (negative) the item appears
-    const updatedItem = {...item};
-    updatedItem.weight = rawSum;
-    
-    // Find items with matching id in our state and update their weight
-    const itemIndex = items.findIndex(i => i.id === item.id);
-    if (itemIndex >= 0) {
-      const newItems = [...items];
-      newItems[itemIndex] = {...newItems[itemIndex], weight: rawSum};
-      // Don't call setItems here to avoid unnecessary re-renders
-      // We'll use the weight value directly in our calculation
+    if (item.weight === undefined) {
+      item.weight = rawSum;
     }
     
     // Determine which resource the robot needs most based on thresholds
@@ -897,9 +900,13 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       value += item.waterValue * 0.5;
     }
     
-    // Distance penalty (items farther away are less valuable)
+    // Apply more significant distance penalty for now
+    // As requested: "for now we also have to consider distance"
     const distance = Math.abs(robot.x - item.x) + Math.abs(robot.y - item.y);
-    value = value / (1 + distance * 0.1);
+    
+    // Stronger distance penalty (items farther away are significantly less valuable)
+    // This ensures distance is a major factor in the calculation
+    value = value / (1 + distance * 0.2);
     
     return value;
   };
@@ -915,17 +922,35 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     const valueType = updateRobotValuePriority(robot);
     setRobot(prev => prev ? { ...prev, activeValueType: valueType } : null);
     
-    // Calculate value for each item
+    // Calculate value for each item and store in a map for debug/display purposes
+    const itemValues: {[id: string]: number} = {};
     let bestItem = null;
     let bestValue = -Infinity;
     
     for (const item of uncollectedItems) {
-      const value = calculateItemValue(item, robot);
+      // Calculate total raw sum for simple weight label
+      const rawSum = item.strengthValue + item.goldValue + item.foodValue + item.waterValue;
       
+      // Update the item with its weight value for visualization
+      const itemWithWeight = {...item, weight: rawSum};
+      
+      // Calculate the robot's contextual value for this item (includes distance penalty and needs)
+      const value = calculateItemValue(itemWithWeight, robot);
+      itemValues[item.id] = value;
+      
+      // Find the item with the highest value
       if (value > bestValue) {
         bestValue = value;
         bestItem = item;
       }
+    }
+    
+    // Log the values for debugging
+    if (showDebug) {
+      console.log("Item values:", itemValues);
+      console.log("Best item selected:", bestItem ? 
+        `${bestItem.name} (${bestItem.x}, ${bestItem.y}) - S:${bestItem.strengthValue} G:${bestItem.goldValue} F:${bestItem.foodValue} W:${bestItem.waterValue} Value: ${itemValues[bestItem.id].toFixed(1)}` 
+        : "None");
     }
     
     return bestItem;
