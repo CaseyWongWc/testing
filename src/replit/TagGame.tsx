@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Bot, HelpCircle, Play, Pause, Timer, FastForward, Hammer, ArrowRight } from 'lucide-react';
+import { Bot, HelpCircle, FastForward, Hammer, ArrowRight } from 'lucide-react';
 
 interface Cell {
   x: number;
@@ -23,6 +23,7 @@ interface Robot {
   color: string;
   lastTagTime: number;
   status: string;
+  movements: Movement[]; // Each robot has its own movement history
 }
 
 interface Movement {
@@ -52,9 +53,9 @@ const TagGame: React.FC<TagGameProps> = ({
   const [isAnimating, setIsAnimating] = useState(false);
   const [moveSpeed, setMoveSpeed] = useState(0.5);
   const [editMode, setEditMode] = useState(false);
-  const [movements, setMovements] = useState<Movement[]>([]);
   const [lastTagLocation, setLastTagLocation] = useState<{ x: number, y: number } | null>(null);
   const [continuousPlay, setContinuousPlay] = useState(false);
+  const [expandedRobot, setExpandedRobot] = useState<number | null>(null);
   
   const lastFrameTimeRef = useRef<number>(0);
   const accumulatedTimeRef = useRef<number>(0);
@@ -62,6 +63,7 @@ const TagGame: React.FC<TagGameProps> = ({
   const colors = ['blue', 'red', 'green', 'purple', 'orange'];
   const TAG_COOLDOWN = 2000;
   const UNIVERSAL_CLOCK = 1000;
+  const MAX_MOVEMENTS = 10; // Maximum number of movements to store per robot
 
   // Define helper functions
   const initializeMaze = () => {
@@ -122,16 +124,17 @@ const TagGame: React.FC<TagGameProps> = ({
         pathIndex: 0,
         color: colors[i % colors.length],
         lastTagTime: 0,
-        status: 'Active'
+        status: 'Active',
+        movements: [] // Initialize with empty movements array
       });
     }
 
     setMaze(newMaze);
     setRobots(newRobots);
-    setMovements([]);
     setLastTagLocation(null);
     setIsAnimating(false);
     setContinuousPlay(false);
+    setExpandedRobot(null);
   };
   
   // Initialize game on mount only
@@ -226,11 +229,12 @@ const TagGame: React.FC<TagGameProps> = ({
     return [];
   }, [maze, width, height]);
 
+  // Update paths for all robots
   const updatePaths = useCallback(() => {
     const newMaze = [...maze];
     const newRobots = [...robots];
 
-    // Clear all existing paths
+    // Clear all existing paths from maze
     newMaze.forEach(row => row.forEach(cell => {
       cell.robotPaths = [];
     }));
@@ -274,7 +278,7 @@ const TagGame: React.FC<TagGameProps> = ({
       });
     }
 
-    // Calculate escape paths for other robots
+    // Calculate escape paths for other robots independently
     nonItRobots.forEach(robot => {
       // Find furthest point from "it" robot
       let bestDistance = -1;
@@ -303,7 +307,7 @@ const TagGame: React.FC<TagGameProps> = ({
         robot.pathIndex = 0;
         robot.status = 'Escaping';
 
-        // Mark path on maze
+        // Mark path on maze with distinct color for each robot
         bestPath.forEach(cell => {
           newMaze[cell.y][cell.x].robotPaths.push({
             robotId: robot.id,
@@ -339,8 +343,8 @@ const TagGame: React.FC<TagGameProps> = ({
     updatePaths();
   };
 
+  // Update paths when animation starts
   useEffect(() => {
-    // Do the initial path calculation outside the animation frame
     if (isAnimating || continuousPlay) {
       updatePaths();
     }
@@ -348,7 +352,7 @@ const TagGame: React.FC<TagGameProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAnimating, continuousPlay]);
   
-  // Separate effect for the animation loop
+  // Animation loop
   useEffect(() => {
     if (!isAnimating && !continuousPlay) return;
     
@@ -382,14 +386,17 @@ const TagGame: React.FC<TagGameProps> = ({
             robot.pathIndex++;
             anyRobotMoved = true;
 
-            // Collect all movement updates to do in one batch
-            setMovements(prev => [{
+            // Add movement to this robot's movement history
+            const movement: Movement = {
               robotId: robot.id,
               from: prevPos,
               to: { x: nextCell.x, y: nextCell.y },
               type: 'move',
               timestamp: Date.now()
-            }, ...prev.slice(0, 9)]);
+            };
+            
+            // Update this robot's movement history
+            robot.movements = [movement, ...robot.movements.slice(0, MAX_MOVEMENTS - 1)];
           }
         });
 
@@ -407,13 +414,27 @@ const TagGame: React.FC<TagGameProps> = ({
                 robot.lastTagTime = now;
                 tagHappened = true;
 
-                setMovements(prev => [{
+                // Add tag event to both robots' movement history
+                const tagMovement: Movement = {
                   robotId: robot.id,
                   from: { x: robot.x, y: robot.y },
                   to: { x: robot.x, y: robot.y },
                   type: 'tag',
                   timestamp: now
-                }, ...prev.slice(0, 9)]);
+                };
+                
+                robot.movements = [tagMovement, ...robot.movements.slice(0, MAX_MOVEMENTS - 1)];
+                
+                // Also log the tag in the previous "it" robot's history
+                const taggedMovement: Movement = {
+                  robotId: it.id,
+                  from: { x: it.x, y: it.y },
+                  to: { x: it.x, y: it.y },
+                  type: 'tag',
+                  timestamp: now
+                };
+                
+                it.movements = [taggedMovement, ...it.movements.slice(0, MAX_MOVEMENTS - 1)];
               }
             });
           }
@@ -422,7 +443,8 @@ const TagGame: React.FC<TagGameProps> = ({
         // Update robots in one batch
         setRobots(newRobots);
 
-        // Update paths if needed
+        // Update paths after each cycle
+        // This ensures all robots have fresh paths for next round
         if (tagHappened || !anyRobotMoved) {
           // Using setTimeout to avoid immediate state updates which can cause infinite loops
           setTimeout(() => {
@@ -446,6 +468,15 @@ const TagGame: React.FC<TagGameProps> = ({
     };
   }, [isAnimating, continuousPlay, robots, maze, moveSpeed, updatePaths]);
 
+  // Toggle expanded robot view for movement logs
+  const toggleExpandRobot = (robotId: number) => {
+    if (expandedRobot === robotId) {
+      setExpandedRobot(null);
+    } else {
+      setExpandedRobot(robotId);
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row gap-8">
       <div className="w-full md:w-64 space-y-4">
@@ -453,49 +484,58 @@ const TagGame: React.FC<TagGameProps> = ({
           <div 
             key={robot.id}
             className={`bg-white p-4 rounded-lg shadow-md ${
-              robot.isIt ? 'ring-2 ring-red-500' : ''
+              robot.isIt ? 'border-2 border-red-500' : ''
             }`}
           >
-            <div className="flex items-center gap-2 mb-2">
+            <div 
+              className="flex items-center gap-2 mb-2 cursor-pointer"
+              onClick={() => toggleExpandRobot(robot.id)}
+            >
               <Bot className={`w-5 h-5 text-${robot.color}-500`} />
               <span className="font-medium">
                 Robot {robot.id + 1} {robot.isIt ? "(IT)" : ""}
               </span>
+              {expandedRobot === robot.id ? 
+                <span className="ml-auto text-xs text-gray-400">▲</span> :
+                <span className="ml-auto text-xs text-gray-400">▼</span>
+              }
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm">
               Position: ({robot.x}, {robot.y})
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm">
               Status: {robot.status}
             </div>
-          </div>
-        ))}
-
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <FastForward className="w-5 h-5 text-blue-500" />
-            Movement Log
-          </h3>
-          <div className="space-y-2">
-            {movements.map((movement, index) => {
-              const robot = robots.find(r => r.id === movement.robotId);
-              return (
-                <div key={index} className="text-sm flex items-center gap-2 text-gray-600">
-                  <Bot className={`w-4 h-4 text-${robot?.color}-500`} />
-                  {movement.type === 'tag' ? (
-                    <span className="text-red-500 font-medium">Tagged!</span>
+            
+            {expandedRobot === robot.id && (
+              <div className="mt-3 border-t pt-2">
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
+                  <FastForward className="w-4 h-4 text-blue-500" />
+                  Movement Log
+                </h4>
+                <div className="space-y-1 max-h-40 overflow-y-auto pl-1">
+                  {robot.movements.length > 0 ? (
+                    robot.movements.map((movement, index) => (
+                      <div key={index} className="text-xs flex items-center gap-1 text-gray-600">
+                        {movement.type === 'tag' ? (
+                          <span className="text-red-500 font-medium">Tagged!</span>
+                        ) : (
+                          <>
+                            <span>({movement.from.x}, {movement.from.y})</span>
+                            <ArrowRight className="w-3 h-3" />
+                            <span>({movement.to.x}, {movement.to.y})</span>
+                          </>
+                        )}
+                      </div>
+                    ))
                   ) : (
-                    <>
-                      <span>({movement.from.x}, {movement.from.y})</span>
-                      <ArrowRight className="w-4 h-4" />
-                      <span>({movement.to.x}, {movement.to.y})</span>
-                    </>
+                    <span className="text-xs text-gray-400">No movements yet</span>
                   )}
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
-        </div>
+        ))}
       </div>
 
       <div className="flex flex-col items-center gap-4">
@@ -517,26 +557,18 @@ const TagGame: React.FC<TagGameProps> = ({
             }}
             className={`px-4 py-2 rounded transition-colors flex items-center gap-2 ${
               continuousPlay
-                ? 'bg-green-500 text-white hover:bg-green-600'
-                : 'bg-purple-500 text-white hover:bg-purple-600'
+                ? 'bg-red-500 text-white hover:bg-red-600'
+                : 'bg-blue-500 text-white hover:bg-blue-600'
             }`}
           >
-            {continuousPlay ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            {continuousPlay ? 'Stop' : 'Start'} Continuous Play
+            {continuousPlay ? 
+              <><span className="mr-1">Stop</span> Continuous Play</> : 
+              <><span className="mr-1">Start</span> Continuous Play</>
+            }
           </button>
-          {!continuousPlay && (
-            <button
-              onClick={() => setIsAnimating(!isAnimating)}
-              className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors flex items-center gap-2"
-              disabled={continuousPlay}
-            >
-              {isAnimating ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              {isAnimating ? 'Stop' : 'Start'} Single Round
-            </button>
-          )}
-          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded">
-            <Timer className="w-4 h-4 text-gray-600" />
-            <span className="text-sm text-gray-600 w-12">{moveSpeed.toFixed(1)}s</span>
+          
+          <div className="flex items-center gap-2 ml-2">
+            <span className="text-sm text-gray-600">{moveSpeed.toFixed(1)}s</span>
             <input
               type="range"
               min="0.2"
@@ -546,17 +578,19 @@ const TagGame: React.FC<TagGameProps> = ({
               onChange={(e) => setMoveSpeed(parseFloat(e.target.value))}
               className="w-24"
             />
-            <FastForward className="w-4 h-4 text-gray-600" />
+            <button className="w-6 h-6 flex items-center justify-center bg-blue-100 rounded">
+              <FastForward className="w-4 h-4 text-blue-500" />
+            </button>
           </div>
+        </div>
+        
+        <div className="flex gap-2 mb-4 justify-center">
           <button
             onClick={() => setEditMode(!editMode)}
-            className={`px-4 py-2 rounded transition-colors flex items-center gap-2
-              ${editMode 
-                ? 'bg-yellow-500 text-white hover:bg-yellow-600' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors flex items-center gap-2"
           >
             <Hammer className="w-4 h-4" />
-            {editMode ? 'Exit Edit Mode' : 'Edit Walls'}
+            Edit Walls
           </button>
           <button
             onClick={() => setShowLegend(!showLegend)}
@@ -583,20 +617,30 @@ const TagGame: React.FC<TagGameProps> = ({
                   lastTagLocation.x === cell.x && 
                   lastTagLocation.y === cell.y;
                 
-                // Determine cell color based on path overlaps
-                let cellColor = 'bg-white';
+                // Determine cell display based on type
+                let cellClass;
+                
                 if (cell.isWall) {
-                  cellColor = 'bg-gray-800';
+                  // Wall cells are dark
+                  cellClass = 'bg-gray-800';
                 } else if (cell.robotPaths.length > 0) {
-                  // Paths are visualized with reduced opacity
+                  // Path cells are colored based on which robot's path it is
                   const pathRobot = cell.robotPaths[0];
-                  cellColor = `bg-${pathRobot.color}-100`;
+                  cellClass = `bg-${pathRobot.color}-100`;
+                } else {
+                  // Empty cells are white
+                  cellClass = 'bg-white';
+                }
+                
+                // Tag location cells have pink background
+                if (isTagLocation && !robot) {
+                  cellClass = 'bg-red-100';
                 }
                 
                 return (
                   <div
                     key={`${cell.x},${cell.y}`}
-                    className={`aspect-square flex items-center justify-center relative ${cellColor} ${
+                    className={`aspect-square flex items-center justify-center relative ${cellClass} ${
                       editMode ? 'cursor-pointer hover:ring-2 hover:ring-blue-500' : ''
                     }`}
                     onClick={() => handleCellClick(cell.x, cell.y)}
@@ -631,14 +675,18 @@ const TagGame: React.FC<TagGameProps> = ({
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-blue-500 animate-pulse" />
+                  <Bot className="w-5 h-5 text-red-500 animate-pulse" />
                 </div>
                 <span>"It" Robot</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-blue-100 rounded"></div>
-                <span>Path</span>
-              </div>
+              
+              {colors.slice(0, robotCount).map((color) => (
+                <div key={color} className="flex items-center gap-2">
+                  <div className={`w-6 h-6 bg-${color}-100 rounded`}></div>
+                  <span>{color.charAt(0).toUpperCase() + color.slice(1)} Path</span>
+                </div>
+              ))}
+              
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 flex items-center justify-center">
                   <span className="text-red-500 text-xs font-bold">TAG!</span>
