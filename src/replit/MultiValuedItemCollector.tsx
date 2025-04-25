@@ -510,10 +510,10 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       pathIndex: 0,
       inventory: {
         items: [],
-        strengthTotal: 0,
-        goldTotal: 0,
-        foodTotal: 0,
-        waterTotal: 0
+        strengthTotal: 0, // Starting with 0/10
+        goldTotal: 0,     // Starting with 0/15
+        foodTotal: 0,     // Starting with 0/20
+        waterTotal: 0     // Starting with 0/18
       },
       thresholds: {
         strength: 10,
@@ -598,14 +598,42 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     } while (maze[y][x].isWall || usedPositions.has(`${x},${y}`));
 
     // Determine the primary type of the item
-    const typeIndex = Math.floor(Math.random() * ITEM_TYPES.length);
+    // Increase chance of special items by using weighted selection
+    let typeIndex;
+    const randomVal = Math.random();
+    
+    // 15% chance for watermelon or poison delight flask
+    if (randomVal < 0.075) { 
+      // Watermelon index (5)
+      typeIndex = 5;
+    } else if (randomVal < 0.15) {
+      // PoisonDelight Flask index (6)
+      typeIndex = 6;
+    } else {
+      // Regular items (0-4)
+      typeIndex = Math.floor(Math.random() * 5);
+    }
+    
     const itemType = ITEM_TYPES[typeIndex];
     
     // Assign values - can be positive or negative
     let strengthValue = 0, goldValue = 0, foodValue = 0, waterValue = 0;
     
-    // For balanced items, give moderate values to all attributes
-    if (itemType.type === 'balanced') {
+    // Handle special items with predefined values
+    if (itemType.type === 'watermelon') {
+      // Watermelon: [vector of: 2 food, 6 water]
+      strengthValue = 0;
+      goldValue = 0;
+      foodValue = 2;
+      waterValue = 6;
+    } else if (itemType.type === 'poisondelightflask') {
+      // PoisonDelight Flask: [vector of 6 water, but -20 strength]
+      strengthValue = -20;
+      goldValue = 0;
+      foodValue = 0;
+      waterValue = 6;
+    } else if (itemType.type === 'balanced') {
+      // For balanced items, give moderate values to all attributes
       strengthValue = Math.floor(Math.random() * 6) - 1; // -1 to 4
       goldValue = Math.floor(Math.random() * 6) - 1;
       foodValue = Math.floor(Math.random() * 6) - 1;
@@ -642,21 +670,30 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
 
     // Generate description based on values
     let description = "";
-    if (strengthValue !== 0) {
-      const descArray = strengthValue > 0 ? VALUE_DESCRIPTIONS.strength.positive : VALUE_DESCRIPTIONS.strength.negative;
-      description += descArray[Math.floor(Math.random() * descArray.length)] + ". ";
-    }
-    if (goldValue !== 0) {
-      const descArray = goldValue > 0 ? VALUE_DESCRIPTIONS.gold.positive : VALUE_DESCRIPTIONS.gold.negative;
-      description += descArray[Math.floor(Math.random() * descArray.length)] + ". ";
-    }
-    if (foodValue !== 0) {
-      const descArray = foodValue > 0 ? VALUE_DESCRIPTIONS.food.positive : VALUE_DESCRIPTIONS.food.negative;
-      description += descArray[Math.floor(Math.random() * descArray.length)] + ". ";
-    }
-    if (waterValue !== 0) {
-      const descArray = waterValue > 0 ? VALUE_DESCRIPTIONS.water.positive : VALUE_DESCRIPTIONS.water.negative;
-      description += descArray[Math.floor(Math.random() * descArray.length)] + ". ";
+    
+    // Special descriptions for our new item types
+    if (itemType.type === 'watermelon') {
+      description = "Juicy fresh watermelon. Provides moderate food energy and substantial water replenishment. Perfect for hydration needs.";
+    } else if (itemType.type === 'poisondelightflask') {
+      description = "A deceptive flask with alluring water content but severely compromises structural integrity. Significantly drains strength while providing water.";
+    } else {
+      // Standard description generation for regular items
+      if (strengthValue !== 0) {
+        const descArray = strengthValue > 0 ? VALUE_DESCRIPTIONS.strength.positive : VALUE_DESCRIPTIONS.strength.negative;
+        description += descArray[Math.floor(Math.random() * descArray.length)] + ". ";
+      }
+      if (goldValue !== 0) {
+        const descArray = goldValue > 0 ? VALUE_DESCRIPTIONS.gold.positive : VALUE_DESCRIPTIONS.gold.negative;
+        description += descArray[Math.floor(Math.random() * descArray.length)] + ". ";
+      }
+      if (foodValue !== 0) {
+        const descArray = foodValue > 0 ? VALUE_DESCRIPTIONS.food.positive : VALUE_DESCRIPTIONS.food.negative;
+        description += descArray[Math.floor(Math.random() * descArray.length)] + ". ";
+      }
+      if (waterValue !== 0) {
+        const descArray = waterValue > 0 ? VALUE_DESCRIPTIONS.water.positive : VALUE_DESCRIPTIONS.water.negative;
+        description += descArray[Math.floor(Math.random() * descArray.length)] + ". ";
+      }
     }
 
     return {
@@ -763,7 +800,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     return [];
   }, [maze]);
 
-  const getValidNeighbors = (cell: Cell): Cell[] => {
+  const getValidNeighbors = (cell: Cell, currentMaze: Cell[][] = maze): Cell[] => {
     const neighbors: Cell[] = [];
     const { x, y } = cell;
     
@@ -786,8 +823,8 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       // Check bounds
       if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
         // Check if not a wall
-        if (!maze[ny][nx].isWall) {
-          neighbors.push(maze[ny][nx]);
+        if (!currentMaze[ny][nx].isWall) {
+          neighbors.push(currentMaze[ny][nx]);
         }
       }
     }
@@ -1110,49 +1147,57 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
   };
 
   const collectItem = (item: Item) => {
-    // Update item to collected
+    // Update item to collected (item disappears)
     setItems(prevItems => 
       prevItems.map(i => 
         i.id === item.id ? { ...i, collected: true } : i
       )
     );
     
-    // Update robot inventory
+    // AI players directly consume items without storing in inventory
     setRobot(prev => {
       if (!prev) return null;
       
+      // Update robot's total values directly
       const newStrengthTotal = prev.inventory.strengthTotal + item.strengthValue;
       const newGoldTotal = prev.inventory.goldTotal + item.goldValue;
       const newFoodTotal = prev.inventory.foodTotal + item.foodValue;
       const newWaterTotal = prev.inventory.waterTotal + item.waterValue;
 
-      // Create collection message with appropriate messages for positive/negative values
-      let collectionMessage = `Collected ${item.name}. `;
+      // Create consumption message with appropriate messages for positive/negative values
+      let consumptionMessage = `Consumed ${item.name}. `;
       
       if (item.strengthValue !== 0) {
-        collectionMessage += `Strength ${item.strengthValue > 0 ? "+" : ""}${item.strengthValue}. `;
+        consumptionMessage += `Strength ${item.strengthValue > 0 ? "+" : ""}${item.strengthValue}. `;
       }
       if (item.goldValue !== 0) {
-        collectionMessage += `Gold ${item.goldValue > 0 ? "+" : ""}${item.goldValue}. `;
+        consumptionMessage += `Gold ${item.goldValue > 0 ? "+" : ""}${item.goldValue}. `;
       }
       if (item.foodValue !== 0) {
-        collectionMessage += `Food ${item.foodValue > 0 ? "+" : ""}${item.foodValue}. `;
+        consumptionMessage += `Food ${item.foodValue > 0 ? "+" : ""}${item.foodValue}. `;
       }
       if (item.waterValue !== 0) {
-        collectionMessage += `Water ${item.waterValue > 0 ? "+" : ""}${item.waterValue}. `;
+        consumptionMessage += `Water ${item.waterValue > 0 ? "+" : ""}${item.waterValue}. `;
+      }
+      
+      // Special messages for our special items
+      if (item.type === 'watermelon') {
+        consumptionMessage += "Hydration levels significantly improved!";
+      } else if (item.type === 'poisondelightflask') {
+        consumptionMessage += "WARNING: Structural integrity compromised by poisonous substance!";
       }
       
       return {
         ...prev,
         inventory: {
-          items: [...prev.inventory.items, item],
+          items: [], // No items stored in inventory
           strengthTotal: newStrengthTotal,
           goldTotal: newGoldTotal,
           foodTotal: newFoodTotal,
           waterTotal: newWaterTotal
         },
-        status: `Collected ${item.name}`,
-        history: [...prev.history, collectionMessage]
+        status: `Consumed ${item.name}`,
+        history: [...prev.history, consumptionMessage]
       };
     });
   };
