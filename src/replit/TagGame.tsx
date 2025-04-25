@@ -626,7 +626,20 @@ const TagGame: React.FC<TagGameProps> = ({
                 } else if (cell.robotPaths.length > 0) {
                   // Path cells are colored based on which robot's path it is
                   const pathRobot = cell.robotPaths[0];
-                  cellClass = `bg-${pathRobot.color}-100`;
+                  // Explicitly define all possible path colors to ensure Tailwind generates them
+                  if (pathRobot.color === 'blue') {
+                    cellClass = 'bg-blue-100';
+                  } else if (pathRobot.color === 'red') {
+                    cellClass = 'bg-red-100';
+                  } else if (pathRobot.color === 'green') {
+                    cellClass = 'bg-green-100';
+                  } else if (pathRobot.color === 'purple') {
+                    cellClass = 'bg-purple-100';
+                  } else if (pathRobot.color === 'orange') {
+                    cellClass = 'bg-orange-100';
+                  } else {
+                    cellClass = 'bg-blue-100'; // Default fallback
+                  }
                 } else {
                   // Empty cells are white
                   cellClass = 'bg-white';
@@ -647,9 +660,14 @@ const TagGame: React.FC<TagGameProps> = ({
                   >
                     {robot && (
                       <Bot 
-                        className={`w-5 h-5 text-${robot.color}-500 ${
-                          robot.isIt ? 'animate-pulse' : ''
-                        }`}
+                        className={`w-5 h-5 ${
+                          robot.color === 'blue' ? 'text-blue-500' :
+                          robot.color === 'red' ? 'text-red-500' :
+                          robot.color === 'green' ? 'text-green-500' :
+                          robot.color === 'purple' ? 'text-purple-500' :
+                          robot.color === 'orange' ? 'text-orange-500' :
+                          'text-blue-500'
+                        } ${robot.isIt ? 'animate-pulse' : ''}`}
                       />
                     )}
                     {isTagLocation && !robot && (
@@ -680,12 +698,22 @@ const TagGame: React.FC<TagGameProps> = ({
                 <span>"It" Robot</span>
               </div>
               
-              {colors.slice(0, robotCount).map((color) => (
-                <div key={color} className="flex items-center gap-2">
-                  <div className={`w-6 h-6 bg-${color}-100 rounded`}></div>
-                  <span>{color.charAt(0).toUpperCase() + color.slice(1)} Path</span>
-                </div>
-              ))}
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-blue-100 rounded"></div>
+                <span>Blue Path</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-red-100 rounded"></div>
+                <span>Red Path</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-green-100 rounded"></div>
+                <span>Green Path</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-purple-100 rounded"></div>
+                <span>Purple Path</span>
+              </div>
               
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 flex items-center justify-center">
