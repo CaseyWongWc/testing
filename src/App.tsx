@@ -176,7 +176,8 @@ function App() {
            activeGame !== 'trading' && 
            activeGame !== 'rogue' && 
            activeGame !== 'other-apps' && 
-           activeGame !== 'combat' && (
+           activeGame !== 'combat' &&
+           activeGame !== 'scene7' && (
             <div className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap gap-4">
               <div>
                 <label htmlFor="width" className="block text-sm font-medium text-gray-700 mb-1">
@@ -371,6 +372,9 @@ function App() {
         )}
         {activeGame === 'replit' && (
           <ReplitScene />
+        )}
+        {activeGame === 'scene7' && (
+          <Scene7 />
         )}
       </div>
     </div>
