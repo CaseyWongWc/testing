@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Priority from './Priority';
 import WeightedDecisions from './WeightedDecisions';
+import Pathfinder from './Pathfinder';
 import BeeHiveSimulation from './BeeHiveSimulation';
 import AIEcosystem from './AIEcosystem';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -76,7 +77,7 @@ const ReplitScene: React.FC = () => {
       <div className="bg-white rounded-lg shadow-lg p-6">
         {scene === 'priority' && <ErrorBoundary><Priority /></ErrorBoundary>}
         {scene === 'scene1' && <ErrorBoundary><WeightedDecisions /></ErrorBoundary>}
-        {scene === 'scene2' && <ErrorBoundary><WeightedDecisions /></ErrorBoundary>}
+        {scene === 'scene2' && <ErrorBoundary><Pathfinder /></ErrorBoundary>}
         {scene === 'scene3' && <ErrorBoundary><BeeHiveSimulation /></ErrorBoundary>}
         {scene === 'scene4' && <ErrorBoundary><AIEcosystem /></ErrorBoundary>}
         {scene === 'scene5' && <div>Scene 5 Content</div>}
