@@ -1,0 +1,603 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Bot, HelpCircle, Play, Pause, Timer, FastForward, ArrowRight, Database, Hexagon } from 'lucide-react';
+
+interface HoneySpot {
+  x: number;
+  y: number;
+  amount: number;
+}
+
+interface Bee {
+  id: number;
+  name: string;
+  x: number;
+  y: number;
+  health: number;
+  maxHealth: number;
+  hiveId: string;
+  color: string;
+  path: Cell[];
+  pathIndex: number;
+  isResting: boolean;
+  status: string;
+}
+
+interface Hive {
+  id: string;
+  x: number;
+  y: number;
+  honey: number;
+  maxHoney: number;
+  beeCount: number;
+  maxBees: number;
+  spawnInterval: number;
+  currentInterval: number;
+  color: string;
+}
+
+interface Cell {
+  x: number;
+  y: number;
+  isPath: boolean;
+  f: number;
+  g: number;
+  h: number;
+  parent: Cell | null;
+}
+
+interface Movement {
+  beeId: number;
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  type: 'move' | 'rest' | 'transfer';
+  timestamp: number;
+}
+
+const GRID_SIZE = 20;
+const HONEY_DECREASE_RATE = 0.1;
+const HEALTH_DECREASE_RATE = 0.2;
+const HEALTH_REGEN_RATE = 1;
+const DEFAULT_MAX_BEES = 5;
+const SPAWN_INTERVAL = 10;
+const HONEY_SPAWN_CHANCE = 0.01;
+
+const generateHiveId = (existingIds: Set<string>): string => {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let id;
+  do {
+    const length = Math.random() < 0.5 ? 1 : 2;
+    id = Array.from({ length }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
+  } while (existingIds.has(id));
+  return id;
+};
+
+const generateColor = (id: string): string => {
+  const hue = (id.charCodeAt(0) * 137.5) % 360;
+  return `hsl(${hue}, 70%, 50%)`;
+};
+
+const Beehive: React.FC = () => {
+  const [hives, setHives] = useState<Hive[]>([]);
+  const [bees, setBees] = useState<Bee[]>([]);
+  const [honeySpots, setHoneySpots] = useState<HoneySpot[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [speed, setSpeed] = useState(1.0);
+  const [showLegend, setShowLegend] = useState(true);
+  const [movements, setMovements] = useState<Movement[]>([]);
+  const [selectedHive, setSelectedHive] = useState<Hive | null>(null);
+  const [turnCount, setTurnCount] = useState(0);
+  
+  const lastFrameTimeRef = useRef<number>(0);
+  const accumulatedTimeRef = useRef<number>(0);
+
+  const addHive = useCallback((x: number, y: number) => {
+    const existingIds = new Set(hives.map(h => h.id));
+    const id = generateHiveId(existingIds);
+    const color = generateColor(id);
+    
+    const newHive: Hive = {
+      id,
+      x,
+      y,
+      honey: 100,
+      maxHoney: 100,
+      beeCount: 0,
+      maxBees: DEFAULT_MAX_BEES,
+      spawnInterval: SPAWN_INTERVAL,
+      currentInterval: 0,
+      color
+    };
+
+    setHives(prev => [...prev, newHive]);
+  }, [hives]);
+
+  const spawnBee = useCallback((hive: Hive) => {
+    if (hive.beeCount >= hive.maxBees) return;
+
+    const newBee: Bee = {
+      id: Date.now(),
+      name: `${hive.id}${hive.beeCount + 1}`,
+      x: hive.x,
+      y: hive.y,
+      health: 100,
+      maxHealth: 100,
+      hiveId: hive.id,
+      color: hive.color,
+      path: [],
+      pathIndex: 0,
+      isResting: true,
+      status: 'Resting in hive'
+    };
+
+    setBees(prev => [...prev, newBee]);
+    setHives(prev => prev.map(h => 
+      h.id === hive.id 
+        ? { ...h, beeCount: h.beeCount + 1 }
+        : h
+    ));
+  }, []);
+
+  const removeHive = useCallback((hiveId: string) => {
+    const orphanedBees = bees.filter(b => b.hiveId === hiveId);
+    const remainingHives = hives.filter(h => h.id !== hiveId);
+
+    if (remainingHives.length > 0) {
+      orphanedBees.forEach(bee => {
+        let nearestHive = remainingHives[0];
+        let shortestDistance = Infinity;
+
+        remainingHives.forEach(hive => {
+          const distance = Math.sqrt(
+            Math.pow(hive.x - bee.x, 2) + 
+            Math.pow(hive.y - bee.y, 2)
+          );
+          if (distance < shortestDistance) {
+            shortestDistance = distance;
+            nearestHive = hive;
+          }
+        });
+
+        setBees(prev => prev.map(b => 
+          b.id === bee.id 
+            ? {
+                ...b,
+                hiveId: nearestHive.id,
+                color: nearestHive.color,
+                name: `${nearestHive.id}${nearestHive.beeCount + 1}`,
+                status: 'Transferred to new hive'
+              }
+            : b
+        ));
+
+        setHives(prev => prev.map(h => 
+          h.id === nearestHive.id 
+            ? { ...h, beeCount: h.beeCount + 1 }
+            : h
+        ));
+      });
+    }
+
+    setHives(prev => prev.filter(h => h.id !== hiveId));
+  }, [bees, hives]);
+
+  const findPath = useCallback((start: { x: number; y: number }, end: { x: number; y: number }): Cell[] => {
+    const grid: Cell[][] = Array(GRID_SIZE).fill(0).map((_, y) => 
+      Array(GRID_SIZE).fill(0).map((_, x) => ({
+        x,
+        y,
+        isPath: false,
+        f: 0,
+        g: 0,
+        h: 0,
+        parent: null
+      }))
+    );
+
+    const startCell = grid[start.y][start.x];
+    const endCell = grid[end.y][end.x];
+    
+    const openSet: Cell[] = [startCell];
+    const closedSet: Cell[] = [];
+
+    while (openSet.length > 0) {
+      let current = openSet[0];
+      let currentIndex = 0;
+
+      openSet.forEach((cell, index) => {
+        if (cell.f < current.f) {
+          current = cell;
+          currentIndex = index;
+        }
+      });
+
+      if (current.x === endCell.x && current.y === endCell.y) {
+        const path: Cell[] = [];
+        let temp = current;
+        while (temp.parent) {
+          path.push(temp);
+          temp.isPath = true;
+          temp = temp.parent;
+        }
+        return path.reverse();
+      }
+
+      openSet.splice(currentIndex, 1);
+      closedSet.push(current);
+
+      const neighbors = [
+        [-1, -1], [-1, 0], [-1, 1],
+        [0, -1],           [0, 1],
+        [1, -1],  [1, 0],  [1, 1]
+      ];
+
+      for (const [dx, dy] of neighbors) {
+        const newX = current.x + dx;
+        const newY = current.y + dy;
+
+        if (newX >= 0 && newX < GRID_SIZE && newY >= 0 && newY < GRID_SIZE) {
+          const neighbor = grid[newY][newX];
+          if (closedSet.includes(neighbor)) continue;
+
+          const tentativeG = current.g + (Math.abs(dx) === 1 && Math.abs(dy) === 1 ? Math.SQRT2 : 1);
+
+          if (!openSet.includes(neighbor)) {
+            openSet.push(neighbor);
+          } else if (tentativeG >= neighbor.g) {
+            continue;
+          }
+
+          neighbor.parent = current;
+          neighbor.g = tentativeG;
+          neighbor.h = Math.abs(endCell.x - newX) + Math.abs(endCell.y - newY);
+          neighbor.f = neighbor.g + neighbor.h;
+        }
+      }
+    }
+
+    return [];
+  }, []);
+
+  const spawnRandomHoney = useCallback(() => {
+    for (let y = 0; y < GRID_SIZE; y++) {
+      for (let x = 0; x < GRID_SIZE; x++) {
+        if (Math.random() < HONEY_SPAWN_CHANCE) {
+          if (!honeySpots.some(h => h.x === x && h.y === y) && 
+              !hives.some(h => h.x === x && h.y === y)) {
+            setHoneySpots(prev => [...prev, {
+              x,
+              y,
+              amount: Math.floor(Math.random() * 30) + 20
+            }]);
+          }
+        }
+      }
+    }
+  }, [honeySpots, hives]);
+
+  const processAI = useCallback(() => {
+    setTurnCount(prev => prev + 1);
+    spawnRandomHoney();
+
+    setHives(prev => prev.map(hive => {
+      const newHive = { ...hive };
+      newHive.honey = Math.max(0, newHive.honey - HONEY_DECREASE_RATE);
+      
+      newHive.currentInterval++;
+      if (newHive.currentInterval >= SPAWN_INTERVAL && newHive.beeCount < newHive.maxBees) {
+        newHive.currentInterval = 0;
+        spawnBee(newHive);
+      }
+
+      return newHive;
+    }));
+
+    setBees(prev => prev.map(bee => {
+      const newBee = { ...bee };
+      const hive = hives.find(h => h.id === bee.hiveId);
+      
+      if (!hive) return newBee;
+
+      if (!newBee.isResting) {
+        newBee.health = Math.max(0, newBee.health - HEALTH_DECREASE_RATE);
+      }
+
+      const honeySpot = honeySpots.find(h => h.x === newBee.x && h.y === newBee.y);
+      if (honeySpot) {
+        setHives(prev => prev.map(h => 
+          h.id === newBee.hiveId 
+            ? { ...h, honey: Math.min(h.maxHoney, h.honey + honeySpot.amount) }
+            : h
+        ));
+        setHoneySpots(prev => prev.filter(h => h !== honeySpot));
+        newBee.status = 'Collected honey!';
+      }
+
+      if (newBee.isResting) {
+        newBee.health = Math.min(newBee.maxHealth, newBee.health + HEALTH_REGEN_RATE);
+        if (newBee.health === newBee.maxHealth) {
+          newBee.isResting = false;
+          newBee.status = 'Exploring';
+        }
+      } else {
+        if (newBee.health < newBee.maxHealth * 0.3) {
+          const path = findPath({ x: newBee.x, y: newBee.y }, { x: hive.x, y: hive.y });
+          if (path.length > 0) {
+            newBee.path = path;
+            newBee.pathIndex = 0;
+            newBee.status = 'Returning to hive';
+          }
+        } else if (newBee.path.length === 0 || newBee.pathIndex >= newBee.path.length) {
+          const nearestHoney = honeySpots.reduce((nearest, spot) => {
+            const distance = Math.sqrt(
+              Math.pow(spot.x - newBee.x, 2) + 
+              Math.pow(spot.y - newBee.y, 2)
+            );
+            return !nearest || distance < nearest.distance ? { spot, distance } : nearest;
+          }, null as { spot: HoneySpot; distance: number } | null);
+
+          if (nearestHoney) {
+            const path = findPath(
+              { x: newBee.x, y: newBee.y }, 
+              { x: nearestHoney.spot.x, y: nearestHoney.spot.y }
+            );
+            if (path.length > 0) {
+              newBee.path = path;
+              newBee.pathIndex = 0;
+              newBee.status = 'Moving to honey';
+            }
+          } else {
+            const targetX = Math.floor(Math.random() * GRID_SIZE);
+            const targetY = Math.floor(Math.random() * GRID_SIZE);
+            const path = findPath({ x: newBee.x, y: newBee.y }, { x: targetX, y: targetY });
+            if (path.length > 0) {
+              newBee.path = path;
+              newBee.pathIndex = 0;
+              newBee.status = 'Exploring';
+            }
+          }
+        }
+
+        if (newBee.path.length > 0 && newBee.pathIndex < newBee.path.length) {
+          const nextCell = newBee.path[newBee.pathIndex];
+          
+          setMovements(prev => [{
+            beeId: newBee.id,
+            from: { x: newBee.x, y: newBee.y },
+            to: { x: nextCell.x, y: nextCell.y },
+            type: 'move',
+            timestamp: Date.now()
+          }, ...prev.slice(0, 9)]);
+
+          newBee.x = nextCell.x;
+          newBee.y = nextCell.y;
+          newBee.pathIndex++;
+
+          if (newBee.x === hive.x && newBee.y === hive.y) {
+            newBee.isResting = true;
+            newBee.path = [];
+            newBee.pathIndex = 0;
+            newBee.status = 'Resting in hive';
+          }
+        }
+      }
+
+      return newBee;
+    }));
+  }, [hives, findPath, spawnBee, honeySpots, spawnRandomHoney]);
+
+  useEffect(() => {
+    let animationFrameId: number;
+    
+    const animate = (timestamp: number) => {
+      if (!isRunning) return;
+
+      if (!lastFrameTimeRef.current) lastFrameTimeRef.current = timestamp;
+      const deltaTime = timestamp - lastFrameTimeRef.current;
+      lastFrameTimeRef.current = timestamp;
+
+      accumulatedTimeRef.current += deltaTime;
+      const frameTime = 1000 / speed;
+
+      if (accumulatedTimeRef.current >= frameTime) {
+        accumulatedTimeRef.current = 0;
+        processAI();
+      }
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    if (isRunning) {
+      lastFrameTimeRef.current = 0;
+      accumulatedTimeRef.current = 0;
+      animationFrameId = requestAnimationFrame(animate);
+    }
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [isRunning, speed, processAI]);
+
+  const handleGridClick = (x: number, y: number, e: React.MouseEvent) => {
+    if (e.ctrlKey) {
+      const hive = hives.find(h => h.x === x && h.y === y);
+      if (hive) {
+        removeHive(hive.id);
+        return;
+      }
+
+      const bee = bees.find(b => b.x === x && b.y === y);
+      if (bee) {
+        setBees(prev => prev.filter(b => b.id !== bee.id));
+        setHives(prev => prev.map(h => 
+          h.id === bee.hiveId 
+            ? { ...h, beeCount: h.beeCount - 1 }
+            : h
+        ));
+        return;
+      }
+    } else {
+      addHive(x, y);
+    }
+  };
+
+  return (
+    <div className="flex gap-8">
+      <div className="space-y-4">
+        {hives.map(hive => (
+          <div 
+            key={hive.id}
+            className={`bg-white p-4 rounded-lg shadow-md w-64 ${
+              selectedHive?.id === hive.id ? 'ring-2 ring-blue-500' : ''
+            }`}
+            onClick={() => setSelectedHive(selectedHive?.id === hive.id ? null : hive)}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Hexagon className={`w-5 h-5`} style={{ color: hive.color }} />
+              <h3 className="font-semibold">Hive {hive.id}</h3>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span>Honey</span>
+                  <span>{Math.round(hive.honey)}/{hive.maxHoney}</span>
+                </div>
+                <div className="h-2 bg-gray-200 rounded-full">
+                  <div 
+                    className="h-full rounded-full"
+                    style={{ 
+                      width: `${(hive.honey / hive.maxHoney) * 100}%`,
+                      backgroundColor: hive.color 
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-between">
+                <span>Bees</span>
+                <span>{hive.beeCount}/{hive.maxBees}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Spawn Interval</span>
+                <span>{hive.currentInterval}/{hive.spawnInterval}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        <div className="bg-white p-4 rounded-lg shadow-md w-64">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Database className="w-5 h-5 text-blue-500" />
+            Movement Log
+          </h3>
+          <div className="space-y-2">
+            {movements.map((movement, index) => {
+              const bee = bees.find(b => b.id === movement.beeId);
+              if (!bee) return null;
+              return (
+                <div key={index} className="text-sm flex items-center gap-2 text-gray-600">
+                  <Bot style={{ color: bee.color }} className="w-4 h-4" />
+                  <span>({movement.from.x}, {movement.from.y})</span>
+                  <ArrowRight className="w-4 h-4" />
+                  <span>({movement.to.x}, {movement.to.y})</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setIsRunning(!isRunning)}
+            className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors flex items-center gap-2"
+          >
+            {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            {isRunning ? 'Stop' : 'Start'} Simulation
+          </button>
+          
+          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded">
+            <Timer className="w-4 h-4 text-gray-600" />
+            <input
+              type="range"
+              min="0.5"
+              max="5"
+              step="0.5"
+              value={speed}
+              onChange={(e) => setSpeed(parseFloat(e.target.value))}
+              className="w-24"
+            />
+            <span className="text-sm text-gray-600">{speed.toFixed(1)}x</span>
+          </div>
+          <button
+            onClick={() => setShowLegend(!showLegend)}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+          >
+            {showLegend ? 'Hide' : 'Show'} Legend
+          </button>
+        </div>
+
+        {showLegend && (
+          <div className="bg-white p-4 rounded-lg shadow-sm mb-4 flex flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <Hexagon className="w-4 h-4 text-yellow-500" />
+              <span className="text-sm text-gray-600">Beehive (Click to place)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Bot className="w-4 h-4 text-yellow-500" />
+              <span className="text-sm text-gray-600">Bee</span>
+            </div>
+            <div className="text-sm text-gray-600">
+              Ctrl+Click to remove hives or bees
+            </div>
+          </div>
+        )}
+
+        <div className="grid gap-px bg-gray-200 p-2 rounded-lg shadow-md">
+          {Array.from({ length: GRID_SIZE }).map((_, y) => (
+            <div key={y} className="flex gap-px">
+              {Array.from({ length: GRID_SIZE }).map((_, x) => {
+                const hive = hives.find(h => h.x === x && h.y === y);
+                const beesHere = bees.filter(b => b.x === x && b.y === y);
+                const honey = honeySpots.find(h => h.x === x && h.y === y);
+                return (
+                  <div
+                    key={`${x},${y}`}
+                    onClick={(e) => handleGridClick(x, y, e)}
+                    className="w-8 h-8 flex items-center justify-center relative bg-white hover:bg-gray-50 transition-colors"
+                  >
+                    {honey && (
+                      <div 
+                        className="absolute inset-0 bg-yellow-200 opacity-50"
+                        style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
+                      />
+                    )}
+                    {hive && (
+                      <Hexagon 
+                        className="w-6 h-6 absolute"
+                        style={{ color: hive.color }}
+                      />
+                    )}
+                    {beesHere.map((bee, index) => (
+                      <Bot
+                        key={bee.id}
+                        className="w-5 h-5 absolute"
+                        style={{ 
+                          color: bee.color,
+                          transform: `translate(${index * 2}px, ${index * 2}px)`
+                        }}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Beehive;
