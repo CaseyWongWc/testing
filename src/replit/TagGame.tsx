@@ -179,20 +179,25 @@ const TagGame: React.FC<TagGameProps> = ({
 
   // Generate diamond-square terrain
   const generateTerrain = (newMaze: Cell[][]) => {
-    const size = Math.max(width, height);
+    // Get current values from form inputs
+    const currentWidth = parseInt(widthInput) || width;
+    const currentHeight = parseInt(heightInput) || height;
+    const currentTerrainIntensity = parseFloat(terrainIntensityInput) || terrainIntensity;
+    
+    const size = Math.max(currentWidth, currentHeight);
     const maxSize = Math.pow(2, Math.ceil(Math.log2(size)));
     
     // Set initial corner elevations
     newMaze[0][0].elevation = Math.random() * 100;
-    newMaze[0][Math.min(width-1, maxSize-1)].elevation = Math.random() * 100;
-    newMaze[Math.min(height-1, maxSize-1)][0].elevation = Math.random() * 100;
-    newMaze[Math.min(height-1, maxSize-1)][Math.min(width-1, maxSize-1)].elevation = Math.random() * 100;
+    newMaze[0][Math.min(currentWidth-1, maxSize-1)].elevation = Math.random() * 100;
+    newMaze[Math.min(currentHeight-1, maxSize-1)][0].elevation = Math.random() * 100;
+    newMaze[Math.min(currentHeight-1, maxSize-1)][Math.min(currentWidth-1, maxSize-1)].elevation = Math.random() * 100;
 
     const generateStep = (x: number, y: number, size: number, offset: number) => {
       if (size < 2) return;
 
       const half = size / 2;
-      const scale = terrainIntensity * size;
+      const scale = currentTerrainIntensity * size;
 
       // Diamond step - calculate center point
       if (x + half < width && y + half < height) {
@@ -236,7 +241,7 @@ const TagGame: React.FC<TagGameProps> = ({
       generateStep(x + half, y + half, half, offset / 2);
     };
 
-    generateStep(0, 0, maxSize, terrainIntensity * 100);
+    generateStep(0, 0, maxSize, currentTerrainIntensity * 100);
     return newMaze;
   };
 
@@ -346,6 +351,12 @@ const TagGame: React.FC<TagGameProps> = ({
   };
 
   const generateMaze = () => {
+    // Get current values from form inputs
+    const currentWidth = parseInt(widthInput) || width;
+    const currentHeight = parseInt(heightInput) || height;
+    const currentWallDensity = parseFloat(wallDensityInput) || wallDensity;
+    const currentTerrainIntensity = parseFloat(terrainIntensityInput) || terrainIntensity;
+    
     let newMaze: Cell[][];
     
     // Choose maze generation algorithm based on selected option
@@ -360,9 +371,9 @@ const TagGame: React.FC<TagGameProps> = ({
       default:
         // Generate a random maze with walls
         newMaze = initializeMaze();
-        for (let y = 0; y < height; y++) {
-          for (let x = 0; x < width; x++) {
-            if (Math.random() < wallDensity) {
+        for (let y = 0; y < currentHeight; y++) {
+          for (let x = 0; x < currentWidth; x++) {
+            if (Math.random() < currentWallDensity) {
               newMaze[y][x].isWall = true;
             }
           }
@@ -781,20 +792,11 @@ const TagGame: React.FC<TagGameProps> = ({
 
   // Apply maze settings and generate new maze
   const applySettings = () => {
-    // Parse input values, using defaults if invalid
-    const newWidth = parseInt(widthInput) || width;
-    const newHeight = parseInt(heightInput) || height;
-    const newWallDensity = parseFloat(wallDensityInput) || wallDensity;
-    const newTerrainIntensity = parseFloat(terrainIntensityInput) || terrainIntensity;
-    
-    // Set all values at once to trigger only one re-render
-    // Note that setState only updates the React state variable, not the original prop value
-    // So we need to remember the NEW values for use in the next render
-    
+    // Clear the existing maze and robots first
     setMaze([]);
     setRobots([]);
     
-    // Regenerate maze with new settings
+    // Regenerate maze with new settings on next tick
     setTimeout(() => {
       generateMaze();
     }, 0);
@@ -1069,8 +1071,20 @@ const TagGame: React.FC<TagGameProps> = ({
                     cellClass = 'bg-blue-100'; // Default fallback
                   }
                 } else {
-                  // Empty cells are white
-                  cellClass = 'bg-white';
+                  // Empty cells show terrain elevation
+                  const elevation = cell.elevation;
+                  // Create a gradient from light green (low) to dark green (high)
+                  if (elevation < 30) {
+                    cellClass = 'bg-green-50';
+                  } else if (elevation < 50) {
+                    cellClass = 'bg-green-100';
+                  } else if (elevation < 70) {
+                    cellClass = 'bg-green-200';
+                  } else if (elevation < 85) {
+                    cellClass = 'bg-green-300';
+                  } else {
+                    cellClass = 'bg-green-400';
+                  }
                 }
                 
                 // Tag location cells have pink background
@@ -1155,6 +1169,31 @@ const TagGame: React.FC<TagGameProps> = ({
                   <span className="text-purple-500 text-xs font-medium">Teleport</span>
                 </div>
                 <span>Teleportation (after tag)</span>
+              </div>
+
+              <div className="col-span-2 mt-4 mb-2">
+                <h4 className="text-sm font-medium">Terrain Elevation</h4>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-green-50 rounded"></div>
+                <span>Very Low (Easy)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-green-100 rounded"></div>
+                <span>Low</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-green-200 rounded"></div>
+                <span>Medium</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-green-300 rounded"></div>
+                <span>High</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-green-400 rounded"></div>
+                <span>Very High (Difficult)</span>
               </div>
             </div>
           </div>
