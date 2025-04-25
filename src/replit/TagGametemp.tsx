@@ -61,9 +61,8 @@ const TagGame: React.FC<TagGameProps> = ({
 
   const colors = ['blue', 'red', 'green', 'purple', 'orange'];
   const TAG_COOLDOWN = 2000;
-  const UNIVERSAL_CLOCK = 1000;
-
-  // Define helper functions
+  
+  // Define these helper functions outside the effect
   const initializeMaze = () => {
     const newMaze: Cell[][] = [];
     for (let y = 0; y < height; y++) {
@@ -445,6 +444,9 @@ const TagGame: React.FC<TagGameProps> = ({
       }
     };
   }, [isAnimating, continuousPlay, robots, maze, moveSpeed, updatePaths]);
+  
+  // Constant for clock
+  const UNIVERSAL_CLOCK = 1000;
 
   return (
     <div className="flex flex-col md:flex-row gap-8">
