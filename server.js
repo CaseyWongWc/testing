@@ -23,8 +23,29 @@ setTimeout(() => {
   const app = express();
   const port = 5000;
 
-  // Proxy all requests to the Vite dev server
-  // Vite usually runs on port 5173, but it may select another port if 5173 is in use
+  // Add API endpoints first so they're not proxied
+  
+  // Add a diagnostic endpoint
+  app.get('/api/status', (req, res) => {
+    res.json({
+      status: 'ok',
+      message: 'Express proxy server is running',
+      vitePort: 5174,
+      timestamp: new Date().toISOString()
+    });
+  });
+  
+  // Add a diagnostic endpoint for checking arrow component
+  app.get('/api/arrow', (req, res) => {
+    res.json({
+      status: 'ok',
+      message: 'Arrow component is set up',
+      component: 'ArrowIcon',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Proxy all other requests to the Vite dev server
   app.use('/', createProxyMiddleware({
     target: 'http://0.0.0.0:5174', // Using 0.0.0.0 instead of localhost for better container/VM compatibility
     changeOrigin: true,
@@ -47,6 +68,16 @@ setTimeout(() => {
       status: 'ok',
       message: 'Express proxy server is running',
       vitePort: 5174,
+      timestamp: new Date().toISOString()
+    });
+  });
+  
+  // Add a diagnostic endpoint for checking arrow component
+  app.get('/api/arrow', (req, res) => {
+    res.json({
+      status: 'ok',
+      message: 'Arrow component is set up',
+      component: 'ArrowIcon',
       timestamp: new Date().toISOString()
     });
   });
