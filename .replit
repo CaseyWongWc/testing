@@ -47,11 +47,3 @@ args = "echo \"Starting AI Simulation Server with Express proxy...\""
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node server.js"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "echo \"Starting AI Simulation Server...\""
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node server.js"
