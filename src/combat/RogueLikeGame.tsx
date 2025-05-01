@@ -90,8 +90,8 @@ const createEmptyRoom = (): Cell[][] => {
         x,
         y,
         type: Math.random() < 0.2 ? 'wall' : 'floor',
-        terrain: Math.random() < 0.7 ? 'normal' : 
-                Math.random() < 0.5 ? 'water' : 
+        terrain: Math.random() < 0.7 ? 'normal' :
+                Math.random() < 0.5 ? 'water' :
                 Math.random() < 0.5 ? 'lava' : 'grass',
         isVisible: false,
         wasVisible: false
@@ -188,7 +188,7 @@ const generateItems = (room: Cell[][]): Item[] => {
       x: position.x,
       y: position.y,
       type,
-      value: type === 'health' ? 30 : 
+      value: type === 'health' ? 30 :
              type === 'ammo' ? 15 :
              type === 'shield' ? 5 :
              type === 'damage' ? 5 : 1
@@ -622,6 +622,30 @@ const RogueLikeGame: React.FC = () => {
         >
           <HelpCircle className="w-5 h-5" />
         </button>
+        <button
+            onClick={() => {
+              setGameState({ level: 1, turn: 0, kills: 0, itemsCollected: 0 });
+              setRobot(prev => ({
+                ...prev,
+                x: 1,
+                y: 1,
+                health: 110,
+                maxHealth: 110,
+                ammo: 30,
+                maxAmmo: 30,
+                damage: 10,
+                defense: 5,
+                attackRange: 3
+              }));
+              setRoom(createEmptyRoom());
+              setEnemies([]);
+              setItems([]);
+              setCombatLog([]);
+            }}
+            className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+          >
+            But it refused
+          </button>
       </div>
 
       <div className="grid grid-cols-[2fr,1fr] gap-4">
