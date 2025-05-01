@@ -174,9 +174,9 @@ const generateEnemies = (currentRoom: Cell[][], level: number): Enemy[] => {
   return enemies;
 };
 
-const generateItems = (room: Cell[][]): Item[] => {
+const generateItems = (currentRoom: Cell[][]): Item[] => {
   const items: Item[] = [];
-  const itemCount = 2 + Math.floor(Math.random() * 3);
+  const itemCount = Math.min(3 + Math.floor(Math.random() * 3), 8);
 
   const types = ['health', 'ammo', 'shield', 'damage', 'range'] as const;
 
@@ -240,7 +240,7 @@ const RogueLikeGame: React.FC = () => {
 
   const updateVisibility = useCallback(() => {
     setRoom(prev => {
-      const newRoom = [...prev.map(row => [...row])];
+      const newRoom = JSON.parse(JSON.stringify(prev)); // Deep clone to avoid reference issues
       const portalCell = newRoom.flat().find(cell => cell.type === 'portal');
       const pulseRange = 3 + Math.sin(portalPulse * 0.5) * 1.5; // Pulsating range between 1.5 and 4.5
 
@@ -532,12 +532,20 @@ const RogueLikeGame: React.FC = () => {
       } else if (distance <= enemy.moveRange) {
         const dx = Math.sign(robot.x - enemy.x);
         const dy = Math.sign(robot.y - enemy.y);
-        return {
-          ...enemy,
-          x: enemy.x + dx,
-          y: enemy.y + dy,
-          turnsToMove: ENEMY_TYPES[enemy.type].turnsToMove
-        };
+        const newX = enemy.x + dx;
+        const newY = enemy.y + dy;
+        
+        // Check if new position is valid (not a wall and not occupied by another enemy)
+        if (newX >= 0 && newX < ROOM_WIDTH && newY >= 0 && newY < ROOM_HEIGHT &&
+            room[newY][newX].type !== 'wall' &&
+            !enemies.some(e => e.id !== enemy.id && e.x === newX && e.y === newY)) {
+          return {
+            ...enemy,
+            x: newX,
+            y: newY,
+            turnsToMove: ENEMY_TYPES[enemy.type].turnsToMove
+          };
+        }
       }
 
       return { ...enemy, turnsToMove: ENEMY_TYPES[enemy.type].turnsToMove };
