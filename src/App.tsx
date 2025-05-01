@@ -13,9 +13,11 @@ import Combat from "./combat/Combat.tsx";
 import ReplitScene from "./replit/ReplitScene";
 import BeeHiveSimulation from "./replit/BeeHiveSimulation";
 import ArrowIcon from "./components/ArrowIcon";
+import { MultiValuedItemCollector } from "./replit/MultiValuedItemCollector";
 
 type GameType =
   | "maze"
+  | "multivalued"
   | "terrain"
   | "fruit"
   | "multigoal"
@@ -144,6 +146,16 @@ function App() {
               }`}
             >
               Tag Game
+            </button>
+            <button
+              onClick={() => setActiveGame("multivalued")}
+              className={`px-4 py-2 rounded transition-colors ${
+                activeGame === "multivalued"
+                  ? "bg-blue-500 text-white"
+                  : "hover:bg-gray-100"
+              }`}
+            >
+              Multi-Valued Items
             </button>
             <button
               onClick={() => setActiveGame("rogue")}
@@ -416,6 +428,7 @@ function App() {
           />
         )}
         {activeGame === "tag" && <BeeHiveSimulation />}
+        {activeGame === "multivalued" && <MultiValuedItemCollector />}
         {activeGame === "rogue" && <MonsterCards />}
         {activeGame === "other-apps" && (
           <div className="flex flex-col items-center gap-4">
