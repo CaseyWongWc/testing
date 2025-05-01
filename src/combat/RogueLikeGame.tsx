@@ -132,7 +132,7 @@ const findValidPosition = (room: Cell[][]): {x: number, y: number} => {
   return {x, y};
 };
 
-const generateEnemies = (level: number): Enemy[] => {
+const generateEnemies = (currentRoom: Cell[][], level: number): Enemy[] => {
   const enemies: Enemy[] = [];
   const enemyCount = Math.min(3 + Math.floor(level / 2), 8);
   
@@ -140,7 +140,7 @@ const generateEnemies = (level: number): Enemy[] => {
     const types = ['slime', 'skeleton', 'ghost', 'mage'] as const;
     const type = types[Math.floor(Math.random() * types.length)];
     const baseStats = ENEMY_TYPES[type];
-    const position = findValidPosition(room);
+    const position = findValidPosition(currentRoom);
     
     enemies.push({
       id: Date.now() + i,
@@ -549,9 +549,10 @@ const RogueLikeGame: React.FC = () => {
     // Check for portal
     if (room[robot.y][robot.x].type === 'portal') {
       addLog('Entering portal to next level!', 'portal');
+      const newRoom = createEmptyRoom();
       setGameState(prev => ({ ...prev, level: prev.level + 1 }));
-      setRoom(createEmptyRoom());
-      setEnemies(generateEnemies(gameState.level + 1));
+      setRoom(newRoom);
+      setEnemies(generateEnemies(newRoom, gameState.level + 1));
       setItems(generateItems());
       setRobot(prev => ({ ...prev, x: 1, y: 1 }));
     }
@@ -583,12 +584,12 @@ const RogueLikeGame: React.FC = () => {
 
   useEffect(() => {
     if (enemies.length === 0) {
-      setEnemies(generateEnemies(gameState.level));
+      setEnemies(generateEnemies(room, gameState.level));
     }
     if (items.length === 0) {
       setItems(generateItems());
     }
-  }, [gameState.level]);
+  }, [gameState.level, room]);
 
   return (
     <div className="flex flex-col gap-4">
