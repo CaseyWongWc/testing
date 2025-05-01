@@ -321,32 +321,44 @@ const WhatsYourNameGame: React.FC<WhatsYourNameGameProps> = ({ width, height, wa
   const checkForRobotMeeting = (robot: Robot) => {
     const newFoundRobots = new Set(robot.foundRobots);
     let foundNewRobot = false;
+    let shouldStop = false;
 
     robots.forEach(otherRobot => {
       if (otherRobot.id !== robot.id && 
           Math.abs(robot.x - otherRobot.x) <= 1 && 
-          Math.abs(robot.y - otherRobot.y) <= 1 &&
-          !robot.foundRobots.has(otherRobot.id)) {
-        newFoundRobots.add(otherRobot.id);
-        foundNewRobot = true;
+          Math.abs(robot.y - otherRobot.y) <= 1) {
         
-        setInteractions(prev => [
-          `${robot.name} met ${otherRobot.name}!`,
-          `${otherRobot.name}'s buckets: A=${otherRobot.containers.bucket_A}, B=${otherRobot.containers.bucket_B}, C=${otherRobot.containers.bucket_C}`,
-          ...prev
-        ]);
+        shouldStop = true;
+        
+        if (!robot.foundRobots.has(otherRobot.id)) {
+          newFoundRobots.add(otherRobot.id);
+          foundNewRobot = true;
+          
+          setInteractions(prev => [
+            `${robot.name} met ${otherRobot.name}!`,
+            `${otherRobot.name}'s buckets: A=${otherRobot.containers.bucket_A}, B=${otherRobot.containers.bucket_B}, C=${otherRobot.containers.bucket_C}`,
+            ...prev
+          ]);
+        }
       }
     });
 
-    if (foundNewRobot) {
+    if (foundNewRobot || shouldStop) {
       setRobots(prev => prev.map(r => 
         r.id === robot.id 
-          ? { ...r, foundRobots: newFoundRobots }
+          ? { 
+              ...r, 
+              foundRobots: newFoundRobots,
+              path: shouldStop ? [] : r.path,
+              pathIndex: 0,
+              targetRobotId: null,
+              status: shouldStop ? 'Stopped - Adjacent to another robot' : r.status
+            }
           : r
       ));
     }
 
-    return foundNewRobot;
+    return { foundNewRobot, shouldStop };
   };
 
   useEffect(() => {
@@ -393,12 +405,12 @@ const WhatsYourNameGame: React.FC<WhatsYourNameGameProps> = ({ width, height, wa
               timestamp: Date.now()
             }, ...prev.slice(0, 9)]);
 
-            const foundNewRobot = checkForRobotMeeting(robot);
-            if (foundNewRobot) {
+            const { foundNewRobot, shouldStop } = checkForRobotMeeting(robot);
+            if (foundNewRobot || shouldStop) {
               robot.path = [];
               robot.pathIndex = 0;
               robot.targetRobotId = null;
-              robot.status = 'Found a robot!';
+              robot.status = shouldStop ? 'Stopped - Adjacent to another robot' : 'Found a robot!';
             }
           } else if (!robot.targetRobotId) {
             const { nearestRobot, path } = findNearestUnknownRobot(robot);
