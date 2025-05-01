@@ -99,24 +99,24 @@ const createEmptyRoom = (): Cell[][] => {
     }
     room.push(row);
   }
-  
+
   // Ensure starting position is clear
   room[1][1].type = 'floor';
   room[1][1].terrain = 'normal';
-  
+
   // Add portal
   const portalX = ROOM_WIDTH - 2;
   const portalY = ROOM_HEIGHT - 2;
   room[portalY][portalX].type = 'portal';
   room[portalY][portalX].terrain = 'normal';
-  
+
   return room;
 };
 
 const findValidPosition = (room: Cell[][]): {x: number, y: number} => {
   let attempts = 0;
   let x, y;
-  
+
   do {
     x = 2 + Math.floor(Math.random() * (ROOM_WIDTH - 4));
     y = 2 + Math.floor(Math.random() * (ROOM_HEIGHT - 4));
@@ -135,13 +135,13 @@ const findValidPosition = (room: Cell[][]): {x: number, y: number} => {
 const generateEnemies = (currentRoom: Cell[][], level: number): Enemy[] => {
   const enemies: Enemy[] = [];
   const enemyCount = Math.min(3 + Math.floor(level / 2), 8);
-  
+
   for (let i = 0; i < enemyCount; i++) {
     const types = ['slime', 'skeleton', 'ghost', 'mage'] as const;
     const type = types[Math.floor(Math.random() * types.length)];
     const baseStats = ENEMY_TYPES[type];
     const position = findValidPosition(currentRoom);
-    
+
     enemies.push({
       id: Date.now() + i,
       x: position.x,
@@ -155,7 +155,7 @@ const generateEnemies = (currentRoom: Cell[][], level: number): Enemy[] => {
       turnsToMove: baseStats.turnsToMove
     });
   }
-  
+
   if (level % 5 === 0) {
     enemies.push({
       id: Date.now() + enemyCount,
@@ -170,16 +170,16 @@ const generateEnemies = (currentRoom: Cell[][], level: number): Enemy[] => {
       turnsToMove: ENEMY_TYPES.boss.turnsToMove
     });
   }
-  
+
   return enemies;
 };
 
-const generateItems = (): Item[] => {
+const generateItems = (room: Cell[][]): Item[] => {
   const items: Item[] = [];
   const itemCount = 2 + Math.floor(Math.random() * 3);
-  
+
   const types = ['health', 'ammo', 'shield', 'damage', 'range'] as const;
-  
+
   for (let i = 0; i < itemCount; i++) {
     const type = types[Math.floor(Math.random() * types.length)];
     const position = findValidPosition(room);
@@ -194,7 +194,7 @@ const generateItems = (): Item[] => {
              type === 'damage' ? 5 : 1
     });
   }
-  
+
   return items;
 };
 
@@ -231,7 +231,7 @@ const RogueLikeGame: React.FC = () => {
     confidence: 1.0
   });
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  
+
   const addLog = (message: string, type: CombatLog['type']) => {
     setCombatLog(prev => [...prev.slice(-9), { message, timestamp: Date.now(), type }]);
   };
@@ -270,10 +270,10 @@ const RogueLikeGame: React.FC = () => {
   const moveRobot = (dx: number, dy: number) => {
     const newX = robot.x + dx;
     const newY = robot.y + dy;
-    
+
     if (newX < 0 || newX >= ROOM_WIDTH || newY < 0 || newY >= ROOM_HEIGHT) return false;
     if (room[newY][newX].type === 'wall') return false;
-    
+
     setRobot(prev => ({ ...prev, x: newX, y: newY }));
     return true;
   };
@@ -282,17 +282,17 @@ const RogueLikeGame: React.FC = () => {
 
   const attackEnemy = (enemy: Enemy) => {
     if (robot.ammo <= 0) return false;
-    
+
     const distance = Math.sqrt(Math.pow(enemy.x - robot.x, 2) + Math.pow(enemy.y - robot.y, 2));
     if (distance > robot.attackRange) return false;
-    
+
     setAttackLine({
       x1: robot.x,
       y1: robot.y,
       x2: enemy.x,
       y2: enemy.y
     });
-    
+
     setTimeout(() => setAttackLine(null), 500);
     setRobot(prev => ({ ...prev, ammo: prev.ammo - 1 }));
     setEnemies(prev => prev.map(e => {
@@ -308,7 +308,7 @@ const RogueLikeGame: React.FC = () => {
       }
       return e;
     }).filter(Boolean));
-    
+
     return true;
   };
 
@@ -361,7 +361,7 @@ const RogueLikeGame: React.FC = () => {
   const findPathToTarget = (start: { x: number; y: number }, goal: { x: number; y: number }): Cell[] => {
     const openSet: Cell[] = [];
     const closedSet: Set<string> = new Set();
-    
+
     // Initialize start node
     const startNode = room[start.y][start.x];
     startNode.g = 0;
@@ -369,7 +369,7 @@ const RogueLikeGame: React.FC = () => {
     startNode.f = startNode.h;
     startNode.parent = null;
     openSet.push(startNode);
-  
+
     while (openSet.length > 0) {
       // Find node with lowest f score
       let current = openSet[0];
@@ -380,7 +380,7 @@ const RogueLikeGame: React.FC = () => {
           currentIndex = index;
         }
       });
-  
+
       // Check if we reached the goal
       if (current.x === goal.x && current.y === goal.y) {
         const path: Cell[] = [];
@@ -391,45 +391,45 @@ const RogueLikeGame: React.FC = () => {
         }
         return path;
       }
-  
+
       // Move current node from open to closed set
       openSet.splice(currentIndex, 1);
       closedSet.add(`${current.x},${current.y}`);
-  
+
       // Check all adjacent squares
       const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
       for (const [dx, dy] of directions) {
         const newX = current.x + dx;
         const newY = current.y + dy;
-  
+
         // Skip if out of bounds
         if (newX < 0 || newX >= ROOM_WIDTH || newY < 0 || newY >= ROOM_HEIGHT) continue;
-  
+
         // Skip if wall or already in closed set
         const neighbor = room[newY][newX];
         if (neighbor.type === 'wall' || closedSet.has(`${newX},${newY}`)) continue;
-  
+
         const tentativeG = current.g + 1;
-  
+
         if (!openSet.includes(neighbor)) {
           openSet.push(neighbor);
         } else if (tentativeG >= neighbor.g) {
           continue;
         }
-  
+
         neighbor.parent = current;
         neighbor.g = tentativeG;
         neighbor.h = Math.abs(goal.x - newX) + Math.abs(goal.y - newY);
         neighbor.f = neighbor.g + neighbor.h;
       }
     }
-  
+
     return []; // No path found
   };
 
   const processAI = useCallback(() => {
     if (!isAutoPlaying) return;
-  
+
     // Update AI state based on current situation
     const nearestEnemy = enemies.reduce((nearest, enemy) => {
       const distance = Math.sqrt(Math.pow(enemy.x - robot.x, 2) + Math.pow(enemy.y - robot.y, 2));
@@ -438,7 +438,7 @@ const RogueLikeGame: React.FC = () => {
       }
       return nearest;
     }, null as Enemy | null);
-  
+
     const nearestItem = items.reduce((nearest, item) => {
       const distance = Math.sqrt(Math.pow(item.x - robot.x, 2) + Math.pow(item.y - robot.y, 2));
       if (!nearest || distance < Math.sqrt(Math.pow(nearest.x - robot.x, 2) + Math.pow(nearest.y - robot.y, 2))) {
@@ -446,12 +446,12 @@ const RogueLikeGame: React.FC = () => {
       }
       return nearest;
     }, null as Item | null);
-  
+
     // Decision making
     let newMode = aiState.mode;
     let target = undefined;
     let decision = '';
-  
+
     if (robot.health < robot.maxHealth * 0.3) {
       newMode = 'heal';
       const healthItem = items.find(i => i.type === 'health');
@@ -482,7 +482,7 @@ const RogueLikeGame: React.FC = () => {
         decision = 'Seeking portal to next level';
       }
     }
-  
+
     setAIState(prev => ({
       ...prev,
       mode: newMode,
@@ -490,7 +490,7 @@ const RogueLikeGame: React.FC = () => {
       lastDecision: decision,
       confidence: Math.random() * 0.3 + 0.7
     }));
-  
+
     // Execute action based on state
     if (target) {
       if (newMode === 'combat' && nearestEnemy) {
@@ -514,13 +514,13 @@ const RogueLikeGame: React.FC = () => {
         }
       }
     }
-  
+
     // Process enemy turns
     setEnemies(prev => prev.map(enemy => {
       if (enemy.turnsToMove > 1) {
         return { ...enemy, turnsToMove: enemy.turnsToMove - 1 };
       }
-  
+
       const distance = Math.sqrt(Math.pow(enemy.x - robot.x, 2) + Math.pow(enemy.y - robot.y, 2));
       if (distance <= enemy.attackRange) {
         const damage = Math.max(0, enemy.damage - robot.defense);
@@ -539,13 +539,13 @@ const RogueLikeGame: React.FC = () => {
           turnsToMove: ENEMY_TYPES[enemy.type].turnsToMove
         };
       }
-  
+
       return { ...enemy, turnsToMove: ENEMY_TYPES[enemy.type].turnsToMove };
     }));
-  
+
     // Check for items
     items.forEach(item => collectItem(item));
-  
+
     // Check for portal
     if (room[robot.y][robot.x].type === 'portal') {
       addLog('Entering portal to next level!', 'portal');
@@ -553,10 +553,10 @@ const RogueLikeGame: React.FC = () => {
       setGameState(prev => ({ ...prev, level: prev.level + 1 }));
       setRoom(newRoom);
       setEnemies(generateEnemies(newRoom, gameState.level + 1));
-      setItems(generateItems());
+      setItems(generateItems(newRoom)); // Updated item generation
       setRobot(prev => ({ ...prev, x: 1, y: 1 }));
     }
-  
+
     // Update game state and portal pulse
     setGameState(prev => ({ ...prev, turn: prev.turn + 1 }));
     setPortalPulse(prev => prev + 1);
@@ -587,7 +587,7 @@ const RogueLikeGame: React.FC = () => {
       setEnemies(generateEnemies(room, gameState.level));
     }
     if (items.length === 0) {
-      setItems(generateItems());
+      setItems(generateItems(room)); // Updated item generation
     }
   }, [gameState.level, room]);
 
