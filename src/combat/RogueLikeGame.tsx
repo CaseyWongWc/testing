@@ -113,6 +113,25 @@ const createEmptyRoom = (): Cell[][] => {
   return room;
 };
 
+const findValidPosition = (room: Cell[][]): {x: number, y: number} => {
+  let attempts = 0;
+  let x, y;
+  
+  do {
+    x = 2 + Math.floor(Math.random() * (ROOM_WIDTH - 4));
+    y = 2 + Math.floor(Math.random() * (ROOM_HEIGHT - 4));
+    attempts++;
+  } while (room[y][x].type === 'wall' && attempts < 50);
+
+  // If no valid position found, force clear a position
+  if (attempts >= 50) {
+    room[y][x].type = 'floor';
+    room[y][x].terrain = 'normal';
+  }
+
+  return {x, y};
+};
+
 const generateEnemies = (level: number): Enemy[] => {
   const enemies: Enemy[] = [];
   const enemyCount = Math.min(3 + Math.floor(level / 2), 8);
@@ -121,11 +140,12 @@ const generateEnemies = (level: number): Enemy[] => {
     const types = ['slime', 'skeleton', 'ghost', 'mage'] as const;
     const type = types[Math.floor(Math.random() * types.length)];
     const baseStats = ENEMY_TYPES[type];
+    const position = findValidPosition(room);
     
     enemies.push({
       id: Date.now() + i,
-      x: 2 + Math.floor(Math.random() * (ROOM_WIDTH - 4)),
-      y: 2 + Math.floor(Math.random() * (ROOM_HEIGHT - 4)),
+      x: position.x,
+      y: position.y,
       type,
       health: baseStats.health + level * 5,
       maxHealth: baseStats.health + level * 5,
@@ -162,10 +182,11 @@ const generateItems = (): Item[] => {
   
   for (let i = 0; i < itemCount; i++) {
     const type = types[Math.floor(Math.random() * types.length)];
+    const position = findValidPosition(room);
     items.push({
       id: Date.now() + i,
-      x: 2 + Math.floor(Math.random() * (ROOM_WIDTH - 4)),
-      y: 2 + Math.floor(Math.random() * (ROOM_HEIGHT - 4)),
+      x: position.x,
+      y: position.y,
       type,
       value: type === 'health' ? 30 : 
              type === 'ammo' ? 15 :
