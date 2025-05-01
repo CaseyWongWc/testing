@@ -24,7 +24,7 @@ interface Shoulders {
     resourcePriority: 'strength' | 'gold' | 'food' | 'water' | 'balanced';
     environmentState: 'safe' | 'caution' | 'urgent';
   };
-  
+
   // Methods
   analyzeVisibleEntities: () => Item[]; // Returns list of items the robot can currently see
   interpretEnvironment: () => { [key: string]: any }; // Returns contextual information about surroundings
@@ -35,7 +35,7 @@ interface Knees {
   movementPlan: Cell[];
   targetItem: Item | null;
   strategy: 'direct' | 'cautious' | 'opportunistic';
-  
+
   // Methods
   selectMovementStrategy: () => 'direct' | 'cautious' | 'opportunistic';
   executeEvasionOrPursuit: () => void;
@@ -46,7 +46,7 @@ interface Toes {
   currentPosition: { x: number, y: number };
   visibleTiles: { x: number, y: number }[];
   movementSpeed: number;
-  
+
   // Methods
   updateVisibleTiles: () => { x: number, y: number }[];
   pathToTarget: (target: { x: number, y: number }) => Cell[];
@@ -73,7 +73,7 @@ interface Robot {
   status: string;
   activeValueType: 'strength' | 'gold' | 'food' | 'water' | 'balanced';
   history: string[];
-  
+
   // New component-based movement system
   shoulders: Shoulders;
   knees: Knees;
@@ -183,6 +183,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
   const [isRunning, setIsRunning] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [directPaths, setDirectPaths] = useState<DirectPath[]>([]);
+  const [editMode, setEditMode] = useState(false); // Added edit mode state
   const robotIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number | null>(null);
@@ -205,14 +206,14 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       }
     };
   }, []);
-  
+
   // Update direct paths visualizing the connections to nearby items
   const updateDirectPaths = useCallback(() => {
     if (!robot) return;
-    
+
     const newPaths: DirectPath[] = [];
     const visibleItems = items.filter(item => !item.collected);
-    
+
     // Calculate value for all items to find the range
     const itemsWithValues = visibleItems.map(item => {
       const distance = Math.abs(robot.x - item.x) + Math.abs(robot.y - item.y);
@@ -222,21 +223,21 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       const value = calculateItemValue(item, robot);
       return { item, distance, value, rawSum };
     });
-    
+
     // Find highest value item to compare with
     let maxValue = -Infinity;
     let minValue = Infinity;
-    
+
     itemsWithValues.forEach(({ value }) => {
       if (value > maxValue) maxValue = value;
       if (value < minValue) minValue = value;
     });
-    
+
     // Sort by value in descending order and prioritize paths to top 8 items
     const valueItems = itemsWithValues
       .sort((a, b) => b.value - a.value)
       .slice(0, 8);
-    
+
     // Create paths with thicker lines for higher values
     for (const { item, value, rawSum } of valueItems) {
       // Only connect if not blocked by walls using line of sight check
@@ -244,7 +245,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
         // Extract item type color from bg-color-500 format
         const colorMatch = item.color.match(/bg-(\w+)-\d+/);
         const color = colorMatch ? colorMatch[1] : 'gray';
-        
+
         // Create the path, using rawSum as the simple weight label
         newPaths.push({
           x1: robot.x,
@@ -256,10 +257,10 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
         });
       }
     }
-    
+
     setDirectPaths(newPaths);
   }, [robot, items]);
-  
+
   // Check if a direct line is blocked by walls (for line-of-sight checking)
   const isLineBlocked = (x1: number, y1: number, x2: number, y2: number): boolean => {
     const dx = Math.abs(x2 - x1);
@@ -274,7 +275,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     while (true) {
       // If we're at a wall, the line is blocked
       if (maze[y]?.[x]?.isWall) return true;
-      
+
       // If we've reached the destination, the line is not blocked
       if (x === x2 && y === y2) break;
 
@@ -295,17 +296,17 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
   // Function to determine which tiles are visible from a given position
   const getVisibleTiles = (x: number, y: number, visibilityRange = 5): {x: number, y: number}[] => {
     const visibleTiles: {x: number, y: number}[] = [];
-    
+
     // Check all tiles within the visibility range using a circle-like approach
     for (let dy = -visibilityRange; dy <= visibilityRange; dy++) {
       for (let dx = -visibilityRange; dx <= visibilityRange; dx++) {
         // Calculate distance to check if within visibility circle
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         if (distance <= visibilityRange) {
           const tileX = x + dx;
           const tileY = y + dy;
-          
+
           // Check if tile is within maze bounds
           if (tileX >= 0 && tileX < width && tileY >= 0 && tileY < height) {
             // Only add if there's line of sight (not blocked by walls)
@@ -316,24 +317,24 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
         }
       }
     }
-    
+
     return visibleTiles;
   };
-  
+
   // Identify which items are visible to the robot
   const analyzeVisibleEntities = (robotX: number, robotY: number, allItems: Item[]): Item[] => {
     // Get all visible tiles from current robot position
     const visibleTiles = getVisibleTiles(robotX, robotY);
-    
+
     // Create a set of visible tile coordinates for efficient lookup
     const visibleTileSet = new Set(visibleTiles.map(tile => `${tile.x},${tile.y}`));
-    
+
     // Filter items to only include those on visible tiles
     return allItems.filter(item => 
       !item.collected && visibleTileSet.has(`${item.x},${item.y}`)
     );
   };
-  
+
   // Interpret the environment based on visible items and robot state
   const interpretEnvironment = (
     robot: Robot, 
@@ -344,7 +345,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     const goldNeed = Math.max(0, robot.thresholds.gold - robot.inventory.goldTotal);
     const foodNeed = Math.max(0, robot.thresholds.food - robot.inventory.foodTotal);
     const waterNeed = Math.max(0, robot.thresholds.water - robot.inventory.waterTotal);
-    
+
     // Find highest need
     const needs = [
       { type: 'strength', value: strengthNeed },
@@ -352,10 +353,10 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       { type: 'food', value: foodNeed },
       { type: 'water', value: waterNeed }
     ];
-    
+
     // Sort by need value
     needs.sort((a, b) => b.value - a.value);
-    
+
     // Calculate urgency level (0-1) based on how far below threshold
     const maxThreshold = Math.max(
       robot.thresholds.strength,
@@ -363,23 +364,23 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       robot.thresholds.food,
       robot.thresholds.water
     );
-    
+
     const urgency = needs[0].value / maxThreshold;
-    
+
     // Calculate value of each visible item based on current needs
     const itemValues: {[key: string]: number} = {};
-    
+
     visibleItems.forEach(item => {
       itemValues[item.id] = calculateItemValue(item, robot);
     });
-    
+
     return {
       resourcePriority: needs[0].value > 0 ? needs[0].type : 'balanced',
       urgency,
       itemValues
     };
   };
-  
+
   // Execute movement toward a specific target
   const pathToTarget = (
     startX: number, 
@@ -396,25 +397,25 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     ) {
       return [];
     }
-    
+
     // Use A* algorithm to find a path
     const openSet: Cell[] = [];
     const closedSet: Set<string> = new Set();
-    
+
     // Clone the maze to avoid modifying the original
     const mazeCopy = currentMaze.map(row => 
       row.map(cell => ({ ...cell, f: 0, g: 0, h: 0, parent: null, isPath: false }))
     );
-    
+
     const startCell = mazeCopy[startY][startX];
     const goalCell = mazeCopy[targetY][targetX];
-    
+
     // Initialize start node
     startCell.g = 0;
     startCell.h = heuristic(startCell, goalCell);
     startCell.f = startCell.g + startCell.h;
     openSet.push(startCell);
-    
+
     while (openSet.length > 0) {
       // Find node with lowest f score
       let currentIndex = 0;
@@ -423,51 +424,51 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
           currentIndex = i;
         }
       }
-      
+
       const current = openSet[currentIndex];
-      
+
       // If we've reached the goal
       if (current.x === goalCell.x && current.y === goalCell.y) {
         // Reconstruct path
         const path: Cell[] = [];
         let temp = current;
-        
+
         while (temp.parent) {
           path.push(temp);
           temp = temp.parent;
         }
-        
+
         // Mark path cells for visualization
         path.forEach(cell => {
           mazeCopy[cell.y][cell.x].isPath = true;
         });
-        
+
         return path.reverse();
       }
-      
+
       // Move current from open to closed set
       openSet.splice(currentIndex, 1);
       closedSet.add(`${current.x},${current.y}`);
-      
+
       // Check all neighbors
       const neighbors = getValidNeighbors(current, mazeCopy);
-      
+
       for (const neighbor of neighbors) {
         // Skip if already evaluated
         if (closedSet.has(`${neighbor.x},${neighbor.y}`)) continue;
-        
+
         // Calculate tentative g score
         const tentativeG = current.g + 1; // Basic cost of 1 per step
-        
+
         const neighborCell = mazeCopy[neighbor.y][neighbor.x];
-        
+
         // Check if we have a better path to this neighbor
         if (!openSet.includes(neighborCell)) {
           openSet.push(neighborCell);
         } else if (tentativeG >= neighborCell.g) {
           continue; // Not a better path
         }
-        
+
         // This path is the best so far, record it
         neighborCell.parent = current;
         neighborCell.g = tentativeG;
@@ -475,7 +476,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
         neighborCell.f = neighborCell.g + neighborCell.h;
       }
     }
-    
+
     // No path found
     return [];
   };
@@ -483,7 +484,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
   const initializeMaze = () => {
     // Create an empty maze
     const newMaze: Cell[][] = [];
-    
+
     for (let y = 0; y < height; y++) {
       const row: Cell[] = [];
       for (let x = 0; x < width; x++) {
@@ -503,16 +504,16 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       }
       newMaze.push(row);
     }
-    
+
     setMaze(newMaze);
-    
+
     // Initialize robot
     const robotX = 1;
     const robotY = 1;
-    
+
     // Get visible tiles at robot position
     const visibleTiles = getVisibleTiles(robotX, robotY);
-    
+
     // Initialize robot with our new component architecture
     const newRobot: Robot = {
       x: robotX,
@@ -535,7 +536,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       status: "Initializing...",
       activeValueType: 'balanced',
       history: ["Robot activated and ready to collect items."],
-      
+
       // Initialize new component-based movement system
       shoulders: {
         visibleEntities: [],
@@ -562,40 +563,40 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
         pathToTarget: (target) => []
       }
     };
-    
+
     setRobot(newRobot);
-    
+
     // Generate items
     const usedPositions = new Set<string>();
     usedPositions.add(`${newRobot.x},${newRobot.y}`); // Robot position
 
     const newItems: Item[] = [];
-    
+
     for (let i = 0; i < itemCount; i++) {
       const item = generateItem(i, newMaze, usedPositions);
       newItems.push(item);
       usedPositions.add(`${item.x},${item.y}`);
     }
-    
+
     setItems(newItems);
-    
+
     // Now update the robot's shoulder and toe functions with proper implementations
     if (newRobot) {
       const visibleItems = analyzeVisibleEntities(newRobot.x, newRobot.y, newItems);
-      
+
       newRobot.shoulders.visibleEntities = visibleItems;
       newRobot.shoulders.analyzeVisibleEntities = () => 
         analyzeVisibleEntities(newRobot.x, newRobot.y, newItems);
-        
+
       newRobot.shoulders.interpretEnvironment = () => 
         interpretEnvironment(newRobot, visibleItems);
-        
+
       newRobot.toes.updateVisibleTiles = () => 
         getVisibleTiles(newRobot.x, newRobot.y);
-        
+
       newRobot.toes.pathToTarget = (target) => 
         pathToTarget(newRobot.x, newRobot.y, target.x, target.y, newMaze);
-        
+
       setRobot(newRobot);
     }
   };
@@ -612,7 +613,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     // Increase chance of special items by using weighted selection
     let typeIndex;
     const randomVal = Math.random();
-    
+
     // 15% chance for watermelon or poison delight flask
     if (randomVal < 0.075) { 
       // Watermelon index (5)
@@ -624,12 +625,12 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       // Regular items (0-4)
       typeIndex = Math.floor(Math.random() * 5);
     }
-    
+
     const itemType = ITEM_TYPES[typeIndex];
-    
+
     // Assign values - can be positive or negative
     let strengthValue = 0, goldValue = 0, foodValue = 0, waterValue = 0;
-    
+
     // Handle special items with predefined values
     if (itemType.type === 'watermelon') {
       // Watermelon: [vector of: 2 food, 6 water]
@@ -681,7 +682,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
 
     // Generate description based on values
     let description = "";
-    
+
     // Special descriptions for our new item types
     if (itemType.type === 'watermelon') {
       description = "Juicy fresh watermelon. Provides moderate food energy and substantial water replenishment. Perfect for hydration needs.";
@@ -727,19 +728,19 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     // A* pathfinding algorithm
     const openSet: Cell[] = [];
     const closedSet: Set<string> = new Set();
-    
+
     // Reset the maze path visualization
     const newMaze = maze.map(row => 
       row.map(cell => ({ ...cell, isPath: false, f: 0, g: 0, h: 0, parent: null }))
     );
-    
+
     // Add start node to open set
     const startNode = newMaze[start.y][start.x];
     startNode.g = 0;
     startNode.h = heuristic(startNode, goal);
     startNode.f = startNode.g + startNode.h;
     openSet.push(startNode);
-    
+
     while (openSet.length > 0) {
       // Find node with lowest f value
       let lowestIndex = 0;
@@ -748,9 +749,9 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
           lowestIndex = i;
         }
       }
-      
+
       const current = openSet[lowestIndex];
-      
+
       // If we've reached the goal
       if (current.x === goal.x && current.y === goal.y) {
         const path: Cell[] = [];
@@ -759,39 +760,39 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
           path.push(temp);
           temp = temp.parent;
         }
-        
+
         // Mark path cells for visualization
         const pathCells = new Set<string>();
         for (const cell of path) {
           pathCells.add(`${cell.x},${cell.y}`);
         }
-        
+
         const finalMaze = newMaze.map(row => 
           row.map(cell => ({
             ...cell,
             isPath: pathCells.has(`${cell.x},${cell.y}`)
           }))
         );
-        
+
         setMaze(finalMaze);
         return path.reverse();
       }
-      
+
       // Remove current from open set and add to closed set
       openSet.splice(lowestIndex, 1);
       closedSet.add(`${current.x},${current.y}`);
-      
+
       // Check all neighbors
       const neighbors = getValidNeighbors(current);
       for (const neighbor of neighbors) {
         const neighborNode = newMaze[neighbor.y][neighbor.x];
-        
+
         // Skip if in closed set
         if (closedSet.has(`${neighborNode.x},${neighborNode.y}`)) continue;
-        
+
         // Calculate tentative g score
         const tentativeG = current.g + 1;
-        
+
         // Check if we need to update this neighbor
         const inOpenSet = openSet.some(n => n.x === neighborNode.x && n.y === neighborNode.y);
         if (!inOpenSet || tentativeG < neighborNode.g) {
@@ -799,14 +800,14 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
           neighborNode.g = tentativeG;
           neighborNode.h = heuristic(neighborNode, goal);
           neighborNode.f = neighborNode.g + neighborNode.h;
-          
+
           if (!inOpenSet) {
             openSet.push(neighborNode);
           }
         }
       }
     }
-    
+
     // If no path is found, return empty path
     return [];
   }, [maze]);
@@ -814,7 +815,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
   const getValidNeighbors = (cell: Cell, currentMaze: Cell[][] = maze): Cell[] => {
     const neighbors: Cell[] = [];
     const { x, y } = cell;
-    
+
     // Check 8 directions
     const directions = [
       { dx: 0, dy: -1 }, // Up
@@ -826,11 +827,11 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       { dx: -1, dy: 0 }, // Left
       { dx: -1, dy: -1 } // Up-Left
     ];
-    
+
     for (const dir of directions) {
       const nx = x + dir.dx;
       const ny = y + dir.dy;
-      
+
       // Check bounds
       if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
         // Check if not a wall
@@ -839,7 +840,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
         }
       }
     }
-    
+
     return neighbors;
   };
 
@@ -851,22 +852,22 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
   const calculateItemValue = (item: Item, robot: Robot): number => {
     // Calculate raw sum of all values (for weight label - attraction/repulsion)
     const rawSum = item.strengthValue + item.goldValue + item.foodValue + item.waterValue;
-    
+
     // Update the item's weight property for visual representation
     // This will determine how attractive (positive) or repulsive (negative) the item appears
     if (item.weight === undefined) {
       item.weight = rawSum;
     }
-    
+
     // Determine which resource the robot needs most based on thresholds
     const strengthNeed = robot.thresholds.strength - robot.inventory.strengthTotal;
     const goldNeed = robot.thresholds.gold - robot.inventory.goldTotal;
     const foodNeed = robot.thresholds.food - robot.inventory.foodTotal;
     const waterNeed = robot.thresholds.water - robot.inventory.waterTotal;
-    
+
     // Calculate value based on needs and item values
     let value = 0;
-    
+
     if (strengthNeed > 0) {
       value += (item.strengthValue * (strengthNeed / robot.thresholds.strength) * 2);
     } else if (item.strengthValue < 0) {
@@ -875,15 +876,14 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     } else {
       value += item.strengthValue * 0.5; // Still valuable but less so
     }
-    
+
     if (goldNeed > 0) {
-      value += (item.goldValue * (goldNeed / robot.thresholds.gold) * 2);
-    } else if (item.goldValue < 0) {
+      value += (item.goldValue * (goldNeed / robot.thresholds.gold) * 2);} else if (item.goldValue < 0) {
       value += item.goldValue;
     } else {
       value += item.goldValue * 0.5;
     }
-    
+
     if (foodNeed > 0) {
       value += (item.foodValue * (foodNeed / robot.thresholds.food) * 2);
     } else if (item.foodValue < 0) {
@@ -891,7 +891,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     } else {
       value += item.foodValue * 0.5;
     }
-    
+
     if (waterNeed > 0) {
       value += (item.waterValue * (waterNeed / robot.thresholds.water) * 2);
     } else if (item.waterValue < 0) {
@@ -899,52 +899,52 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     } else {
       value += item.waterValue * 0.5;
     }
-    
+
     // Apply more significant distance penalty for now
     // As requested: "for now we also have to consider distance"
     const distance = Math.abs(robot.x - item.x) + Math.abs(robot.y - item.y);
-    
+
     // Stronger distance penalty (items farther away are significantly less valuable)
     // This ensures distance is a major factor in the calculation
     value = value / (1 + distance * 0.2);
-    
+
     return value;
   };
 
   const findBestItem = (robot: Robot, items: Item[]): Item | null => {
     if (!robot) return null;
-    
+
     // Filter uncollected items
     const uncollectedItems = items.filter(item => !item.collected);
     if (uncollectedItems.length === 0) return null;
-    
+
     // Update robot's value priority
     const valueType = updateRobotValuePriority(robot);
     setRobot(prev => prev ? { ...prev, activeValueType: valueType } : null);
-    
+
     // Calculate value for each item and store in a map for debug/display purposes
     const itemValues: {[id: string]: number} = {};
     let bestItem = null;
     let bestValue = -Infinity;
-    
+
     for (const item of uncollectedItems) {
       // Calculate total raw sum for simple weight label
       const rawSum = item.strengthValue + item.goldValue + item.foodValue + item.waterValue;
-      
+
       // Update the item with its weight value for visualization
       const itemWithWeight = {...item, weight: rawSum};
-      
+
       // Calculate the robot's contextual value for this item (includes distance penalty and needs)
       const value = calculateItemValue(itemWithWeight, robot);
       itemValues[item.id] = value;
-      
+
       // Find the item with the highest value
       if (value > bestValue) {
         bestValue = value;
         bestItem = item;
       }
     }
-    
+
     // Log the values for debugging
     if (showDebug) {
       console.log("Item values:", itemValues);
@@ -952,20 +952,20 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
         `${bestItem.name} (${bestItem.x}, ${bestItem.y}) - S:${bestItem.strengthValue} G:${bestItem.goldValue} F:${bestItem.foodValue} W:${bestItem.waterValue} Value: ${itemValues[bestItem.id].toFixed(1)}` 
         : "None");
     }
-    
+
     return bestItem;
   };
 
   const updateRobotValuePriority = (robot: Robot): 'strength' | 'gold' | 'food' | 'water' | 'balanced' => {
     const { strengthTotal, goldTotal, foodTotal, waterTotal } = robot.inventory;
     const { strength, gold, food, water } = robot.thresholds;
-    
+
     // Calculate percentage of threshold for each resource
     const strengthPct = strengthTotal / strength;
     const goldPct = goldTotal / gold;
     const foodPct = foodTotal / food;
     const waterPct = waterTotal / water;
-    
+
     // Find the resource with lowest percentage (highest need)
     const resources = [
       { type: 'strength', pct: strengthPct },
@@ -973,32 +973,32 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       { type: 'food', pct: foodPct },
       { type: 'water', pct: waterPct }
     ];
-    
+
     resources.sort((a, b) => a.pct - b.pct);
-    
+
     // If all resources are above threshold, stay balanced
     if (resources[0].pct >= 1) {
       return 'balanced';
     }
-    
+
     // Otherwise prioritize the most needed resource
     return resources[0].type as 'strength' | 'gold' | 'food' | 'water';
   };
 
   const startRobotLogic = () => {
     if (isRunning || !robot || animationFrameRef.current) return;
-    
+
     setIsRunning(true);
     setRobot(prev => prev ? { 
       ...prev, 
       status: "Analyzing environment...",
       history: [...prev.history, "Started item collection process."]
     } : null);
-    
+
     // Reset animation timing references
     lastFrameTimeRef.current = null;
     accumulatedTimeRef.current = 0;
-    
+
     // Start animation loop using requestAnimationFrame for smoother movement
     const animate = (timestamp: number) => {
       if (!isRunning || !robot) {
@@ -1008,34 +1008,34 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
         }
         return;
       }
-      
+
       // Initialize lastFrameTime on first frame
       if (!lastFrameTimeRef.current) {
         lastFrameTimeRef.current = timestamp;
       }
-      
+
       const deltaTime = timestamp - lastFrameTimeRef.current;
       lastFrameTimeRef.current = timestamp;
-      
+
       // Accumulate time until we reach our movement interval
       accumulatedTimeRef.current += deltaTime;
       const moveInterval = 600; // time between moves in ms
-      
+
       if (accumulatedTimeRef.current >= moveInterval) {
         accumulatedTimeRef.current = 0;
         moveRobot();
-        
+
         // Update direct paths visualization after each move
         updateDirectPaths();
       }
-      
+
       // Continue animation loop
       animationFrameRef.current = requestAnimationFrame(animate);
     };
-    
+
     // Start the animation loop
     animationFrameRef.current = requestAnimationFrame(animate);
-    
+
     // Initial path visualization
     updateDirectPaths();
   };
@@ -1046,18 +1046,18 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       clearInterval(robotIntervalRef.current);
       robotIntervalRef.current = null;
     }
-    
+
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
-    
+
     setRobot(prev => prev ? {
       ...prev,
       status: "Paused",
       history: [...prev.history, "Collection process paused."]
     } : null);
-    
+
     // Clear directPaths when stopping
     setDirectPaths([]);
   };
@@ -1068,11 +1068,11 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
     // If robot has a path and is following it
     if (robot.path.length > 0 && robot.pathIndex < robot.path.length) {
       const nextCell = robot.path[robot.pathIndex];
-      
+
       // Move robot to next cell in path
       setRobot(prev => {
         if (!prev) return null;
-        
+
         return {
           ...prev,
           x: nextCell.x,
@@ -1102,28 +1102,28 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
 
   const findNextTarget = () => {
     setIsThinking(true);
-    
+
     setTimeout(() => {
       if (!robot) {
         setIsThinking(false);
         return;
       }
-      
+
       const bestItem = findBestItem(robot, items);
-      
+
       if (bestItem) {
         const robotCell = maze[robot.y][robot.x];
         const goalCell = maze[bestItem.y][bestItem.x];
-        
+
         const path = findPath(robotCell, goalCell);
-        
+
         if (path.length > 0) {
           setRobot(prev => {
             if (!prev) return null;
-            
+
             // Create a description of why this item was chosen
             let rationaleText = "";
-            
+
             if (prev.activeValueType === 'strength') {
               rationaleText = `Prioritizing strength (${prev.inventory.strengthTotal}/${prev.thresholds.strength})`;
             } else if (prev.activeValueType === 'gold') {
@@ -1135,10 +1135,10 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
             } else {
               rationaleText = "Maintaining balanced resource collection";
             }
-            
+
             // Add item value details
             rationaleText += `. Selected ${bestItem.name} with values (S:${bestItem.strengthValue} G:${bestItem.goldValue} F:${bestItem.foodValue} W:${bestItem.waterValue}).`;
-            
+
             return {
               ...prev,
               path,
@@ -1163,10 +1163,10 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
           status: "All items collected!",
           history: [...prev.history, "Collection complete. All items gathered."]
         } : null);
-        
+
         stopRobotLogic();
       }
-      
+
       setIsThinking(false);
     }, 300);
   };
@@ -1178,11 +1178,11 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
         i.id === item.id ? { ...i, collected: true } : i
       )
     );
-    
+
     // AI players directly consume items without storing in inventory
     setRobot(prev => {
       if (!prev) return null;
-      
+
       // Update robot's total values directly
       const newStrengthTotal = prev.inventory.strengthTotal + item.strengthValue;
       const newGoldTotal = prev.inventory.goldTotal + item.goldValue;
@@ -1191,7 +1191,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
 
       // Create consumption message with appropriate messages for positive/negative values
       let consumptionMessage = `Consumed ${item.name}. `;
-      
+
       if (item.strengthValue !== 0) {
         consumptionMessage += `Strength ${item.strengthValue > 0 ? "+" : ""}${item.strengthValue}. `;
       }
@@ -1204,14 +1204,14 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
       if (item.waterValue !== 0) {
         consumptionMessage += `Water ${item.waterValue > 0 ? "+" : ""}${item.waterValue}. `;
       }
-      
+
       // Special messages for our special items
       if (item.type === 'watermelon') {
         consumptionMessage += "Hydration levels significantly improved!";
       } else if (item.type === 'poisondelightflask') {
         consumptionMessage += "WARNING: Structural integrity compromised by poisonous substance!";
       }
-      
+
       return {
         ...prev,
         inventory: {
@@ -1235,7 +1235,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
   // Render the item at the given coordinates
   const renderItem = (item: Item) => {
     if (item.collected) return null;
-    
+
     return (
       <div 
         key={item.id}
@@ -1256,12 +1256,12 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
   // Background shade for a cell based on its position in the robot's path
   const getCellPathStyle = (x: number, y: number) => {
     if (!robot || robot.path.length === 0) return {};
-    
+
     const cellInPath = robot.path.findIndex(cell => cell.x === x && cell.y === y);
-    
+
     if (cellInPath !== -1) {
       const opacity = 0.2 + (0.8 * (1 - cellInPath / robot.path.length));
-      
+
       // Use color based on robot's active value type
       let bgColor;
       switch (robot.activeValueType) {
@@ -1280,20 +1280,50 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
         default: 
           bgColor = `rgba(168, 85, 247, ${opacity})`; // Purple (balanced)
       }
-      
+
       return { backgroundColor: bgColor };
     }
-    
+
     return {};
   };
 
   // Get status bar color based on resource percentage
   const getStatusBarColor = (current: number, threshold: number) => {
     const percentage = current / threshold;
-    
+
     if (percentage >= 1) return 'bg-green-500';
     if (percentage >= 0.5) return 'bg-yellow-500';
     return 'bg-red-500';
+  };
+
+  const handleCellClick = (x: number, y: number) => {
+    if (editMode) {
+      const newMaze = [...maze];
+      newMaze[y][x].isWall = !newMaze[y][x].isWall;
+
+      // If cell contains robot or item, clear the wall
+      if (robot && robot.x === x && robot.y === y) {
+        newMaze[y][x].isWall = false;
+      }
+
+      const itemAtPosition = items.find(item => item.x === x && item.y === y);
+      if (itemAtPosition) {
+        newMaze[y][x].isWall = false;
+      }
+
+      setMaze(newMaze);
+    } else if (!isRunning && robot && !maze[y][x].isWall) {
+      // Move robot when simulation is not running
+      setRobot(prev => prev ? {
+        ...prev,
+        x,
+        y,
+        path: [],
+        pathIndex: 0,
+        status: "Moved to new position",
+        history: [...prev.history, `Manually moved to position (${x}, ${y})`]
+      } : null);
+    }
   };
 
   return (
@@ -1317,13 +1347,14 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
                   height: '20px',
                   ...getCellPathStyle(x, y)
                 }}
+                onClick={() => handleCellClick(x, y)} // Added onClick handler
               />
             ))
           )}
-          
+
           {/* Render items */}
           {items.map(item => renderItem(item))}
-          
+
           {/* Render direct paths to visualize item weights */}
           <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 15 }}>
             {directPaths.map((path, index) => {
@@ -1331,10 +1362,10 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
               const startY = path.y1 * 20 + 10;
               const endX = path.x2 * 20 + 10;
               const endY = path.y2 * 20 + 10;
-              
+
               const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
               const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-              
+
               // Normalize weight to determine line thickness (positive = thicker, negative = thinner)
               // Make high values (>10) much more prominent
               const thickness = path.weight > 10
@@ -1342,22 +1373,22 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
                 : path.weight > 0 
                   ? Math.min(4, 1 + path.weight / 3) 
                   : Math.max(0.5, 1 + path.weight / 10);
-                
+
               // Opacity based on absolute weight - higher for higher values
               const opacity = path.weight > 10
                 ? 0.95 // Very high opacity for top values
                 : Math.min(0.9, 0.3 + Math.abs(path.weight) / 8);
-              
+
               // Calculate the midpoint of the line for value label
               const midX = (startX + endX) / 2;
               const midY = (startY + endY) / 2;
-              
+
               // Adjust midpoint slightly off the line so text is more visible
               const perpAngle = angle + 90; // perpendicular to line angle
               const offsetDistance = 10; // distance from line
               const labelX = midX + offsetDistance * Math.cos(perpAngle * Math.PI / 180);
               const labelY = midY + offsetDistance * Math.sin(perpAngle * Math.PI / 180);
-              
+
               return (
                 <div key={`path-group-${index}`}>
                   {/* Value label above the line */}
@@ -1376,7 +1407,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
                   >
                     {path.weight.toFixed(1)}
                   </div>
-                  
+
                   {/* The actual connection line */}
                   <div
                     className="absolute"
@@ -1407,7 +1438,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
               );
             })}
           </div>
-          
+
           {/* Render robot */}
           {robot && (
             <div 
@@ -1423,7 +1454,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
             </div>
           )}
         </div>
-        
+
         {/* Legend */}
         <div className="mt-4 bg-white p-3 rounded-lg shadow-sm">
           <h3 className="font-semibold mb-2">Legend</h3>
@@ -1466,7 +1497,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
             </div>
           </div>
         </div>
-        
+
         {/* Controls */}
         <div className="mt-4 flex gap-2">
           <button 
@@ -1495,9 +1526,15 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
           >
             {showDebug ? 'Hide Debug' : 'Show Debug'}
           </button>
+          <button
+            onClick={() => setEditMode(!editMode)}
+            className="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600"
+          >
+            {editMode ? 'Exit Edit Mode' : 'Enter Edit Mode'}
+          </button>
         </div>
       </div>
-      
+
       {/* Robot Status & Item Log Panel */}
       <div className="w-full lg:w-80 flex flex-col">
         {/* Robot Status */}
@@ -1517,7 +1554,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
                 {robot.activeValueType.charAt(0).toUpperCase() + robot.activeValueType.slice(1)}
               </span>
             </p>
-            
+
             <h4 className="font-semibold mt-4 mb-2">Resources</h4>
             <div className="space-y-2">
               <div>
@@ -1532,7 +1569,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
                   ></div>
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-yellow-500 font-medium">Gold</span>
@@ -1545,7 +1582,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
                   ></div>
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-green-500 font-medium">Food</span>
@@ -1558,7 +1595,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
                   ></div>
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-blue-500 font-medium">Water</span>
@@ -1574,7 +1611,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
             </div>
           </div>
         )}
-        
+
         {/* Activity Log */}
         <div className="bg-white p-4 rounded-lg shadow-sm flex-1 overflow-hidden">
           <h3 className="font-bold mb-3 text-blue-600">Activity Log</h3>
@@ -1589,19 +1626,19 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
             ))}
           </div>
         </div>
-        
+
         {/* Debug panel */}
         {showDebug && (
           <div className="mt-4 bg-gray-100 p-4 rounded-lg shadow-sm overflow-y-auto max-h-96">
             <h3 className="font-semibold mb-2">Debug Information</h3>
-            
+
             <div className="mt-2">
               <h4 className="font-medium text-sm">Uncollected Items</h4>
               <div className="space-y-1 mt-1">
                 {items.filter(i => !i.collected).map(item => {
                   // Calculate current value for this item based on robot's current state
                   const itemValue = robot ? calculateItemValue(item, robot) : 0;
-                  
+
                   return (
                     <div key={item.id} className="text-xs bg-white p-1 rounded">
                       {item.name} ({item.x}, {item.y}) - S:{item.strengthValue} G:{item.goldValue} F:{item.foodValue} W:{item.waterValue}
@@ -1613,7 +1650,7 @@ export const MultiValuedItemCollector: React.FC<MultiValuedItemCollectorProps> =
                 })}
               </div>
             </div>
-            
+
             <div className="mt-3">
               <h4 className="font-medium text-sm">Current Path</h4>
               {robot?.path.length ? (
