@@ -8,7 +8,7 @@ import GuessingGame from "./components/GuessingGame";
 import WhatsYourNameGame from "./components/WhatsYourNameGame";
 import RGBTerrainNavigator from "./components/RGBTerrainNavigator";
 import RobotTrading from "./components/RobotTrading";
-import RogueLikeGame from "./components/RogueLikeGame";
+import MonsterCards from "./components/MonsterCards";
 import Combat from "./combat/Combat.tsx";
 import ReplitScene from "./replit/ReplitScene";
 
@@ -408,7 +408,7 @@ function App() {
           />
         )}
         {activeGame === "trading" && <RobotTrading />}
-        {activeGame === "rogue" && <RogueLikeGame />}
+        {activeGame === "rogue" && <MonsterCards />}
         {activeGame === "other-apps" && (
           <div className="flex flex-col items-center gap-4">
             <button
