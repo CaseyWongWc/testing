@@ -147,7 +147,7 @@ function App() {
                   : "hover:bg-gray-100"
               }`}
             >
-              RogueLike
+              MonsterCards
             </button>
             
             <button
