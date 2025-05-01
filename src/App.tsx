@@ -136,14 +136,14 @@ function App() {
               What's Your Name?
             </button>
             <button
-              onClick={() => setActiveGame("trading")}
+              onClick={() => setActiveGame("tag")}
               className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "trading"
+                activeGame === "tag"
                   ? "bg-blue-500 text-white"
                   : "hover:bg-gray-100"
               }`}
             >
-              Robot Trading
+              Tag Game
             </button>
             <button
               onClick={() => setActiveGame("rogue")}
@@ -415,7 +415,7 @@ function App() {
             robotCount={robotCount}
           />
         )}
-        {activeGame === "trading" && <RobotTrading />}
+        {activeGame === "tag" && <TagGame width={25} height={15} wallDensity={0.25} robotCount={4} />}
         {activeGame === "rogue" && <MonsterCards />}
         {activeGame === "other-apps" && (
           <div className="flex flex-col items-center gap-4">

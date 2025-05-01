@@ -84,7 +84,7 @@ const ReplitScene: React.FC = () => {
         {scene === 'scene3' && <ErrorBoundary><BeeHiveSimulation /></ErrorBoundary>}
         {scene === 'scene4' && <ErrorBoundary><AIEcosystem /></ErrorBoundary>}
         {scene === 'scene5' && <ErrorBoundary><TagGame width={25} height={15} wallDensity={0.25} robotCount={4} /></ErrorBoundary>}
-        {scene === 'scene6' && <div>Scene 6 Content</div>}
+        {scene === 'scene6' && <ErrorBoundary><RobotTrading /></ErrorBoundary>}
         {scene === 'scene7' && <ErrorBoundary><MultiValuedItemCollector width={25} height={20} wallDensity={0.2} itemCount={20} /></ErrorBoundary>}
         {scene === 'scene8' && <ErrorBoundary><Spawner width={30} height={20} wallDensity={0.2} /></ErrorBoundary>}
         {scene === 'scene9' && <div>Scene 9 Content</div>}
