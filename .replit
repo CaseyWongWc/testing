@@ -27,6 +27,7 @@ localPort = 5176
 externalPort = 3001
 
 [workflows]
+runButton = "Run"
 
 [[workflows.workflow]]
 name = "Run"
@@ -53,3 +54,12 @@ args = "echo \"Starting AI Simulation Server with Express proxy...\""
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node server.js"
+
+[[workflows.workflow]]
+name = "Run"
+author = 27304601
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
