@@ -49,6 +49,7 @@ function App() {
                 size={24} 
                 color="#2563eb" 
                 className="ml-2 cursor-pointer" 
+                isActive={activeGame === "other-apps"}
                 onClick={() => setActiveGame(activeGame === "other-apps" ? "maze" : "other-apps")}
               />
             </h1>
@@ -155,16 +156,18 @@ function App() {
               MonsterCards
             </button>
             
-            <button
-              onClick={() => setActiveGame("other-apps")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "other-apps"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
-            >
-              Other Apps
-            </button>
+            {activeGame === "other-apps" && (
+              <button
+                onClick={() => setActiveGame("other-apps")}
+                className={`px-4 py-2 rounded transition-colors ${
+                  activeGame === "other-apps"
+                    ? "bg-blue-500 text-white"
+                    : "hover:bg-gray-100"
+                }`}
+              >
+                Other Apps
+              </button>
+            )}
           </div>
 
           {activeGame !== "rgbterrain" &&
