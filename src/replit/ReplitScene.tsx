@@ -7,6 +7,7 @@ import AIEcosystem from './AIEcosystem';
 import TagGame from './TagGame';
 import { MultiValuedItemCollector } from './MultiValuedItemCollector';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { Spawner } from './Spawner';
 
 const ReplitScene: React.FC = () => {
   const [scene, setScene] = useState<string>('initial');
