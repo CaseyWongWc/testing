@@ -215,21 +215,36 @@ const RogueLikeGame: React.FC = () => {
     setCombatLog(prev => [...prev.slice(-9), { message, timestamp: Date.now(), type }]);
   };
 
+  const [portalPulse, setPortalPulse] = useState(0);
+
   const updateVisibility = useCallback(() => {
     setRoom(prev => {
       const newRoom = [...prev.map(row => [...row])];
+      const portalCell = newRoom.flat().find(cell => cell.type === 'portal');
+      const pulseRange = 3 + Math.sin(portalPulse * 0.5) * 1.5; // Pulsating range between 1.5 and 4.5
+
       for (let y = 0; y < ROOM_HEIGHT; y++) {
         for (let x = 0; x < ROOM_WIDTH; x++) {
-          const distance = Math.sqrt(Math.pow(x - robot.x, 2) + Math.pow(y - robot.y, 2));
-          newRoom[y][x].isVisible = distance <= VISION_RANGE;
-          if (newRoom[y][x].isVisible) {
+          const distanceToRobot = Math.sqrt(Math.pow(x - robot.x, 2) + Math.pow(y - robot.y, 2));
+          let isVisible = distanceToRobot <= VISION_RANGE;
+
+          // Add portal visibility
+          if (portalCell) {
+            const distanceToPortal = Math.sqrt(Math.pow(x - portalCell.x, 2) + Math.pow(y - portalCell.y, 2));
+            if (distanceToPortal <= pulseRange) {
+              isVisible = true;
+            }
+          }
+
+          newRoom[y][x].isVisible = isVisible;
+          if (isVisible) {
             newRoom[y][x].wasVisible = true;
           }
         }
       }
       return newRoom;
     });
-  }, [robot.x, robot.y]);
+  }, [robot.x, robot.y, portalPulse]);
 
   const moveRobot = (dx: number, dy: number) => {
     const newX = robot.x + dx;
@@ -520,8 +535,9 @@ const RogueLikeGame: React.FC = () => {
       setRobot(prev => ({ ...prev, x: 1, y: 1 }));
     }
   
-    // Update game state
+    // Update game state and portal pulse
     setGameState(prev => ({ ...prev, turn: prev.turn + 1 }));
+    setPortalPulse(prev => prev + 1);
   }, [robot, enemies, items, room, aiState, isAutoPlaying, gameState.level]);
 
   useEffect(() => {
