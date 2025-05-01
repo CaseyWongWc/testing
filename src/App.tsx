@@ -44,7 +44,7 @@ function App() {
         <div className="flex flex-col items-center gap-4 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-3 flex items-center justify-center w-full mb-2">
             <h1 className="text-2xl font-bold text-blue-600 flex items-center">
-              AI Simulation Framework{" "}
+              {activeGame === "other-apps" ? "AI Simulation Framework" : "WSS Components"}{" "}
               <ArrowIcon 
                 size={24} 
                 color="#2563eb" 
