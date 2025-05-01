@@ -5,6 +5,7 @@ import Pathfinder from './Pathfinder';
 import BeeHiveSimulation from './BeeHiveSimulation';
 import AIEcosystem from './AIEcosystem';
 import TagGame from './TagGame';
+import RobotTrading from '../components/RobotTrading';
 import { MultiValuedItemCollector } from './MultiValuedItemCollector';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { Spawner } from './Spawner';

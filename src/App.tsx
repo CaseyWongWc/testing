@@ -13,6 +13,7 @@ import Combat from "./combat/Combat.tsx";
 import ReplitScene from "./replit/ReplitScene";
 
 import ArrowIcon from "./components/ArrowIcon";
+import TagGame from "./components/TagGame";
 
 type GameType =
   | "maze"
