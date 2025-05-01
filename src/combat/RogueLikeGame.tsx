@@ -242,12 +242,22 @@ const RogueLikeGame: React.FC = () => {
     return true;
   };
 
+  const [attackLine, setAttackLine] = useState<{x1: number, y1: number, x2: number, y2: number} | null>(null);
+
   const attackEnemy = (enemy: Enemy) => {
     if (robot.ammo <= 0) return false;
     
     const distance = Math.sqrt(Math.pow(enemy.x - robot.x, 2) + Math.pow(enemy.y - robot.y, 2));
     if (distance > robot.attackRange) return false;
     
+    setAttackLine({
+      x1: robot.x,
+      y1: robot.y,
+      x2: enemy.x,
+      y2: enemy.y
+    });
+    
+    setTimeout(() => setAttackLine(null), 500);
     setRobot(prev => ({ ...prev, ammo: prev.ammo - 1 }));
     setEnemies(prev => prev.map(e => {
       if (e.id === enemy.id) {
@@ -583,6 +593,24 @@ const RogueLikeGame: React.FC = () => {
               row.map((cell, x) => (
                 <div
                   key={`${x}-${y}`}
+                  style={{
+                    position: 'relative',
+                    ...(attackLine && ((x === robot.x && y === robot.y) || (x === attackLine.x2 && y === attackLine.y2)) && {
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        width: '2px',
+                        height: '2rem',
+                        background: 'red',
+                        transform: `rotate(${Math.atan2(attackLine.y2 - attackLine.y1, attackLine.x2 - attackLine.x1) * (180 / Math.PI)}deg)`,
+                        transformOrigin: 'top left',
+                        pointerEvents: 'none',
+                        zIndex: 10
+                      }
+                    })
+                  }}
                   className={`relative ${
                     cell.isVisible
                       ? 'opacity-100'
@@ -604,9 +632,14 @@ const RogueLikeGame: React.FC = () => {
                   }`}
                 >
                   {robot.x === x && robot.y === y && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Bot className="w-6 h-6 text-blue-500" />
-                    </div>
+                    <>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Bot className="w-6 h-6 text-blue-500" />
+                      </div>
+                      <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 whitespace-nowrap">
+                        [{robot.ammo}/{robot.maxAmmo}]
+                      </div>
+                    </>
                   )}
                   {enemies.map(enemy => {
                     if (enemy.x === x && enemy.y === y && cell.isVisible) {
