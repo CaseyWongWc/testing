@@ -11,8 +11,7 @@ import RobotTrading from "./components/RobotTrading";
 import RogueLikeGame from "./components/RogueLikeGame";
 import Combat from "./combat/Combat.tsx";
 import ReplitScene from "./replit/ReplitScene";
-import Scene7 from "./replit/Scene7";
-import Scene8 from "./replit/Scene8";
+
 import ArrowIcon from "./components/ArrowIcon";
 
 type GameType =
@@ -25,12 +24,9 @@ type GameType =
   | "whatsyourname"
   | "rgbterrain"
   | "trading"
-  | "rogue"
   | "other-apps"
   | "combat"
-  | "replit"
-  | "scene7"
-  | "scene8";
+  | "replit";
 
 function App() {
   const [activeGame, setActiveGame] = useState<GameType>("maze");
@@ -153,26 +149,7 @@ function App() {
             >
               RogueLike
             </button>
-            <button
-              onClick={() => setActiveGame("scene7")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "scene7"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
-            >
-              Scene 7
-            </button>
-            <button
-              onClick={() => setActiveGame("scene8")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "scene8"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
-            >
-              Scene 8
-            </button>
+            
             <button
               onClick={() => setActiveGame("other-apps")}
               className={`px-4 py-2 rounded transition-colors ${
@@ -450,8 +427,7 @@ function App() {
         )}
         {activeGame === "combat" && <Combat />}
         {activeGame === "replit" && <ReplitScene />}
-        {activeGame === "scene7" && <Scene7 />}
-        {activeGame === "scene8" && <Scene8 />}
+        
       </div>
     </div>
   );

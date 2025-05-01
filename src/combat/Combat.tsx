@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import ZombiesAhh from './ZombiesAhh';
 import EmptyClassroom from './EmptyClassroom';
+import RogueLikeGame from '../components/RogueLikeGame';
 
 const Combat: React.FC = () => {
-  const [activeScene, setActiveScene] = useState<'zombies' | 'classroom'>('zombies');
+  const [activeScene, setActiveScene] = useState<'zombies' | 'classroom' | 'rogue'>('zombies');
 
   return (
     <div className="p-8">
@@ -28,10 +29,21 @@ const Combat: React.FC = () => {
         >
           Empty Classroom
         </button>
+        <button
+          onClick={() => setActiveScene('rogue')}
+          className={`px-4 py-2 rounded transition-colors ${
+            activeScene === 'rogue'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-100 hover:bg-gray-200'
+          }`}
+        >
+          Rogue Like
+        </button>
       </div>
 
       {activeScene === 'zombies' && <ZombiesAhh />}
       {activeScene === 'classroom' && <EmptyClassroom />}
+      {activeScene === 'rogue' && <RogueLikeGame />}
     </div>
   );
 };
