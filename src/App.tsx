@@ -45,7 +45,12 @@ function App() {
           <div className="bg-white rounded-lg shadow-sm p-3 flex items-center justify-center w-full mb-2">
             <h1 className="text-2xl font-bold text-blue-600 flex items-center">
               AI Simulation Framework{" "}
-              <ArrowIcon size={24} color="#2563eb" className="ml-2" />
+              <ArrowIcon 
+                size={24} 
+                color="#2563eb" 
+                className="ml-2 cursor-pointer" 
+                onClick={() => setActiveGame(activeGame === "other-apps" ? "maze" : "other-apps")}
+              />
             </h1>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-1 flex gap-1 flex-wrap">
