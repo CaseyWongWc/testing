@@ -11,9 +11,8 @@ import RobotTrading from "./components/RobotTrading";
 import MonsterCards from "./components/MonsterCards";
 import Combat from "./combat/Combat.tsx";
 import ReplitScene from "./replit/ReplitScene";
-
+import BeeHiveSimulation from "./replit/BeeHiveSimulation";
 import ArrowIcon from "./components/ArrowIcon";
-import TagGame from "./components/TagGame";
 
 type GameType =
   | "maze"
@@ -416,7 +415,7 @@ function App() {
             robotCount={robotCount}
           />
         )}
-        {activeGame === "tag" && <TagGame width={25} height={15} wallDensity={0.25} robotCount={4} />}
+        {activeGame === "tag" && <BeeHiveSimulation />}
         {activeGame === "rogue" && <MonsterCards />}
         {activeGame === "other-apps" && (
           <div className="flex flex-col items-center gap-4">
