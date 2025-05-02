@@ -508,12 +508,19 @@ const RogueLikeGame: React.FC = () => {
       newMode = 'explore';
       target = { x: nearestItem.x, y: nearestItem.y };
       decision = `Moving to collect ${nearestItem.type}`;
-    } else if (isPortalActive) { // Prioritize portal if active
+    } else if (isPortalActive && robot.health >= robot.maxHealth * 0.5 && robot.ammo >= robot.maxAmmo * 0.3) {
+      // Only go to portal if health and ammo are sufficient
       newMode = 'portal';
       const portalCell = room.flat().find(cell => cell.type === 'portal');
       if (portalCell) {
         target = { x: portalCell.x, y: portalCell.y };
         decision = 'Portal is active, proceeding to next level';
+      }
+    } else if (isPortalActive) {
+      // If portal is active but resources are low, still collect items
+      if (nearestItem) {
+        target = { x: nearestItem.x, y: nearestItem.y };
+        decision = `Getting more resources before portal: ${nearestItem.type}`;
       }
     } else {
       // Evaluate if it's a good time to progress to next level (only if portal is not yet active)
