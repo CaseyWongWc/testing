@@ -72,6 +72,7 @@ interface AIState {
 const ROOM_WIDTH = 15;
 const ROOM_HEIGHT = 15;
 const VISION_RANGE = 5;
+const PORTAL_ACTIVATION_THRESHOLD = 10; // Added threshold
 
 const ENEMY_TYPES = {
   slime: { health: 20, damage: 5, moveRange: 1, attackRange: 1, turnsToMove: 2 },
@@ -231,6 +232,7 @@ const RogueLikeGame: React.FC = () => {
     confidence: 1.0
   });
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isPortalActive, setIsPortalActive] = useState(false); // Added portal activation state
 
   const addLog = (message: string, type: CombatLog['type']) => {
     setCombatLog(prev => [...prev.slice(-9), { message, timestamp: Date.now(), type }]);
@@ -275,7 +277,7 @@ const RogueLikeGame: React.FC = () => {
           const distanceToRobot = Math.sqrt(Math.pow(x - robot.x, 2) + Math.pow(y - robot.y, 2));
           let isVisible = distanceToRobot <= VISION_RANGE && hasLineOfSight(robot.x, robot.y, x, y, newRoom);
 
-          if (portalCell) {
+          if (portalCell && isPortalActive) { // Modified condition for portal visibility
             const distanceToPortal = Math.sqrt(Math.pow(x - portalCell.x, 2) + Math.pow(y - portalCell.y, 2));
             if (distanceToPortal <= pulseRange && hasLineOfSight(portalCell.x, portalCell.y, x, y, newRoom)) {
               isVisible = true;
@@ -290,7 +292,7 @@ const RogueLikeGame: React.FC = () => {
       }
       return newRoom;
     });
-  }, [robot.x, robot.y, portalPulse]);
+  }, [robot.x, robot.y, portalPulse, isPortalActive]);
 
   const moveRobot = (dx: number, dy: number) => {
     const newX = robot.x + dx;
@@ -325,7 +327,14 @@ const RogueLikeGame: React.FC = () => {
         const newHealth = e.health - robot.damage;
         if (newHealth <= 0) {
           addLog(`Defeated ${e.type}!`, 'attack');
-          setGameState(prev => ({ ...prev, kills: prev.kills + 1 }));
+          setGameState(prev => {
+            const newKills = prev.kills + 1;
+            if (newKills >= PORTAL_ACTIVATION_THRESHOLD && !isPortalActive) {
+              setIsPortalActive(true);
+              addLog('Portal has been activated!', 'portal');
+            }
+            return { ...prev, kills: newKills };
+          });
           return null as unknown as Enemy;
         }
         addLog(`Hit ${e.type} for ${robot.damage} damage!`, 'attack');
@@ -499,8 +508,15 @@ const RogueLikeGame: React.FC = () => {
       newMode = 'explore';
       target = { x: nearestItem.x, y: nearestItem.y };
       decision = `Moving to collect ${nearestItem.type}`;
+    } else if (isPortalActive) { // Prioritize portal if active
+      newMode = 'portal';
+      const portalCell = room.flat().find(cell => cell.type === 'portal');
+      if (portalCell) {
+        target = { x: portalCell.x, y: portalCell.y };
+        decision = 'Portal is active, proceeding to next level';
+      }
     } else {
-      // Evaluate if it's a good time to progress to next level
+      // Evaluate if it's a good time to progress to next level (only if portal is not yet active)
       const shouldProgress = (
         // Cleared most enemies (>80%)
         enemies.length <= Math.ceil(gameState.level * 0.2) &&
@@ -513,12 +529,8 @@ const RogueLikeGame: React.FC = () => {
       );
 
       if (shouldProgress) {
-        newMode = 'portal';
-        const portalCell = room.flat().find(cell => cell.type === 'portal');
-        if (portalCell) {
-          target = { x: portalCell.x, y: portalCell.y };
-          decision = 'Room cleared, proceeding to next level';
-        }
+        newMode = 'explore'; // explore to find the portal
+        decision = 'Room cleared, searching for portal';
       } else {
         newMode = 'explore';
         decision = 'Continuing to clear current level';
@@ -576,7 +588,7 @@ const RogueLikeGame: React.FC = () => {
         const dy = Math.sign(robot.y - enemy.y);
         const newX = enemy.x + dx;
         const newY = enemy.y + dy;
-        
+
         // Check if new position is valid (not a wall and not occupied by another enemy)
         if (newX >= 0 && newX < ROOM_WIDTH && newY >= 0 && newY < ROOM_HEIGHT &&
             room[newY][newX].type !== 'wall' &&
@@ -605,12 +617,13 @@ const RogueLikeGame: React.FC = () => {
       setEnemies(generateEnemies(newRoom, gameState.level + 1));
       setItems(generateItems(newRoom)); // Updated item generation
       setRobot(prev => ({ ...prev, x: 1, y: 1 }));
+      setIsPortalActive(false); // Reset portal activation for the next level
     }
 
     // Update game state and portal pulse
     setGameState(prev => ({ ...prev, turn: prev.turn + 1 }));
     setPortalPulse(prev => prev + 1);
-  }, [robot, enemies, items, room, aiState, isAutoPlaying, gameState.level]);
+  }, [robot, enemies, items, room, aiState, isAutoPlaying, gameState.level, isPortalActive]);
 
   useEffect(() => {
     updateVisibility();
@@ -691,6 +704,7 @@ const RogueLikeGame: React.FC = () => {
               setEnemies([]);
               setItems([]);
               setCombatLog([]);
+              setIsPortalActive(false); // Reset portal activation on game restart
             }}
             className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
           >
