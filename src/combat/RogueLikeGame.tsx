@@ -740,8 +740,8 @@ const RogueLikeGame: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-[2fr,1fr] gap-4">
-        <div className="space-y-4">
-          <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="space-y-4 relative">
+          <div className="bg-white rounded-lg shadow-sm p-4 relative z-10">
             <h2 className="text-lg font-semibold mb-2">Weapon Status</h2>
             <div className="space-y-2">
               <div>
@@ -781,6 +781,7 @@ const RogueLikeGame: React.FC = () => {
                       position: 'relative',
                       ...(attackLine && ((x === robot.x && y === robot.y) || (x === attackLine.x2 && y === attackLine.y2)) && {
                         '&::after': {
+                          zIndex: 20,
                           content: '""',
                           position: 'absolute',
                           top: '50%',
