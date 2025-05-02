@@ -622,7 +622,7 @@ const RogueLikeGame: React.FC = () => {
     if (portalCell) {
       const distanceToPortal = Math.sqrt(Math.pow(portalCell.x - robot.x, 2) + Math.pow(portalCell.y - robot.y, 2));
       const pulseRange = 3 + Math.sin(portalPulse * 0.5) * 1.5;
-      
+
       if (room[robot.y][robot.x].type === 'portal') {
         // Portal entry - heal and restore ammo
         addLog('Entering portal to next level! Health and ammo restored!', 'portal');
@@ -770,110 +770,111 @@ const RogueLikeGame: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="grid grid-cols-[repeat(15,2rem)] grid-rows-[repeat(15,2rem)] gap-px bg-gray-200">
               {room.map((row, y) =>
                 row.map((cell, x) => (
                   <div
-                  key={`${x}-${y}`}
-                  style={{
-                    position: 'relative',
-                    ...(attackLine && ((x === robot.x && y === robot.y) || (x === attackLine.x2 && y === attackLine.y2)) && {
-                      '&::after': {
-                        content: '""',
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        width: '2px',
-                        height: '2rem',
-                        background: 'red',
-                        transform: `rotate(${Math.atan2(attackLine.y2 - attackLine.y1, attackLine.x2 - attackLine.x1) * (180 / Math.PI)}deg)`,
-                        transformOrigin: 'top left',
-                        pointerEvents: 'none',
-                        zIndex: 10
+                    key={`${x}-${y}`}
+                    style={{
+                      position: 'relative',
+                      ...(attackLine && ((x === robot.x && y === robot.y) || (x === attackLine.x2 && y === attackLine.y2)) && {
+                        '&::after': {
+                          content: '""',
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          width: '2px',
+                          height: '2rem',
+                          background: 'red',
+                          transform: `rotate(${Math.atan2(attackLine.y2 - attackLine.y1, attackLine.x2 - attackLine.x1) * (180 / Math.PI)}deg)`,
+                          transformOrigin: 'top left',
+                          pointerEvents: 'none',
+                          zIndex: 10
+                        }
+                      })
+                    }}
+                    className={`relative ${
+                      cell.isVisible
+                        ? 'opacity-100'
+                        : cell.wasVisible
+                        ? 'opacity-50'
+                        : 'opacity-0'
+                    } ${
+                      cell.type === 'wall'
+                        ? 'bg-gray-800'
+                        : cell.type === 'portal'
+                        ? 'bg-purple-500'
+                        : cell.terrain === 'water'
+                        ? 'bg-blue-200'
+                        : cell.terrain === 'lava'
+                        ? 'bg-red-200'
+                        : cell.terrain === 'grass'
+                        ? 'bg-green-200'
+                        : 'bg-white'
+                    }`}
+                  >
+                    {robot.x === x && robot.y === y && (
+                      <>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Bot className="w-6 h-6 text-blue-500" />
+                        </div>
+                        <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 whitespace-nowrap">
+                          [{robot.ammo}/{robot.maxAmmo}]
+                        </div>
+                      </>
+                    )}
+                    {enemies.map(enemy => {
+                      if (enemy.x === x && enemy.y === y && cell.isVisible) {
+                        return (
+                          <div
+                            key={enemy.id}
+                            className="absolute inset-0 flex items-center justify-center"
+                          >
+                            {enemy.type === 'slime' ? (
+                              <div className="w-6 h-6 rounded-full bg-green-500" />
+                            ) : enemy.type === 'skeleton' ? (
+                              <Skull className="w-6 h-6 text-gray-700" />
+                            ) : enemy.type === 'ghost' ? (
+                              <div className="w-6 h-6 rounded-full bg-white border-2 border-gray-400" />
+                            ) : enemy.type === 'mage' ? (
+                              <Zap className="w-6 h-6 text-purple-500" />
+                            ) : (
+                              <Swords className="w-6 h-6 text-red-500" />
+                            )}
+                          </div>
+                        );
                       }
-                    })
-                  }}
-                  className={`relative ${
-                    cell.isVisible
-                      ? 'opacity-100'
-                      : cell.wasVisible
-                      ? 'opacity-50'
-                      : 'opacity-0'
-                  } ${
-                    cell.type === 'wall'
-                      ? 'bg-gray-800'
-                      : cell.type === 'portal'
-                      ? 'bg-purple-500'
-                      : cell.terrain === 'water'
-                      ? 'bg-blue-200'
-                      : cell.terrain === 'lava'
-                      ? 'bg-red-200'
-                      : cell.terrain === 'grass'
-                      ? 'bg-green-200'
-                      : 'bg-white'
-                  }`}
-                >
-                  {robot.x === x && robot.y === y && (
-                    <>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Bot className="w-6 h-6 text-blue-500" />
-                      </div>
-                      <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 whitespace-nowrap">
-                        [{robot.ammo}/{robot.maxAmmo}]
-                      </div>
-                    </>
-                  )}
-                  {enemies.map(enemy => {
-                    if (enemy.x === x && enemy.y === y && cell.isVisible) {
-                      return (
-                        <div
-                          key={enemy.id}
-                          className="absolute inset-0 flex items-center justify-center"
-                        >
-                          {enemy.type === 'slime' ? (
-                            <div className="w-6 h-6 rounded-full bg-green-500" />
-                          ) : enemy.type === 'skeleton' ? (
-                            <Skull className="w-6 h-6 text-gray-700" />
-                          ) : enemy.type === 'ghost' ? (
-                            <div className="w-6 h-6 rounded-full bg-white border-2 border-gray-400" />
-                          ) : enemy.type === 'mage' ? (
-                            <Zap className="w-6 h-6 text-purple-500" />
-                          ) : (
-                            <Swords className="w-6 h-6 text-red-500" />
-                          )}
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
-                  {items.map(item => {
-                    if (item.x === x && item.y === y && cell.isVisible) {
-                      return (
-                        <div
-                          key={item.id}
-                          className="absolute inset-0 flex items-center justify-center"
-                        >
-                          {item.type === 'health' ? (
-                            <Heart className="w-6 h-6 text-red-500" />
-                          ) : item.type === 'ammo' ? (
-                            <Package className="w-6 h-6 text-yellow-500" />
-                          ) : item.type === 'shield' ? (
-                            <Shield className="w-6 h-6 text-blue-500" />
-                          ) : item.type === 'damage' ? (
-                            <Swords className="w-6 h-6 text-orange-500" />
-                          ) : (
-                            <Crosshair className="w-6 h-6 text-purple-500" />
-                          )}
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
-                </div>
-              ))
-            )}
+                      return null;
+                    })}
+                    {items.map(item => {
+                      if (item.x === x && item.y === y && cell.isVisible) {
+                        return (
+                          <div
+                            key={item.id}
+                            className="absolute inset-0 flex items-center justify-center"
+                          >
+                            {item.type === 'health' ? (
+                              <Heart className="w-6 h-6 text-red-500" />
+                            ) : item.type === 'ammo' ? (
+                              <Package className="w-6 h-6 text-yellow-500" />
+                            ) : item.type === 'shield' ? (
+                              <Shield className="w-6 h-6 text-blue-500" />
+                            ) : item.type === 'damage' ? (
+                              <Swords className="w-6 h-6 text-orange-500" />
+                            ) : (
+                              <Crosshair className="w-6 h-6 text-purple-500" />
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
 
