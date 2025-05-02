@@ -1,5 +1,5 @@
-import React from 'react';
-import { Sparkles, Code, Lock, AlertTriangle, Gamepad2 } from 'lucide-react';
+import React from "react";
+import { Sparkles, Code, Lock, AlertTriangle, Gamepad2 } from "lucide-react";
 
 interface SecretMenuProps {
   onNavigate: (path: string) => void;
@@ -8,46 +8,55 @@ interface SecretMenuProps {
 const SecretMenu: React.FC<SecretMenuProps> = ({ onNavigate }) => {
   const sections = [
     {
-      id: 'impossible',
-      name: 'Experimental Features',
-      description: 'Pushing the boundaries of what\'s possible',
+      id: "impossible",
+      name: "Experimental Features",
+      description: "Pushing the boundaries of what's possible",
       icon: <Sparkles className="w-6 h-6 text-purple-500" />,
-      path: 'might be impossible to make'
+      path: "might be impossible to make",
     },
     {
-      id: 'incompatible',
-      name: 'Compatibility Lab',
-      description: 'Testing unconventional combinations',
+      id: "incompatible",
+      name: "Compatibility Lab",
+      description: "Testing unconventional combinations",
       icon: <Code className="w-6 h-6 text-blue-500" />,
-      path: 'might be incompatable'
+      path: "might be incompatable",
     },
     {
-      id: '3dworld',
-      name: '3D World',
-      description: 'Exploring three-dimensional space',
+      id: "3dworld",
+      name: "3D World",
+      description: "Exploring three-dimensional space",
       icon: <Lock className="w-6 h-6 text-green-500" />,
-      path: 'not following syllabus/3dworld'
+      path: "not following syllabus/3dworld",
     },
     {
-      id: 'entertainment',
-      name: 'Entertainment',
-      description: 'Specialized or unique scenes',
+      id: "entertainment",
+      name: "Entertainment",
+      description: "Specialized or unique scenes",
       icon: <Gamepad2 className="w-6 h-6 text-yellow-500" />,
-      path: 'for entertainment'
-    }
+      path: "for entertainment",
+    },
+    {
+      id: "unrelated",
+      name: "RuleBreaking",
+      description: "testing things unrelated to WSS",
+      icon: <Gamepad2 className="w-6 h-6 text-red-500" />,
+      path: "unrelated",
+    },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 p-8 text-white">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 text-center">
-          <h1 
+          <h1
             className="text-4xl font-bold mb-4 cursor-pointer hover:text-blue-400 transition-colors"
-            onClick={() => onNavigate('exit')}
+            onClick={() => onNavigate("exit")}
           >
             Secret Laboratory
           </h1>
-          <p className="text-gray-400">Breaking the boundaries of conventional development</p>
+          <p className="text-gray-400">
+            Breaking the boundaries of conventional development
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -59,7 +68,7 @@ const SecretMenu: React.FC<SecretMenuProps> = ({ onNavigate }) => {
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === "Enter" || e.key === " ") {
                   onNavigate(section.path);
                 }
               }}
@@ -79,8 +88,8 @@ const SecretMenu: React.FC<SecretMenuProps> = ({ onNavigate }) => {
             <h3 className="font-semibold">Experimental Zone</h3>
           </div>
           <p className="text-yellow-200/70 text-sm">
-            These features are experimental and may push the limits of current implementation.
-            Expect the unexpected!
+            These features are experimental and may push the limits of current
+            implementation. Expect the unexpected!
           </p>
         </div>
       </div>
