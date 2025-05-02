@@ -373,16 +373,18 @@ const RogueLikeGame: React.FC = () => {
         case 'damage':
           setRobot(prev => ({
             ...prev,
-            damage: prev.damage + item.value
+            damage: prev.damage + item.value,
+            ammo: Math.min(prev.maxAmmo, prev.ammo + 5) // Add 5 ammo with damage pickup
           }));
-          addLog(`Collected damage +${item.value}`, 'item');
+          addLog(`Collected damage +${item.value} and ammo +5`, 'item');
           break;
         case 'range':
           setRobot(prev => ({
             ...prev,
-            attackRange: prev.attackRange + item.value
+            attackRange: prev.attackRange + item.value,
+            ammo: Math.min(prev.maxAmmo, prev.ammo + 5) // Add 5 ammo with range pickup
           }));
-          addLog(`Collected range +${item.value}`, 'item');
+          addLog(`Collected range +${item.value} and ammo +5`, 'item');
           break;
       }
       setItems(prev => prev.filter(i => i.id !== item.id));
