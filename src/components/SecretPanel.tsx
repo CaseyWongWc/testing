@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Unlock, Folder } from 'lucide-react';
 import SecretMenu from '../secret/SecretMenu';
+import UnrelatedMenu from '../secret/unrelated/UnrelatedMenu';
 
 interface SecretPanelProps {
   isOpen: boolean;
@@ -18,17 +19,24 @@ const SecretPanel: React.FC<SecretPanelProps> = ({ isOpen }) => {
     }
   }, [isOpen]);
 
+  const [currentView, setCurrentView] = useState<string>('main');
+
   const handleNavigate = (path: string) => {
     if (path === 'exit') {
       setOpacity(0);
       setTimeout(() => setIsVisible(false), 500);
     } else {
-      // Add navigation handling here based on the selected path
-      setOpacity(0);
-      setTimeout(() => {
-        setIsVisible(false);
-        // Additional navigation logic can be added here
-      }, 500);
+      setCurrentView(path);
+    }
+  };
+
+  const renderContent = () => {
+    switch (currentView) {
+      case 'unrelated':
+        return <UnrelatedMenu />;
+      case 'main':
+      default:
+        return <SecretMenu onNavigate={handleNavigate} />;
     }
   };
 
@@ -40,7 +48,7 @@ const SecretPanel: React.FC<SecretPanelProps> = ({ isOpen }) => {
       style={{ opacity }}
     >
       <div className="h-full overflow-auto">
-        <SecretMenu onNavigate={handleNavigate} />
+        {renderContent()}
       </div>
     </div>
   );
