@@ -1,0 +1,62 @@
+## City of the Damned - Task Tracker
+
+### Core Framework (Completed ✓)
+- [x] Create base game framework
+- [x] Implement player/robot movement and controls
+- [x] Add basic enemy types and AI
+- [x] Create combat system with health bars
+- [x] Implement day/night cycle
+
+### Game Controls (Completed ✓)
+- [x] Create MainMenu component with game controls
+- [x] Implement pause, resume, start and end functionality
+- [x] Add settings panel with game configuration options
+- [x] Create confirmation dialogs for destructive actions
+- [x] Implement conditional button states based on game status
+
+### Player Features (In Progress)
+- [x] Add player health and energy systems
+- [x] Implement weapon system (primary, secondary, melee)
+- [x] Create player AI state machine
+- [ ] Add resurrection mechanics for downed allies
+- [ ] Implement slower movement for downed players
+- [ ] Add automatic healing for robot players
+
+### Enemy Systems (In Progress)
+- [x] Basic enemy movement and attack logic
+- [ ] Add diverse enemy types (beyond zombies)
+- [ ] Implement boss enemies with special abilities
+- [ ] Create hostile AI player spawners for higher waves
+- [ ] Add special abilities for different enemy types
+
+### Game Systems (In Progress)
+- [x] Implement wave-based survival system
+- [x] Add time of day mechanics
+- [ ] Create fog of war for limited player visibility
+- [ ] Implement ammunition and resupply system
+- [ ] Add trading system during daytime
+- [ ] Create store system for upgrades and weapon purchases
+
+### Multiplayer (In Progress)
+- [x] Set up WebSocket server infrastructure
+- [x] Create room management system 
+- [ ] Implement spectating of different robot characters
+- [ ] Add "Take Control" button for human players
+- [ ] Create player transition system (ESC key to return control)
+
+### Visual and Effects (In Progress)
+- [ ] Create terrain generator with different types (grass, dirt, stone, etc.)
+- [ ] Implement visual effects for combat
+- [ ] Add animation system for entities
+- [ ] Create UI elements for boss fights and special events
+
+### Data Management
+- [ ] Export high scores to "cityresults" folder
+- [ ] Save game state for resuming later
+- [ ] Create statistics tracking system
+
+### Bugs to Fix
+- [ ] Fix issues with weapon definitions (missing properties)
+- [ ] Resolve Player state and progression decision type errors
+- [ ] Fix variables declared but not used
+- [ ] Address errors with ammo types and indexing

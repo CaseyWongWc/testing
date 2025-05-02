@@ -1,27 +1,34 @@
 import { ReactNode } from 'react';
 
-// Terrain types with movement modifiers and visual properties
-export type TerrainType = 'grass' | 'dirt' | 'stone' | 'water' | 'blood' | 'ash';
-
-export interface TerrainProperties {
-  type: TerrainType;
-  movementModifier: number; // Multiplier for movement speed (1.0 = normal, <1 = slower, >1 = faster)
-  color: string; // Base color for the terrain
-  dayColor: string; // Color during day
-  nightColor: string; // Color during night
+// Game state definition
+export interface GameState {
+  day: number;
+  time: 'day' | 'night';
+  timeElapsed: number;
+  wave: number;
+  enemiesKilled: number;
+  waveTimer: number;
+  gameStatus: 'preparing' | 'wave' | 'completed';
+  mapLevel?: number;
+  canTransition?: boolean;
 }
 
-// Player state and properties
-export type PlayerState = 'aggressive' | 'normal' | 'healing' | 'defending' | 'retreating' | 'searching' | 'trading' | 'deciding' | 'dead' | 'downed';
-
+// Player statistics
 export interface PlayerStats {
-  strength: number; // Affects melee damage
-  accuracy: number; // Affects ranged weapon accuracy
-  agility: number; // Affects movement speed and dodge chance
-  resilience: number; // Affects damage resistance
-  perception: number; // Affects detection range and critical hit chance
+  strength: number;
+  defense: number;
+  speed: number;
+  accuracy: number;
+  intelligence: number;
 }
 
+// Player state types
+export type PlayerState = 'normal' | 'aggressive' | 'healing' | 'defending' | 'retreating' | 'searching' | 'trading' | 'deciding' | 'dead' | 'downed';
+
+// Progression decision
+export type ProgressionDecision = 'exit' | 'continue' | undefined;
+
+// Player entity
 export interface Player {
   id: number;
   name: string;
@@ -45,23 +52,44 @@ export interface Player {
   };
   kills: number;
   visibilityRange: number;
-  isHuman: boolean; // Is this player controlled by a human
+  isAlive: boolean;
+  isDowned?: boolean;
+  isHuman: boolean;
   state: PlayerState;
-  stateTime: number; // How long they've been in this state
-  aiThoughts: string; // Text description of AI decision making
-  logs: string[]; // Combat log entries
-  progressionDecision?: 'exit' | 'continue'; // Decision to continue or extract
-  currency: number; // Money earned from kills and loot
-  isDowned: boolean; // Player is downed but not dead
-  stats: PlayerStats; // Player stats that can be upgraded
-  inventory: Item[]; // Items carried by the player
-  type: string; // Class type (e.g., "medic", "assault", "scout")
+  stateTime: number;
+  progressionDecision?: ProgressionDecision;
+  aiThoughts: string;
+  logs: string[];
+  currency: number;
+  inventory: Item[];
+  gameState: GameState;
+  stats: PlayerStats;
+  type: string;
 }
 
-// Enemy types and properties
-export type EnemyType = 'melee' | 'ranged' | 'tank' | 'boss';
-export type EnemyBehavior = 'aggressive' | 'defensive' | 'stationary' | 'patrol';
+// Hostile Player that can attack the player
+export interface HostilePlayer extends Player {
+  isDowned: boolean;
+  state: PlayerState;
+  stateTime: number;
+  currency: number;
+  stats: PlayerStats;
+}
 
+// Non-player character (allies, civilians)
+export interface NonPlayerCharacter {
+  id: number;
+  x: number;
+  y: number;
+  health: number;
+  maxHealth: number;
+  role: 'ally' | 'civilian';
+  behavior: 'follow' | 'defend' | 'explore';
+  visibilityRange: number;
+  status: string;
+}
+
+// Enemy entity
 export interface Enemy {
   id: number;
   x: number;
@@ -71,24 +99,14 @@ export interface Enemy {
   damage: number;
   attackRange: number;
   attackSpeed: number;
-  type: EnemyType;
-  behavior: EnemyBehavior;
+  type: 'melee' | 'ranged' | 'tank' | 'boss';
+  behavior: 'aggressive' | 'defensive' | 'stationary' | 'patrol';
   movementPattern?: {
     path: { x: number, y: number }[];
     currentPathIndex: number;
   };
   lastAttackTime: number;
   detectionRange: number;
-  name: string;
-  loot?: {
-    currency: number;
-    items: Item[];
-  };
-}
-
-// Hostile AI players
-export interface HostilePlayer extends Player {
-  hostileAIType: 'hunter' | 'sniper' | 'rusher' | 'defender';
 }
 
 // Map cell definition
@@ -96,7 +114,7 @@ export interface Cell {
   x: number;
   y: number;
   type: 'floor' | 'wall' | 'cover' | 'ammo' | 'health' | 'spawner';
-  terrain: TerrainType;
+  terrain: 'grass' | 'dirt' | 'stone' | 'water' | 'blood' | 'ash';
   visible: boolean;
   explored: boolean;
 }
@@ -110,27 +128,22 @@ export interface AmmoCache {
   amount: number;
 }
 
-// Game state tracking
-export interface GameState {
-  day: number;
-  time: 'day' | 'night';
-  timeElapsed: number;
-  wave: number;
-  enemiesKilled: number;
-  waveTimer: number;
-  gameStatus: 'preparing' | 'wave' | 'completed';
-}
-
 // Enemy spawner
 export interface Spawner {
   id: number;
   x: number;
   y: number;
   active: boolean;
-  enemyType: EnemyType;
+  enemyType: 'melee' | 'ranged' | 'tank' | 'boss';
   spawnRate: number; // enemies per minute
   lastSpawnTime: number;
-  spawnType?: 'enemy' | 'hostileAI'; // What type of entity this spawner produces
+  spawnType?: 'enemy' | 'hostile';
+}
+
+// Hostile spawner for enemy players
+export interface HostileSpawner extends Spawner {
+  hostileAIType: 'normal' | 'elite' | 'boss';
+  weapons: Weapon[];
 }
 
 // Weapon properties
@@ -185,24 +198,16 @@ export interface GameUpdateMessage {
   map?: Cell[][];
 }
 
-export interface PlayerActionMessage {
-  type: 'player_action';
-  playerId: number;
-  action: {
-    type: 'move' | 'attack' | 'heal' | 'reload' | 'collect' | 'trade' | 'decision';
-    target?: {
-      x?: number;
-      y?: number;
-      id?: number;
-    };
-    weapon?: 'primary' | 'secondary' | 'melee';
-    decision?: 'exit' | 'continue';
-  };
-}
-
-export interface GameStatusMessage {
-  type: 'game_status';
-  status: 'start' | 'pause' | 'resume' | 'end';
-  wave?: number;
-  day?: number;
+// Settings for the game
+export interface GameSettingsData {
+  difficulty: 'easy' | 'normal' | 'hard' | 'nightmare';
+  playerCount: number;
+  dayLength: number;
+  nightLength: number;
+  fogOfWar: boolean;
+  friendlyFire: boolean;
+  permadeath: boolean;
+  showTutorial: boolean;
+  soundVolume: number;
+  musicVolume: number;
 }
