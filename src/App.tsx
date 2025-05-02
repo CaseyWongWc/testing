@@ -43,8 +43,15 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const gameParam = params.get('game');
     
+    // Check if we're in City of Damned mode (direct HTML loading)
+    if ((window as any).cityOfDamnedMode === true) {
+      console.log('Loading City of Damned from direct HTML mode');
+      return 'cityofdamned';
+    }
+    
     // If there's a valid game parameter, use it as the initial state
     if (gameParam === 'cityofdamned') {
+      console.log('Loading City of Damned from URL parameter');
       return 'cityofdamned';
     }
     

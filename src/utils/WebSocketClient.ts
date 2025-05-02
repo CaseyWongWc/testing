@@ -64,8 +64,25 @@ class WebSocketClient {
   private roomId: string | null = null;
 
   constructor() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    this.url = `${protocol}//${window.location.host}/ws`;
+    // Determine if we're in the Replit environment
+    const isReplit = window.location.hostname.includes('.repl.co');
+    
+    // Determine protocol based on the page protocol
+    const isSecure = window.location.protocol === 'https:';
+    const protocol = isSecure ? 'wss:' : 'ws:';
+    
+    // Get the host from the current page
+    const host = window.location.host;
+    
+    // Determine the path - in Replit, we might need a different approach
+    const path = '/ws';
+    
+    // Construct the WebSocket URL
+    this.url = `${protocol}//${host}${path}`;
+    
+    console.log(`WebSocketClient: Initialized with URL: ${this.url}`);
+    console.log(`WebSocketClient: Running on Replit: ${isReplit}`);
+    console.log(`WebSocketClient: Using secure protocol: ${isSecure}`);
   }
 
   // Connect to the WebSocket server
@@ -321,8 +338,57 @@ class WebSocketClient {
     if (this.reconnectTimer === null) {
       this.reconnectTimer = window.setTimeout(() => {
         this.reconnectTimer = null;
+        
+        // Try to connect with the current URL
+        console.log(`Attempting to reconnect to: ${this.url}`);
         this.connect();
+        
+        // If we're in a Replit environment, try a fallback URL if this reconnect fails
+        if (window.location.hostname.includes('.repl.co')) {
+          // Set a timer to try a fallback in case the reconnect fails
+          window.setTimeout(() => {
+            if (this.status !== 'connected') {
+              this.tryFallbackConnection();
+            }
+          }, 3000);
+        }
       }, 5000); // Try to reconnect after 5 seconds
+    }
+  }
+  
+  // Try a fallback connection if the main one fails
+  private tryFallbackConnection(): void {
+    console.log('Trying fallback WebSocket connection...');
+    
+    // If we're using secure, try non-secure as a fallback, or vice versa
+    const isSecure = this.url.startsWith('wss:');
+    const protocol = isSecure ? 'ws:' : 'wss:';
+    const host = window.location.host;
+    
+    // Try directly connecting to port 3001
+    const fallbackUrl = `${protocol}//${host.split(':')[0]}:3001/ws`;
+    
+    console.log(`Fallback WebSocket URL: ${fallbackUrl}`);
+    
+    try {
+      if (this.socket) {
+        this.socket.close();
+        this.socket = null;
+      }
+      
+      this.socket = new WebSocket(fallbackUrl);
+      this.socket.onopen = this.handleOpen.bind(this);
+      this.socket.onmessage = this.handleMessage.bind(this);
+      this.socket.onclose = this.handleClose.bind(this);
+      this.socket.onerror = this.handleError.bind(this);
+      
+      // Update the url if this connection works
+      this.socket.addEventListener('open', () => {
+        this.url = fallbackUrl;
+        console.log(`Successfully connected using fallback URL: ${fallbackUrl}`);
+      });
+    } catch (error) {
+      console.error('Error creating fallback WebSocket connection:', error);
     }
   }
 

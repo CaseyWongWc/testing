@@ -94,14 +94,37 @@
   <script>
     // Add event listener to the button
     document.getElementById('continueBtn').addEventListener('click', function() {
-      // Redirect to the main app with the cityofdamned parameter
-      window.location.href = "/?game=cityofdamned";
+      // Load the game directly
+      loadGame();
     });
     
-    // Auto-redirect after 5 seconds if the user doesn't click the button
+    // Auto-load after 5 seconds if the user doesn't click the button
     setTimeout(function() {
-      window.location.href = "/?game=cityofdamned";
+      loadGame();
     }, 5000);
+
+    function loadGame() {
+      // Hide the loading screen
+      document.querySelector('.loading').style.display = 'none';
+      
+      // Create game container
+      const gameContainer = document.createElement('div');
+      gameContainer.id = 'gameContainer';
+      gameContainer.style.width = '100%';
+      gameContainer.style.height = '100%';
+      gameContainer.style.backgroundColor = '#000';
+      gameContainer.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: white;"><h2>City of the Damned is loading...</h2></div>';
+      document.getElementById('app').appendChild(gameContainer);
+      
+      // Create script to load the main game
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = '/src/main.tsx';
+      document.body.appendChild(script);
+      
+      // Set a query parameter to indicate we want to load the city of damned game
+      window.cityOfDamnedMode = true;
+    }
   </script>
 </body>
 </html>

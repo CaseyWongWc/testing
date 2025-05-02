@@ -5,11 +5,13 @@ import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 
 const app = express();
-const PORT = 3001; // Changed from 3000 to avoid conflicts
+const PORT = process.env.PORT || 5000; // Use environment variable or default to 5000
 const VITE_PORT = 5173;
 const server = http.createServer(app);
 
-// Start Vite dev server
+console.log(`Starting server with PORT=${PORT} and VITE_PORT=${VITE_PORT}`);
+
+// Start Vite dev server with proper configuration
 const vite = spawn('npx', ['vite', '--host', '0.0.0.0', '--port', VITE_PORT.toString()], {
   stdio: 'inherit',
   shell: true
@@ -34,13 +36,52 @@ app.get('/api/arrow', (req, res) => {
     });
   });
 
-// Proxy all other requests to Vite
+// Add a diagnostic endpoint for City of the Damned
+app.get('/api/city-of-damned', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'City of the Damned API endpoint is active',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Add a configuration endpoint to expose server environment variables to the client
+app.get('/api/config', (req, res) => {
+  res.json({
+    useSecureWebsocket: process.env.USE_SECURE_WEBSOCKET === 'true',
+    loadCityOfDamned: process.env.LOAD_CITY_OF_DAMNED === 'true',
+    serverPort: process.env.PORT || 3001,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Handle the city of damned HTML page directly with Express
+app.get('/city-of-damned.html', (req, res) => {
+  res.sendFile('city-of-damned.html', { root: '.' });
+});
+
+// Proxy all other requests to Vite with specific WebSocket handling
 app.use('/', createProxyMiddleware({
   target: `http://0.0.0.0:${VITE_PORT}`,
   changeOrigin: true,
   ws: true,
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxying ${req.method} ${req.url}`);
+  },
+  // Improve WebSocket handling
+  onProxyReqWs: (proxyReq, req, socket, options, head) => {
+    console.log(`Proxying WebSocket: ${req.url}`);
+  },
+  onError: (err, req, res) => {
+    console.error('Proxy error:', err);
+    if (!res.headersSent) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        error: 'Proxy error', 
+        message: err.message,
+        url: req.url
+      }));
+    }
   }
 }));
 
