@@ -9,8 +9,7 @@
     "start": "node server.js",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "cityofdamned": "./run-city-of-damned.sh"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@types/ws": "^8.18.1",

@@ -16,8 +16,7 @@ import ArrowIcon from "./components/ArrowIcon";
 import { MultiValuedItemCollector } from "./replit/MultiValuedItemCollector";
 import SecretPanel from "./components/SecretPanel";
 import { Lock, Unlock } from 'lucide-react';
-// Use the wrapper component instead of directly importing the component
-import CityOfDamnedWrapper from "./CityOfDamnedWrapper";
+import CityOfTheDamned from "./secret/CityOfTheDamned";
 import WebSocketStatus from "./components/WebSocketStatus";
 
 type GameType =
@@ -37,28 +36,7 @@ type GameType =
   | "replit";
 
 function App() {
-  // Check URL parameters for direct game loading
-  const [activeGame, setActiveGame] = useState<GameType>(() => {
-    // Check if there's a game parameter in the URL
-    const params = new URLSearchParams(window.location.search);
-    const gameParam = params.get('game');
-    
-    // Check if we're in City of Damned mode (direct HTML loading)
-    if ((window as any).cityOfDamnedMode === true) {
-      console.log('Loading City of Damned from direct HTML mode');
-      return 'cityofdamned';
-    }
-    
-    // If there's a valid game parameter, use it as the initial state
-    if (gameParam === 'cityofdamned') {
-      console.log('Loading City of Damned from URL parameter');
-      return 'cityofdamned';
-    }
-    
-    // Default to combat if no valid parameter is found
-    return 'combat';
-  });
-  
+  const [activeGame, setActiveGame] = useState<GameType>("combat");
   const [isSecretOpen, setIsSecretOpen] = useState(false);
   const [width, setWidth] = useState(20);
   const [height, setHeight] = useState(15);
@@ -500,7 +478,7 @@ function App() {
         </button>
         {isSecretOpen && <SecretPanel isOpen={isSecretOpen} />}
         {activeGame === "combat" && <Combat />}
-        {activeGame === "cityofdamned" && <CityOfDamnedWrapper />}
+        {activeGame === "cityofdamned" && <CityOfTheDamned />}
         {activeGame === "replit" && <ReplitScene />}
         
       </div>
