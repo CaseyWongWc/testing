@@ -9,7 +9,6 @@ run = ["sh", "-c", "npm run dev"]
 
 [[ports]]
 localPort = 3000
-externalPort = 3003
 
 [[ports]]
 localPort = 3001
