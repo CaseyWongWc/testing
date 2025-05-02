@@ -52,17 +52,24 @@ const SecretMenu: React.FC<SecretMenuProps> = ({ onNavigate }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {sections.map((section) => (
-            <button
+            <div
               key={section.id}
               onClick={() => onNavigate(section.path)}
-              className="bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-all transform hover:scale-105 text-left"
+              className="bg-gray-800 p-6 rounded-lg hover:bg-gray-700 transition-all transform hover:scale-105 text-left cursor-pointer select-none"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  onNavigate(section.path);
+                }
+              }}
             >
               <div className="flex items-center gap-4 mb-3">
                 {section.icon}
                 <h2 className="text-xl font-semibold">{section.name}</h2>
               </div>
               <p className="text-gray-400">{section.description}</p>
-            </button>
+            </div>
           ))}
         </div>
 

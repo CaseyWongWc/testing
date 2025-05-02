@@ -23,7 +23,12 @@ const SecretPanel: React.FC<SecretPanelProps> = ({ isOpen }) => {
       setOpacity(0);
       setTimeout(() => setIsVisible(false), 500);
     } else {
-      console.log(`Navigating to ${path}`);
+      // Add navigation handling here based on the selected path
+      setOpacity(0);
+      setTimeout(() => {
+        setIsVisible(false);
+        // Additional navigation logic can be added here
+      }, 500);
     }
   };
 
