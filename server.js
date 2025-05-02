@@ -5,17 +5,9 @@ import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 
 const app = express();
-const PORT = 5000;
+const PORT = 3001; // Changed from 3000 to avoid conflicts
 const VITE_PORT = 5173;
 const server = http.createServer(app);
-
-// Enable CORS
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  next();
-});
 
 // Start Vite dev server
 const vite = spawn('npx', ['vite', '--host', '0.0.0.0', '--port', VITE_PORT.toString()], {
@@ -47,18 +39,9 @@ app.use('/', createProxyMiddleware({
   target: `http://0.0.0.0:${VITE_PORT}`,
   changeOrigin: true,
   ws: true,
-  secure: false,
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxying ${req.method} ${req.url}`);
-  },
-  onError: (err, req, res) => {
-    console.error('Proxy error:', err);
-    res.writeHead(500, {
-      'Content-Type': 'text/plain'
-    });
-    res.end('Proxy error occurred');
-  },
-  logLevel: 'debug'
+  }
 }));
 
 // Set up WebSocket server

@@ -9,6 +9,7 @@ run = ["sh", "-c", "npm run dev"]
 
 [[ports]]
 localPort = 3000
+externalPort = 3003
 
 [[ports]]
 localPort = 3001
@@ -21,10 +22,6 @@ externalPort = 5173
 [[ports]]
 localPort = 5000
 externalPort = 3000
-
-[[ports]]
-localPort = 5001
-externalPort = 3003
 
 [[ports]]
 localPort = 5173
@@ -58,7 +55,7 @@ mode = "parallel"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "node server.js"
 
 [[workflows.workflow]]
 name = "arrow"
