@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MazeGame from "./components/MazeGame";
 import TerrainGame from "./components/TerrainGame";
 import FruitCollector from "./components/FruitCollector";
@@ -17,6 +17,7 @@ import { MultiValuedItemCollector } from "./replit/MultiValuedItemCollector";
 import SecretPanel from "./components/SecretPanel";
 import { Lock, Unlock } from 'lucide-react';
 import CityOfTheDamned from "./secret/CityOfTheDamned";
+import WebSocketStatus from "./components/WebSocketStatus";
 
 type GameType =
   | "maze"
@@ -455,6 +456,16 @@ function App() {
             >
               Replit
             </button>
+          </div>
+        )}
+        
+        {/* WebSocket Testing Component shown in every view */}
+        {(activeGame === "other-apps" || activeGame === "cityofdamned") && (
+          <div className="mt-8 mx-auto max-w-md">
+            <details className="bg-white rounded-lg shadow-sm p-4">
+              <summary className="text-xl font-bold cursor-pointer">WebSocket Test Panel</summary>
+              <WebSocketStatus className="w-full mt-4" />
+            </details>
           </div>
         )}
         <button

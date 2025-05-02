@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sun, Moon, Shield, Zap, Target, Clock, Skull, Package2, Crosshair, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
+import { Sun, Moon, Shield, Zap, Target, Clock, Skull, Package2, Crosshair, ChevronLeft, ChevronRight, UserPlus, ShoppingBag } from 'lucide-react';
+import { getNextPlayerState, getPlayerBehavior, getStateIcon, makeProgressionDecision, resurrectPlayer } from './PlayerAI';
+import PlayerStore from './PlayerStore';
+import * as fs from 'fs';
 
 // Types definition
 interface Entity {
@@ -32,6 +35,29 @@ interface Player extends Entity {
   logs: string[];
   isHuman: boolean; // True if this player is controlled by a human, false if AI
   isAlive: boolean;
+  isDowned: boolean; // Player is downed but not dead
+  state: 'normal' | 'downed' | 'healing' | 'defending' | 'aggressive' | 'retreating' | 'searching' | 'trading' | 'deciding' | 'dead';
+  stateTime: number; // How long player has been in this state
+  currency: number; // Currency earned from killing enemies and completing waves
+  stats: {
+    strength: number; // Increases melee damage
+    agility: number;  // Increases movement speed and dodge chance
+    endurance: number; // Increases max health and energy
+    perception: number; // Increases visibility range and critical hit chance
+  };
+  aiConfig?: { // AI configuration, only for AI players
+    mode: 'cautious' | 'balanced' | 'aggressive' | 'supportive';
+    aggressiveness: number;   // 0-1 scale
+    selfPreservation: number; // 0-1 scale
+    teamwork: number;         // 0-1 scale
+    lootPriority: number;     // 0-1 scale
+    explorationDesire: number; // 0-1 scale
+    adaptability: number;     // How quickly AI adapts to changing circumstances (0-1)
+  };
+  aiThoughts?: string; // AI decision-making process text
+  progressionDecision?: 'continue' | 'exit'; // AI decision on whether to continue or exit
+  lastTargetId?: number; // ID of the last entity targeted
+  healTarget?: number; // ID of player being healed by this player
 }
 
 interface NonPlayerCharacter extends Entity {
@@ -47,6 +73,8 @@ interface Enemy extends Entity {
   attackRange: number;
   attackSpeed: number;
   type: 'melee' | 'ranged' | 'tank' | 'boss';
+  enemyClass?: 'cultist' | 'mutant' | 'hunter' | 'infected' | 'scavenger' | 'shade' | 'reaper' | 'stalker';
+  subtype?: string; // More specific type like 'cultist-mage', 'hunter-scout', etc.
   behavior: 'aggressive' | 'defensive' | 'stationary' | 'patrol';
   movementPattern?: {
     path: { x: number, y: number }[];
@@ -54,6 +82,12 @@ interface Enemy extends Entity {
   };
   lastAttackTime: number;
   detectionRange: number;
+  specialEffect?: {
+    type: 'bleed' | 'poison' | 'stun' | 'slow' | 'burn';
+    chance: number; // 0-1 chance to apply effect
+    damage?: number;
+    duration: number; // in seconds
+  };
 }
 
 interface Weapon {
@@ -61,9 +95,15 @@ interface Weapon {
   damage: number;
   range: number;
   fireRate: number; // shots per second
+  reloadSpeed: number; // seconds to reload
+  accuracy: number; // 0-1 scale, higher is more accurate
+  currentAmmo: number; // current ammo in weapon
+  maxAmmo: number; // maximum ammo capacity of the weapon
   isAutomatic: boolean;
   ammoType: 'primary' | 'secondary' | 'melee';
   lastFiredTime: number;
+  isReloading?: boolean;
+  reloadStartTime?: number;
   icon: React.ReactNode;
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   type: 'assault' | 'smg' | 'shotgun' | 'sniper' | 'pistol' | 'heavy' | 'knife' | 'axe' | 'sword' | 'hammer';
@@ -109,8 +149,11 @@ interface Cell {
   x: number;
   y: number;
   type: 'floor' | 'wall' | 'cover' | 'ammo' | 'health' | 'spawner';
+  terrain: 'grass' | 'dirt' | 'stone' | 'water' | 'blood' | 'ash';
   visible: boolean;
   explored: boolean;
+  // Optional weight for pathfinding
+  weight?: number;
 }
 
 interface AmmoCache {
@@ -166,6 +209,7 @@ const CityOfTheDamned: React.FC = () => {
   // UI state
   const [debugInfo, setDebugInfo] = useState<string>('');
   const [showAddPlayerModal, setShowAddPlayerModal] = useState<boolean>(false);
+  const [showStoreModal, setShowStoreModal] = useState<boolean>(false);
   const [pendingPlayerName, setPendingPlayerName] = useState<string>('');
 
   // Game state
@@ -248,6 +292,457 @@ const CityOfTheDamned: React.FC = () => {
     setNpcs([newNPC]);
   };
   
+  // Enemy database - ominous non-zombie enemy types
+  const enemyDatabase = {
+    // Cultist enemies - religious fanatics with ritualistic weapons
+    cultists: {
+      cultistInitiate: {
+        name: 'Cultist Initiate',
+        health: 35,
+        maxHealth: 35,
+        damage: 12,
+        attackRange: 1,
+        attackSpeed: 1.2,
+        type: 'melee',
+        enemyClass: 'cultist',
+        subtype: 'initiate',
+        behavior: 'aggressive',
+        detectionRange: 8,
+        description: 'Newly indoctrinated members armed with ritual daggers. They attack with religious fervor.'
+      },
+      cultistAcolyte: {
+        name: 'Cultist Acolyte',
+        health: 45,
+        maxHealth: 45,
+        damage: 15,
+        attackRange: 4,
+        attackSpeed: 1,
+        type: 'ranged',
+        enemyClass: 'cultist',
+        subtype: 'acolyte',
+        behavior: 'defensive',
+        detectionRange: 10,
+        description: 'Devoted members who use poisoned darts to weaken their enemies from afar.',
+        specialEffect: {
+          type: 'poison',
+          chance: 0.3,
+          damage: 3,
+          duration: 3
+        }
+      },
+      cultistPriest: {
+        name: 'Cultist Priest',
+        health: 70,
+        maxHealth: 70,
+        damage: 18,
+        attackRange: 6,
+        attackSpeed: 0.8,
+        type: 'ranged',
+        enemyClass: 'cultist',
+        subtype: 'priest',
+        behavior: 'stationary',
+        detectionRange: 12,
+        description: 'Cult leaders who command their followers and wield corrupted magic.',
+        specialEffect: {
+          type: 'slow',
+          chance: 0.4,
+          duration: 2
+        }
+      }
+    },
+    
+    // Mutants - physically transformed abominations
+    mutants: {
+      scraper: {
+        name: 'Scraper',
+        health: 60,
+        maxHealth: 60,
+        damage: 20,
+        attackRange: 1.5,
+        attackSpeed: 1.5,
+        type: 'melee',
+        enemyClass: 'mutant',
+        subtype: 'scraper',
+        behavior: 'aggressive',
+        detectionRange: 7,
+        description: 'Humanoids with elongated arms ending in razor-sharp bone protrusions.',
+        specialEffect: {
+          type: 'bleed',
+          chance: 0.5,
+          damage: 2,
+          duration: 4
+        }
+      },
+      bulbous: {
+        name: 'Bulbous',
+        health: 120,
+        maxHealth: 120,
+        damage: 25,
+        attackRange: 1,
+        attackSpeed: 0.7,
+        type: 'tank',
+        enemyClass: 'mutant',
+        subtype: 'bulbous',
+        behavior: 'aggressive',
+        detectionRange: 6,
+        description: 'Grotesquely swollen mutants that explode on death, causing area damage.'
+      },
+      howler: {
+        name: 'Howler',
+        health: 40,
+        maxHealth: 40,
+        damage: 15,
+        attackRange: 7,
+        attackSpeed: 1,
+        type: 'ranged',
+        enemyClass: 'mutant',
+        subtype: 'howler',
+        behavior: 'defensive',
+        detectionRange: 14,
+        description: 'Emaciated mutants with distended throats that emit sonic blasts.',
+        specialEffect: {
+          type: 'stun',
+          chance: 0.2,
+          duration: 1
+        }
+      },
+      shrieker: {
+        name: 'Shrieker',
+        health: 35,
+        maxHealth: 35,
+        damage: 12,
+        attackRange: 9,
+        attackSpeed: 0.9,
+        type: 'ranged',
+        enemyClass: 'mutant',
+        subtype: 'shrieker',
+        behavior: 'stationary',
+        detectionRange: 16,
+        description: 'Gaunt, pale mutants with oversized mouths that emit piercing screams to disorient prey.',
+        specialEffect: {
+          type: 'stun',
+          chance: 0.4,
+          duration: 1.5
+        }
+      },
+      thrower: {
+        name: 'Thrower',
+        health: 50,
+        maxHealth: 50,
+        damage: 22,
+        attackRange: 8,
+        attackSpeed: 0.7,
+        type: 'ranged',
+        enemyClass: 'mutant',
+        subtype: 'thrower',
+        behavior: 'defensive',
+        detectionRange: 12,
+        description: 'Mutants with one grotesquely enlarged arm used to hurl acidic projectiles.',
+        specialEffect: {
+          type: 'burn',
+          chance: 0.6,
+          damage: 3,
+          duration: 3
+        }
+      }
+    },
+    
+    // Hunters - skilled predators who hunt survivors
+    hunters: {
+      stalker: {
+        name: 'Stalker',
+        health: 50,
+        maxHealth: 50,
+        damage: 22,
+        attackRange: 1,
+        attackSpeed: 2,
+        type: 'melee',
+        enemyClass: 'hunter',
+        subtype: 'stalker',
+        behavior: 'patrol',
+        detectionRange: 12,
+        description: 'Silent hunters wearing makeshift camouflage and wielding serrated knives.',
+        specialEffect: {
+          type: 'bleed',
+          chance: 0.7,
+          damage: 3, 
+          duration: 3
+        }
+      },
+      archer: {
+        name: 'Archer',
+        health: 40,
+        maxHealth: 40,
+        damage: 25,
+        attackRange: 10,
+        attackSpeed: 0.8,
+        type: 'ranged',
+        enemyClass: 'hunter',
+        subtype: 'archer',
+        behavior: 'stationary',
+        detectionRange: 15,
+        description: 'Expert marksmen who pick off survivors from vantage points.'
+      },
+      trapper: {
+        name: 'Trapper',
+        health: 65,
+        maxHealth: 65,
+        damage: 18,
+        attackRange: 2,
+        attackSpeed: 1.2,
+        type: 'melee',
+        enemyClass: 'hunter',
+        subtype: 'trapper',
+        behavior: 'defensive',
+        detectionRange: 9,
+        description: 'Cunning hunters who set traps and ambush their prey.',
+        specialEffect: {
+          type: 'slow',
+          chance: 0.4,
+          duration: 3
+        }
+      },
+      creeper: {
+        name: 'Creeper',
+        health: 45,
+        maxHealth: 45,
+        damage: 30,
+        attackRange: 1,
+        attackSpeed: 1.7,
+        type: 'melee',
+        enemyClass: 'hunter',
+        subtype: 'creeper',
+        behavior: 'patrol',
+        detectionRange: 14,
+        description: 'Hunters that move silently and pounce from shadows, using serrated claws.',
+        specialEffect: {
+          type: 'bleed',
+          chance: 0.8,
+          damage: 4,
+          duration: 3
+        }
+      }
+    },
+    
+    // Infected - people affected by a disease rather than undead
+    infected: {
+      carrier: {
+        name: 'Carrier',
+        health: 30,
+        maxHealth: 30,
+        damage: 15,
+        attackRange: 1,
+        attackSpeed: 1.8,
+        type: 'melee',
+        enemyClass: 'infected',
+        subtype: 'carrier',
+        behavior: 'aggressive',
+        detectionRange: 8,
+        description: 'The recently infected who appear almost normal until they attack.',
+        specialEffect: {
+          type: 'poison',
+          chance: 0.3,
+          damage: 2,
+          duration: 5
+        }
+      },
+      rager: {
+        name: 'Rager',
+        health: 45,
+        maxHealth: 45,
+        damage: 20,
+        attackRange: 1,
+        attackSpeed: 2.5,
+        type: 'melee',
+        enemyClass: 'infected',
+        subtype: 'rager',
+        behavior: 'aggressive',
+        detectionRange: 10,
+        description: 'Infected in a state of perpetual rage, charging at victims with incredible speed.'
+      },
+      spitter: {
+        name: 'Spitter',
+        health: 35,
+        maxHealth: 35,
+        damage: 18,
+        attackRange: 6,
+        attackSpeed: 1,
+        type: 'ranged',
+        enemyClass: 'infected',
+        subtype: 'spitter',
+        behavior: 'defensive',
+        detectionRange: 11,
+        description: 'Infected with pustule-filled throats who expel corrosive fluid.',
+        specialEffect: {
+          type: 'burn',
+          chance: 0.6,
+          damage: 4,
+          duration: 2
+        }
+      },
+      cryer: {
+        name: 'Cryer',
+        health: 25,
+        maxHealth: 25,
+        damage: 10,
+        attackRange: 3,
+        attackSpeed: 1.5,
+        type: 'ranged',
+        enemyClass: 'infected',
+        subtype: 'cryer',
+        behavior: 'defensive',
+        detectionRange: 18,
+        description: 'Thin, frail infected that weep constantly, attracting more infected with their cries.',
+        specialEffect: {
+          type: 'slow',
+          chance: 0.3,
+          duration: 2
+        }
+      },
+      sleeper: {
+        name: 'Sleeper',
+        health: 55,
+        maxHealth: 55,
+        damage: 25,
+        attackRange: 1,
+        attackSpeed: 2,
+        type: 'melee',
+        enemyClass: 'infected',
+        subtype: 'sleeper',
+        behavior: 'stationary',
+        detectionRange: 5,
+        description: 'Dormant infected that appear dead until prey comes close, then lunge with incredible speed.',
+        specialEffect: {
+          type: 'stun',
+          chance: 0.5,
+          duration: 1
+        }
+      }
+    },
+    
+    // Scavengers - desperate survivors who've turned violent
+    scavengers: {
+      looter: {
+        name: 'Looter',
+        health: 40,
+        maxHealth: 40,
+        damage: 16,
+        attackRange: 1,
+        attackSpeed: 1.4,
+        type: 'melee',
+        enemyClass: 'scavenger',
+        subtype: 'looter',
+        behavior: 'patrol',
+        detectionRange: 9,
+        description: 'Opportunistic scavengers armed with improvised weapons like pipes and wrenches.'
+      },
+      gunner: {
+        name: 'Gunner',
+        health: 35,
+        maxHealth: 35,
+        damage: 28,
+        attackRange: 8,
+        attackSpeed: 0.8,
+        type: 'ranged',
+        enemyClass: 'scavenger',
+        subtype: 'gunner',
+        behavior: 'defensive',
+        detectionRange: 12,
+        description: 'Scavengers who have managed to acquire firearms and limited ammunition.'
+      },
+      brute: {
+        name: 'Brute',
+        health: 80,
+        maxHealth: 80,
+        damage: 22,
+        attackRange: 2,
+        attackSpeed: 1,
+        type: 'tank',
+        enemyClass: 'scavenger',
+        subtype: 'brute',
+        behavior: 'aggressive',
+        detectionRange: 8,
+        description: 'Large, physically imposing scavengers who rely on their strength.'
+      }
+    },
+    
+    // Supernatural entities
+    supernatural: {
+      shade: {
+        name: 'Shade',
+        health: 30,
+        maxHealth: 30,
+        damage: 20,
+        attackRange: 1,
+        attackSpeed: 2,
+        type: 'melee',
+        enemyClass: 'shade',
+        subtype: 'wraith',
+        behavior: 'patrol',
+        detectionRange: 15,
+        description: 'Shadowy entities that can move through walls and appear suddenly.',
+        specialEffect: {
+          type: 'slow',
+          chance: 0.5,
+          duration: 2
+        }
+      },
+      reaper: {
+        name: 'Reaper',
+        health: 70,
+        maxHealth: 70,
+        damage: 30,
+        attackRange: 2,
+        attackSpeed: 0.9,
+        type: 'melee',
+        enemyClass: 'reaper',
+        subtype: 'harvester',
+        behavior: 'stationary',
+        detectionRange: 10,
+        description: 'Hooded figures carrying scythes who appear during the night phases.',
+        specialEffect: {
+          type: 'bleed',
+          chance: 0.8,
+          damage: 5,
+          duration: 3
+        }
+      },
+      stalker: {
+        name: 'Stalker',
+        health: 55,
+        maxHealth: 55,
+        damage: 25,
+        attackRange: 0,
+        attackSpeed: 0,
+        type: 'melee',
+        enemyClass: 'stalker',
+        subtype: 'nightmare',
+        behavior: 'stationary',
+        detectionRange: 20,
+        description: 'Ethereal beings that don\'t attack directly but summon other enemies when they spot you.'
+      },
+      lostSoul: {
+        name: 'Lost Soul',
+        health: 20,
+        maxHealth: 20,
+        damage: 15,
+        attackRange: 1,
+        attackSpeed: 2.5,
+        type: 'melee',
+        enemyClass: 'shade',
+        subtype: 'lost-soul',
+        behavior: 'aggressive',
+        detectionRange: 12,
+        description: 'Ethereal remnants of those who died in the city, driven by vengeance and misery.',
+        specialEffect: {
+          type: 'stun',
+          chance: 0.3,
+          duration: 1
+        }
+      }
+    }
+  };
+  
   // Weapons database
   const weaponsDatabase: Record<string, Weapon> = {
     // Primary weapons
@@ -256,9 +751,14 @@ const CityOfTheDamned: React.FC = () => {
       damage: 15,
       range: 8,
       fireRate: 5,
+      reloadSpeed: 2.2,
+      accuracy: 0.75,
+      currentAmmo: 30,
+      maxAmmo: 30,
       isAutomatic: true,
       ammoType: 'primary',
       lastFiredTime: 0,
+      isReloading: false,
       icon: <Crosshair size={16} />,
       rarity: 'common',
       type: 'assault'
@@ -513,8 +1013,42 @@ const CityOfTheDamned: React.FC = () => {
       return weaponsDatabase.combatKnife;
     }
     
-    // Return a random weapon from the eligible ones
-    return {...eligibleWeapons[Math.floor(Math.random() * eligibleWeapons.length)]};
+    // Choose a random weapon from the eligible ones
+    const baseWeapon = {...eligibleWeapons[Math.floor(Math.random() * eligibleWeapons.length)]};
+    
+    // Add the new weapon properties based on weapon type
+    if (type === 'melee') {
+      return {
+        ...baseWeapon,
+        currentAmmo: Infinity,
+        maxAmmo: Infinity,
+        reloadSpeed: 0,
+        accuracy: 0.95,
+        isReloading: false
+      };
+    } else if (type === 'primary') {
+      // Primary weapons have more ammo but lower accuracy
+      const ammoCapacity = 20 + Math.floor(Math.random() * 40); // 20-60 ammo capacity
+      return {
+        ...baseWeapon,
+        currentAmmo: ammoCapacity,
+        maxAmmo: ammoCapacity,
+        reloadSpeed: 2 + Math.random(), // 2-3 seconds
+        accuracy: 0.70 + (Math.random() * 0.15), // 70-85% accuracy
+        isReloading: false
+      };
+    } else {
+      // Secondary weapons have less ammo but higher accuracy
+      const ammoCapacity = 6 + Math.floor(Math.random() * 10); // 6-16 ammo capacity
+      return {
+        ...baseWeapon,
+        currentAmmo: ammoCapacity,
+        maxAmmo: ammoCapacity,
+        reloadSpeed: 1 + Math.random(), // 1-2 seconds
+        accuracy: 0.80 + (Math.random() * 0.15), // 80-95% accuracy
+        isReloading: false
+      };
+    }
   };
 
   // Create a new player
@@ -547,6 +1081,19 @@ const CityOfTheDamned: React.FC = () => {
     const secondaryWeapon = getRandomWeapon('secondary', secondaryRarity);
     const meleeWeapon = getRandomWeapon('melee', meleeRarity);
     
+    // Create AI config if it's an AI player
+    const aiConfig = !isHuman ? {
+      // Randomly select AI mode with weighted probabilities
+      mode: ['cautious', 'balanced', 'aggressive', 'supportive'][Math.floor(Math.random() * 4)] as 'cautious' | 'balanced' | 'aggressive' | 'supportive',
+      // Random values for different AI traits
+      aggressiveness: Math.random(),
+      selfPreservation: Math.random(),
+      teamwork: Math.random(),
+      lootPriority: Math.random(),
+      explorationDesire: Math.random(),
+      adaptability: Math.random(),
+    } : undefined;
+    
     return {
       id: Date.now() + Math.floor(Math.random() * 1000),
       name,
@@ -573,7 +1120,20 @@ const CityOfTheDamned: React.FC = () => {
       visibilityRange: 12,
       logs: [`${name} has entered the city.`],
       isHuman,
-      isAlive: true
+      isAlive: true,
+      isDowned: false,
+      state: 'normal',
+      stateTime: Date.now(),
+      currency: 0, // Start with no currency
+      stats: {
+        strength: 1,
+        agility: 1,
+        endurance: 1,
+        perception: 1
+      },
+      aiConfig,
+      aiThoughts: isHuman ? undefined : "Initializing AI systems...",
+      progressionDecision: undefined
     };
   };
 
@@ -629,16 +1189,98 @@ const CityOfTheDamned: React.FC = () => {
   const generateMap = () => {
     const newMap: Cell[][] = [];
     
+    // Create noise for terrain generation using simplex-like algorithm
+    const createSimplexNoise = () => {
+      // Basic 2D hash function
+      const hash = (x: number, y: number) => {
+        const a = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+        return a - Math.floor(a);
+      };
+      
+      // Get a smoothed noise value at coordinates
+      return (x: number, y: number, scale: number = 0.1) => {
+        const scaledX = x * scale;
+        const scaledY = y * scale;
+        
+        const x0 = Math.floor(scaledX);
+        const y0 = Math.floor(scaledY);
+        const x1 = x0 + 1;
+        const y1 = y0 + 1;
+        
+        // Interpolate between grid point values
+        const sx = scaledX - x0;
+        const sy = scaledY - y0;
+        
+        // Get values at the corners
+        const n00 = hash(x0, y0);
+        const n01 = hash(x0, y1);
+        const n10 = hash(x1, y0);
+        const n11 = hash(x1, y1);
+        
+        // Cubic interpolation function for smoother transitions
+        const smooth = (t: number) => t * t * (3 - 2 * t);
+        
+        // Interpolate
+        const nx0 = n00 + smooth(sx) * (n10 - n00);
+        const nx1 = n01 + smooth(sx) * (n11 - n01);
+        const nxy = nx0 + smooth(sy) * (nx1 - nx0);
+        
+        return nxy;
+      };
+    };
+    
+    // Create noise functions for different terrain features
+    const terrainNoise = createSimplexNoise();
+    const detailNoise = createSimplexNoise();
+    const moistureNoise = createSimplexNoise();
+    
     // Initialize with floors
     for (let y = 0; y < mapHeight; y++) {
       const row: Cell[] = [];
       for (let x = 0; x < mapWidth; x++) {
         // Border walls
         const isBorder = x === 0 || y === 0 || x === mapWidth - 1 || y === mapHeight - 1;
+        
+        // Generate terrain type using noise functions
+        // Primary terrain noise for overall elevation
+        const elevation = terrainNoise(x, y, 0.08);
+        // Secondary noise for moisture/wetness
+        const moisture = moistureNoise(x, y, 0.12);
+        // Detail noise for small variations
+        const detail = detailNoise(x, y, 0.2);
+        
+        // Determine terrain type based on noise values
+        let terrain: 'grass' | 'dirt' | 'stone' | 'water' | 'blood' | 'ash';
+        
+        // Use noise values to determine terrain
+        if (moisture > 0.7 && elevation < 0.5) {
+          terrain = 'water'; // Water in low, wet areas
+        } else if (elevation > 0.7) {
+          terrain = 'stone'; // Stone in high elevation
+        } else if (moisture < 0.3 && elevation > 0.4) {
+          terrain = 'ash'; // Ash in dry, moderate-high areas
+        } else if (detail > 0.8 && elevation > 0.6) {
+          terrain = 'blood'; // Blood patches (rare, in specific elevation)
+        } else if (moisture < 0.5 && elevation < 0.4) {
+          terrain = 'dirt'; // Dirt in drier, lower areas
+        } else {
+          terrain = 'grass'; // Grass everywhere else
+        }
+        
+        // Optional terrain weight for pathfinding
+        // Water and blood are harder to move through, stone is medium, dirt and grass are easy
+        let weight = 1.0;
+        if (terrain === 'water') weight = 2.5;
+        else if (terrain === 'blood') weight = 2.0;
+        else if (terrain === 'stone') weight = 1.5;
+        else if (terrain === 'ash') weight = 1.2;
+        
         row.push({
           x,
           y,
           type: isBorder ? 'wall' : 'floor',
+          terrain,
+          weight,
           visible: false,
           explored: false
         });
@@ -690,11 +1332,63 @@ const CityOfTheDamned: React.FC = () => {
         // Choose a random density for this section
         const density = mazeDensities[Math.floor(Math.random() * mazeDensities.length)];
         
+        // Decide on the dominant terrain type for this section
+        // This creates more cohesive terrain patterns instead of random terrain all over
+        const sectionTerrainRoll = Math.random();
+        let dominantTerrain: 'grass' | 'dirt' | 'stone' | 'water' | 'blood' | 'ash';
+        let secondaryTerrain: 'grass' | 'dirt' | 'stone' | 'water' | 'blood' | 'ash';
+        
+        // Determine dominant terrain based on section position and random factors
+        if (sectionTerrainRoll < 0.25) {
+          dominantTerrain = 'grass';
+          secondaryTerrain = Math.random() < 0.7 ? 'dirt' : 'stone';
+        } else if (sectionTerrainRoll < 0.5) {
+          dominantTerrain = 'dirt';
+          secondaryTerrain = Math.random() < 0.7 ? 'grass' : 'ash';
+        } else if (sectionTerrainRoll < 0.7) {
+          dominantTerrain = 'stone';
+          secondaryTerrain = Math.random() < 0.7 ? 'dirt' : 'ash';
+        } else if (sectionTerrainRoll < 0.85) {
+          dominantTerrain = 'ash';
+          secondaryTerrain = 'dirt';
+        } else if (sectionTerrainRoll < 0.95) {
+          dominantTerrain = 'water';
+          secondaryTerrain = 'grass';
+        } else {
+          dominantTerrain = 'blood';
+          secondaryTerrain = 'ash';
+        }
+        
         // Apply maze pattern to this section
         for (let y = sectionY * sectionSize; y < (sectionY + 1) * sectionSize && y < mapHeight - 1; y++) {
           for (let x = sectionX * sectionSize; x < (sectionX + 1) * sectionSize && x < mapWidth - 1; x++) {
+            // Set the terrain type for this cell, with some variation
+            if (Math.random() < 0.75) {
+              mapData[y][x].terrain = dominantTerrain;
+            } else {
+              mapData[y][x].terrain = secondaryTerrain;
+            }
+            
+            // Add appropriate terrain weight
+            switch (mapData[y][x].terrain) {
+              case 'water':
+                mapData[y][x].weight = 2.5;
+                break;
+              case 'blood':
+                mapData[y][x].weight = 2.0;
+                break;
+              case 'stone':
+                mapData[y][x].weight = 1.5;
+                break;
+              case 'ash':
+                mapData[y][x].weight = 1.2;
+                break;
+              default:
+                mapData[y][x].weight = 1.0;
+            }
+            
+            // Create wall patterns
             if (Math.random() < density) {
-              // Create walls in patterns
               if ((x + y) % 2 === 0 || Math.random() < 0.3) {
                 mapData[y][x].type = 'wall';
               }
@@ -702,21 +1396,34 @@ const CityOfTheDamned: React.FC = () => {
           }
         }
         
-        // Create pathways through the maze
+        // Create pathways through the maze - horizontal
         if (Math.random() < 0.7) {
           const pathY = sectionY * sectionSize + Math.floor(Math.random() * sectionSize);
           for (let x = sectionX * sectionSize; x < (sectionX + 1) * sectionSize && x < mapWidth - 1; x++) {
             if (pathY < mapHeight - 1) {
               mapData[pathY][x].type = 'floor';
+              
+              // Paths are often dirt or stone for better traversal
+              if (Math.random() < 0.7) {
+                mapData[pathY][x].terrain = Math.random() < 0.5 ? 'dirt' : 'stone';
+                mapData[pathY][x].weight = mapData[pathY][x].terrain === 'stone' ? 1.5 : 1.0;
+              }
             }
           }
         }
         
+        // Create pathways through the maze - vertical
         if (Math.random() < 0.7) {
           const pathX = sectionX * sectionSize + Math.floor(Math.random() * sectionSize);
           for (let y = sectionY * sectionSize; y < (sectionY + 1) * sectionSize && y < mapHeight - 1; y++) {
             if (pathX < mapWidth - 1) {
               mapData[y][pathX].type = 'floor';
+              
+              // Paths are often dirt or stone for better traversal
+              if (Math.random() < 0.7) {
+                mapData[y][pathX].terrain = Math.random() < 0.5 ? 'dirt' : 'stone';
+                mapData[y][pathX].weight = mapData[y][pathX].terrain === 'stone' ? 1.5 : 1.0;
+              }
             }
           }
         }
@@ -735,10 +1442,109 @@ const CityOfTheDamned: React.FC = () => {
       const areaWidth = 5 + Math.floor(Math.random() * 8);
       const areaHeight = 5 + Math.floor(Math.random() * 8);
       
-      // Clear this area
+      // Choose a dominant terrain type for this open space
+      let dominantTerrain: 'grass' | 'dirt' | 'stone' | 'water' | 'blood' | 'ash';
+      const terrainType = Math.random();
+      
+      if (terrainType < 0.4) {
+        // 40% chance of grass open area (safest)
+        dominantTerrain = 'grass';
+      } else if (terrainType < 0.7) {
+        // 30% chance of dirt open area
+        dominantTerrain = 'dirt';
+      } else if (terrainType < 0.85) {
+        // 15% chance of stone open area
+        dominantTerrain = 'stone';
+      } else if (terrainType < 0.95) {
+        // 10% chance of water open area
+        dominantTerrain = 'water';
+      } else if (terrainType < 0.98) {
+        // 3% chance of ash open area
+        dominantTerrain = 'ash';
+      } else {
+        // 2% chance of blood open area (dangerous)
+        dominantTerrain = 'blood';
+      }
+      
+      // Set the appropriate weight based on terrain
+      let weight = 1.0;
+      if (dominantTerrain === 'water') weight = 2.5;
+      else if (dominantTerrain === 'blood') weight = 2.0;
+      else if (dominantTerrain === 'stone') weight = 1.5;
+      else if (dominantTerrain === 'ash') weight = 1.2;
+      
+      // Clear this area and set terrain
       for (let y = areaY; y < areaY + areaHeight && y < mapHeight - 1; y++) {
         for (let x = areaX; x < areaX + areaWidth && x < mapWidth - 1; x++) {
           mapData[y][x].type = 'floor';
+          
+          // Apply main terrain type with some variation
+          if (Math.random() < 0.85) {
+            mapData[y][x].terrain = dominantTerrain;
+            mapData[y][x].weight = weight;
+          } else {
+            // 15% chance of variation on the edges - create transition zones
+            const isEdge = 
+              x === areaX || 
+              x === areaX + areaWidth - 1 || 
+              y === areaY || 
+              y === areaY + areaHeight - 1;
+              
+            if (isEdge) {
+              const surroundingTerrains = [];
+              
+              // Check surrounding cells for terrain types
+              for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                  const nx = x + dx;
+                  const ny = y + dy;
+                  
+                  if (nx >= 0 && nx < mapWidth && ny >= 0 && ny < mapHeight && !(dx === 0 && dy === 0)) {
+                    surroundingTerrains.push(mapData[ny][nx].terrain);
+                  }
+                }
+              }
+              
+              // Pick a random surrounding terrain or default to dominant if none available
+              if (surroundingTerrains.length > 0) {
+                mapData[y][x].terrain = surroundingTerrains[Math.floor(Math.random() * surroundingTerrains.length)];
+                
+                // Update weight based on new terrain
+                if (mapData[y][x].terrain === 'water') mapData[y][x].weight = 2.5;
+                else if (mapData[y][x].terrain === 'blood') mapData[y][x].weight = 2.0;
+                else if (mapData[y][x].terrain === 'stone') mapData[y][x].weight = 1.5;
+                else if (mapData[y][x].terrain === 'ash') mapData[y][x].weight = 1.2;
+                else mapData[y][x].weight = 1.0;
+              } else {
+                mapData[y][x].terrain = dominantTerrain;
+                mapData[y][x].weight = weight;
+              }
+            } else {
+              mapData[y][x].terrain = dominantTerrain;
+              mapData[y][x].weight = weight;
+            }
+          }
+        }
+      }
+      
+      // Possibly add cover elements in the open area
+      if (Math.random() < 0.7) {
+        const numCoverElements = 1 + Math.floor(Math.random() * 3);
+        
+        for (let c = 0; c < numCoverElements; c++) {
+          const coverX = areaX + Math.floor(Math.random() * areaWidth);
+          const coverY = areaY + Math.floor(Math.random() * areaHeight);
+          
+          if (coverX >= 0 && coverX < mapWidth && coverY >= 0 && coverY < mapHeight) {
+            mapData[coverY][coverX].type = 'cover';
+            
+            // Cover is often made of stone or the dominant terrain
+            if (Math.random() < 0.6) {
+              mapData[coverY][coverX].terrain = 'stone';
+            } else {
+              mapData[coverY][coverX].terrain = dominantTerrain;
+            }
+          }
         }
       }
     }
@@ -752,6 +1558,13 @@ const CityOfTheDamned: React.FC = () => {
     for (let formation = 0; formation < numFormations; formation++) {
       const startX = 3 + Math.floor(Math.random() * (mapWidth - 6));
       const startY = 3 + Math.floor(Math.random() * (mapHeight - 6));
+      
+      // Determine what type of formation to create
+      const formationType = Math.random();
+      const isStonyFormation = formationType < 0.4;  // 40% chance of rocky formation
+      const isWaterFormation = formationType >= 0.4 && formationType < 0.6; // 20% chance of water
+      const isBloodFormation = formationType >= 0.8 && formationType < 0.9; // 10% chance of blood
+      // Rest are just wall formations with no special terrain
       
       // Use a noise-based approach to create jagged formations
       const numPoints = 15 + Math.floor(Math.random() * 20);
@@ -774,21 +1587,53 @@ const CityOfTheDamned: React.FC = () => {
         }
       }
       
-      // Create walls at these points and sometimes around them
+      // Create walls/terrain at these points and sometimes around them
       for (const point of points) {
-        mapData[point.y][point.x].type = 'wall';
-        
-        // Sometimes extend the formation
-        if (Math.random() < 0.7) {
-          const dx = Math.random() < 0.5 ? 1 : -1;
-          const dy = Math.random() < 0.5 ? 1 : -1;
+        if (isWaterFormation) {
+          // Create a water formation (keep as floor but change terrain)
+          mapData[point.y][point.x].terrain = 'water';
+          mapData[point.y][point.x].weight = 2.5; // Water is harder to move through
+        } else if (isBloodFormation) {
+          // Create a blood formation (keep as floor but change terrain)
+          mapData[point.y][point.x].terrain = 'blood';
+          mapData[point.y][point.x].weight = 2.0; // Blood is harder to move through
+        } else {
+          // Create walls for the other formation types
+          mapData[point.y][point.x].type = 'wall';
           
-          if (point.x + dx > 1 && point.x + dx < mapWidth - 2) {
-            mapData[point.y][point.x + dx].type = 'wall';
+          // For stony formations, set stone terrain around walls
+          if (isStonyFormation) {
+            // Create stone terrain around the walls
+            const directions = [
+              {dx: 1, dy: 0}, {dx: -1, dy: 0}, {dx: 0, dy: 1}, {dx: 0, dy: -1},
+              {dx: 1, dy: 1}, {dx: -1, dy: 1}, {dx: 1, dy: -1}, {dx: -1, dy: -1}
+            ];
+            
+            for (const {dx, dy} of directions) {
+              const nx = point.x + dx;
+              const ny = point.y + dy;
+              
+              if (nx > 0 && nx < mapWidth - 1 && ny > 0 && ny < mapHeight - 1) {
+                if (mapData[ny][nx].type === 'floor') {
+                  mapData[ny][nx].terrain = 'stone';
+                  mapData[ny][nx].weight = 1.5; // Stone is slightly harder to move through
+                }
+              }
+            }
           }
           
-          if (point.y + dy > 1 && point.y + dy < mapHeight - 2) {
-            mapData[point.y + dy][point.x].type = 'wall';
+          // Sometimes extend the formation with more walls
+          if (Math.random() < 0.7) {
+            const dx = Math.random() < 0.5 ? 1 : -1;
+            const dy = Math.random() < 0.5 ? 1 : -1;
+            
+            if (point.x + dx > 1 && point.x + dx < mapWidth - 2) {
+              mapData[point.y][point.x + dx].type = 'wall';
+            }
+            
+            if (point.y + dy > 1 && point.y + dy < mapHeight - 2) {
+              mapData[point.y + dy][point.x].type = 'wall';
+            }
           }
         }
       }
@@ -797,6 +1642,7 @@ const CityOfTheDamned: React.FC = () => {
   
   // Ensure the center area is clear and accessible
   const clearCenterArea = (mapData: Cell[][], centerX: number, centerY: number, radius: number) => {
+    // Create gradient of terrain from center outward
     for (let y = centerY - radius; y <= centerY + radius; y++) {
       for (let x = centerX - radius; x <= centerX + radius; x++) {
         if (x >= 1 && x < mapWidth - 1 && y >= 1 && y < mapHeight - 1) {
@@ -806,6 +1652,25 @@ const CityOfTheDamned: React.FC = () => {
           if (distanceFromCenter <= radius) {
             // Clear center area
             mapData[y][x].type = 'floor';
+            
+            // Create a gradient of terrain from center (grass) to outer radius (varies)
+            if (distanceFromCenter < radius * 0.4) {
+              // Inner center is mostly grass - safe area
+              mapData[y][x].terrain = 'grass';
+            } else if (distanceFromCenter < radius * 0.7) {
+              // Middle ring has a mix of grass and dirt
+              mapData[y][x].terrain = Math.random() < 0.7 ? 'grass' : 'dirt';
+            } else {
+              // Outer ring has more varied terrain
+              const terrainRoll = Math.random();
+              if (terrainRoll < 0.5) {
+                mapData[y][x].terrain = 'dirt';
+              } else if (terrainRoll < 0.8) {
+                mapData[y][x].terrain = 'stone';
+              } else {
+                mapData[y][x].terrain = 'grass';
+              }
+            }
           }
         }
       }
@@ -821,6 +1686,8 @@ const CityOfTheDamned: React.FC = () => {
       
       if (coverX >= 1 && coverX < mapWidth - 1 && coverY >= 1 && coverY < mapHeight - 1) {
         mapData[coverY][coverX].type = 'cover';
+        // Cover is often stone
+        mapData[coverY][coverX].terrain = 'stone';
       }
     }
   };
@@ -838,12 +1705,30 @@ const CityOfTheDamned: React.FC = () => {
             mapData[y][x-1].type === 'wall' || 
             mapData[y][x+1].type === 'wall';
           
+          // More cover near walls
           if (hasNearbyWall && Math.random() < 0.2) {
             mapData[y][x].type = 'cover';
+            
+            // Cover material varies by location
+            const terrainRoll = Math.random();
+            if (terrainRoll < 0.6) {
+              // Most cover is stone
+              mapData[y][x].terrain = 'stone';
+            } else if (terrainRoll < 0.8) {
+              // Some cover is dirt/ash
+              mapData[y][x].terrain = Math.random() < 0.5 ? 'dirt' : 'ash';
+            }
+            // Rest inherits existing terrain
           } 
-          // Random cover
+          // Random cover elsewhere
           else if (Math.random() < 0.03) {
             mapData[y][x].type = 'cover';
+            
+            // Random cover types
+            if (Math.random() < 0.7) {
+              mapData[y][x].terrain = 'stone';
+            }
+            // Rest inherits existing terrain
           }
         }
       }
@@ -1107,6 +1992,29 @@ const CityOfTheDamned: React.FC = () => {
     addGlobalLog(`${player.name} is now controlled by AI.`);
   };
   
+  // Cast vote for extraction/continuation (for human players)
+  const castTransitionVote = (player: Player, vote: 'exit' | 'continue') => {
+    if (!player.isHuman || !player.isAlive || !gameState.canTransition) return;
+    
+    setGameState(prev => ({
+      ...prev,
+      transitionVotes: {
+        ...prev.transitionVotes,
+        [player.id]: vote
+      }
+    }));
+    
+    addGlobalLog(`${player.name} voted to ${vote === 'continue' ? 'continue to a new area' : 'exit the city'}.`);
+    
+    // Check if all players have voted
+    setTimeout(() => {
+      const allVoted = checkGameEndConditions();
+      if (!allVoted) {
+        addGlobalLog(`Waiting for other survivors to decide...`);
+      }
+    }, 500);
+  };
+  
   // Handle mouse input for the canvas
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!canvasRef.current || !activePlayer) return;
@@ -1200,17 +2108,31 @@ const CityOfTheDamned: React.FC = () => {
     if (!player.isAlive) return;
     
     setPlayers(prev => {
+      const weapon = player.weapons[weaponType];
+      
+      // Calculate new visibility range based on weapon
+      // Base visibility is determined by player's perception stat
+      const baseVisibilityRange = 10 + player.stats.perception;
+      
+      // If weapon range exceeds base visibility, extend visibility range
+      const newVisibilityRange = Math.max(baseVisibilityRange, weapon.range > baseVisibilityRange ? 
+        baseVisibilityRange + (weapon.range - baseVisibilityRange) * 0.5 : baseVisibilityRange);
+      
       // Create updated player state
       const updatedPlayer = {
         ...player,
         weapons: {
           ...player.weapons,
           currentWeapon: weaponType
-        }
+        },
+        visibilityRange: newVisibilityRange
       };
       
       // Log the weapon switch
       addPlayerLog(updatedPlayer, `Switched to ${updatedPlayer.weapons[weaponType].name}`);
+      if (weapon.range > baseVisibilityRange) {
+        addPlayerLog(updatedPlayer, `Enhanced vision range with ${weapon.name}.`);
+      }
       
       // Return updated players array
       return prev.map(p => p.id === player.id ? updatedPlayer : p);
@@ -1251,18 +2173,82 @@ const CityOfTheDamned: React.FC = () => {
     const weapon = player.weapons[currentWeapon];
     const now = Date.now();
     
+    // Check if weapon is reloading
+    if (weapon.isReloading) {
+      // Check if reload is complete
+      if (weapon.reloadStartTime && (now - weapon.reloadStartTime >= weapon.reloadSpeed * 1000)) {
+        // Reload is complete, update weapon state
+        setPlayers(prev => prev.map(p => {
+          if (p.id === player.id) {
+            // Calculate how much ammo to reload (min of available ammo and missing ammo in weapon)
+            const ammoToReload = Math.min(
+              p.ammo[weapon.ammoType],
+              weapon.maxAmmo - weapon.currentAmmo
+            );
+            
+            // Update player's ammo and weapon
+            return {
+              ...p,
+              weapons: {
+                ...p.weapons,
+                [currentWeapon]: {
+                  ...p.weapons[currentWeapon],
+                  isReloading: false,
+                  currentAmmo: weapon.currentAmmo + ammoToReload
+                }
+              },
+              ammo: {
+                ...p.ammo,
+                [weapon.ammoType]: p.ammo[weapon.ammoType] - ammoToReload
+              }
+            };
+          }
+          return p;
+        }));
+        
+        addPlayerLog(player, `Reloaded ${weapon.name}`);
+      } else {
+        // Still reloading
+        addPlayerLog(player, `${weapon.name} is still reloading...`);
+      }
+      return;
+    }
+    
     // Check cooldown
     if (now - weapon.lastFiredTime < 1000 / weapon.fireRate) {
       return;
     }
     
     // Check ammo
-    if (weapon.ammoType !== 'melee' && player.ammo[weapon.ammoType] <= 0) {
-      addPlayerLog(player, `Out of ${weapon.ammoType} ammo!`);
-      return;
+    if (weapon.ammoType !== 'melee') {
+      if (weapon.currentAmmo <= 0) {
+        // Automatic reload if out of ammo
+        if (player.ammo[weapon.ammoType] > 0) {
+          setPlayers(prev => prev.map(p => {
+            if (p.id === player.id) {
+              return {
+                ...p,
+                weapons: {
+                  ...p.weapons,
+                  [currentWeapon]: {
+                    ...p.weapons[currentWeapon],
+                    isReloading: true,
+                    reloadStartTime: now
+                  }
+                }
+              };
+            }
+            return p;
+          }));
+          addPlayerLog(player, `Reloading ${weapon.name}...`);
+        } else {
+          addPlayerLog(player, `Out of ${weapon.ammoType} ammo!`);
+        }
+        return;
+      }
     }
     
-    // Update weapon last fired time
+    // Update weapon last fired time and reduce ammo
     setPlayers(prev => prev.map(p => {
       if (p.id === player.id) {
         return {
@@ -1271,14 +2257,11 @@ const CityOfTheDamned: React.FC = () => {
             ...p.weapons,
             [currentWeapon]: {
               ...p.weapons[currentWeapon],
-              lastFiredTime: now
+              lastFiredTime: now,
+              // Reduce currentAmmo for non-melee weapons
+              currentAmmo: weapon.ammoType !== 'melee' ? weapon.currentAmmo - 1 : weapon.currentAmmo
             }
-          },
-          // Reduce ammo if not melee
-          ammo: weapon.ammoType !== 'melee' ? {
-            ...p.ammo,
-            [weapon.ammoType]: p.ammo[weapon.ammoType] - 1
-          } : p.ammo
+          }
         };
       }
       return p;
@@ -1378,12 +2361,24 @@ const CityOfTheDamned: React.FC = () => {
           const newHealth = Math.max(0, enemy.health - damage);
           
           if (newHealth === 0) {
-            // Update player kills
+            // Update player kills and currency
             setPlayers(prevPlayers => prevPlayers.map(p => {
               if (p.id === player.id) {
+                // Calculate currency reward based on enemy type
+                let currencyReward = 10; // Base reward
+                
+                // Bonus for different enemy types
+                if (enemy.type === 'ranged') currencyReward += 5;
+                if (enemy.type === 'tank') currencyReward += 10;
+                if (enemy.type === 'boss') currencyReward += 50;
+                
+                // Bonus for enemy level
+                currencyReward += Math.floor(gameState.wave * 2);
+                
                 return {
                   ...p,
-                  kills: p.kills + 1
+                  kills: p.kills + 1,
+                  currency: p.currency + currencyReward
                 };
               }
               return p;
@@ -1395,7 +2390,7 @@ const CityOfTheDamned: React.FC = () => {
               enemiesKilled: gs.enemiesKilled + 1
             }));
             
-            addPlayerLog(player, `Killed ${enemy.type} enemy!`);
+            addPlayerLog(player, `Killed ${enemy.type} enemy! +${10 + (enemy.type === 'boss' ? 50 : enemy.type === 'tank' ? 10 : enemy.type === 'ranged' ? 5 : 0) + Math.floor(gameState.wave * 2)} currency`);
           }
           
           return {
@@ -1434,6 +2429,71 @@ const CityOfTheDamned: React.FC = () => {
       return newLogs;
     });
   };
+  
+  // Save high scores to file
+  const saveHighScores = () => {
+    try {
+      const timestamp = new Date().toISOString().replace(/:/g, '-');
+      const highScorePlayers = players
+        .filter(p => p.isAlive || p.isDowned) // Only include alive or downed players
+        .map(player => ({
+          name: player.name,
+          kills: player.kills,
+          wave: gameState.wave,
+          day: gameState.day,
+          weapon: player.weapons.primary.name,
+          state: player.state,
+          timestamp: timestamp
+        }));
+      
+      if (highScorePlayers.length > 0) {
+        // Create scores directory if it doesn't exist
+        if (!fs.existsSync('./cityresults')) {
+          fs.mkdirSync('./cityresults');
+        }
+        
+        // Save to file
+        const filename = `./cityresults/highscores_${timestamp}.json`;
+        fs.writeFileSync(filename, JSON.stringify(highScorePlayers, null, 2));
+        
+        addGlobalLog(`High scores saved to ${filename}`);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error saving high scores:', error);
+      addGlobalLog('Failed to save high scores.');
+      return false;
+    }
+  };
+  
+  // Check if all players are dead or if all players voted for extraction
+  const checkGameEndConditions = () => {
+    // Check if all players are dead
+    const allDead = players.every(p => !p.isAlive);
+    if (allDead) {
+      addGlobalLog('Game over - All players have died.');
+      saveHighScores();
+      return true;
+    }
+    
+    // Check if all living players have voted to exit
+    if (gameState.canTransition) {
+      const livingPlayers = players.filter(p => p.isAlive);
+      const allExtract = livingPlayers.length > 0 && livingPlayers.every(p => 
+        p.progressionDecision === 'exit' || // AI decision
+        gameState.transitionVotes[p.id] === 'exit' // Human vote
+      );
+      
+      if (allExtract) {
+        addGlobalLog('Mission complete - All survivors have chosen to exit the city.');
+        saveHighScores();
+        return true;
+      }
+    }
+    
+    return false;
+  };
 
   // Update AI
   const updateAI = (_deltaTime: number) => {
@@ -1453,17 +2513,188 @@ const CityOfTheDamned: React.FC = () => {
   // Update AI-controlled players
   const updateAIPlayers = () => {
     setPlayers(prev => prev.map(player => {
-      // Skip human-controlled players and dead players
-      if (player.isHuman || !player.isAlive) return player;
+      // Skip human-controlled players
+      if (player.isHuman) return player;
       
-      // AI player logic
-      // 1. Look for closest enemy
+      // Skip dead players but ensure proper state
+      if (!player.isAlive) {
+        return {
+          ...player,
+          state: 'dead',
+          isDowned: false
+        };
+      }
+      
+      // Find nearby players and enemies
       const visibleEnemies = enemies.filter(enemy => {
         const distance = Math.sqrt(
           Math.pow(enemy.x - player.x, 2) + Math.pow(enemy.y - player.y, 2)
         );
         return distance <= player.visibilityRange && hasLineOfSight(map, player.x, player.y, enemy.x, enemy.y);
       });
+      
+      const nearbyPlayers = players.filter(p => {
+        if (p.id === player.id) return false;
+        const distance = Math.sqrt(
+          Math.pow(p.x - player.x, 2) + Math.pow(p.y - player.y, 2)
+        );
+        return distance <= 5 && hasLineOfSight(map, player.x, player.y, p.x, p.y);
+      });
+      
+      // Update player state using state machine
+      const newState = getNextPlayerState(player.state, player, nearbyPlayers, visibleEnemies);
+      const now = Date.now();
+      const stateChanged = newState !== player.state;
+      
+      // Get behavior based on state
+      const behavior = getPlayerBehavior(newState);
+      
+      // Add state change to logs if state has changed
+      const updatedLogs = stateChanged ? 
+        [...player.logs, `State changed to: ${newState}`] : 
+        player.logs;
+      
+      // Handle downed state
+      if (newState === 'downed') {
+        // If player is being healed by another player, gain health
+        const isBeingHealed = nearbyPlayers.some(p => 
+          p.isAlive && !p.isDowned && p.state === 'healing' && p.healTarget === player.id
+        );
+        
+        if (isBeingHealed) {
+          // Healing logic - slowly recover
+          const healAmount = 0.5; // Per frame
+          const newHealth = Math.min(player.health + healAmount, player.maxHealth * 0.5);
+          
+          // If health is restored enough, resurrect
+          if (newHealth > 30) {
+            return {
+              ...player,
+              health: newHealth,
+              state: 'normal',
+              isDowned: false,
+              stateTime: now,
+              logs: [...updatedLogs, `Resurrected by an ally.`]
+            };
+          }
+          
+          return {
+            ...player,
+            health: newHealth,
+            state: newState,
+            isDowned: true,
+            stateTime: stateChanged ? now : player.stateTime,
+            logs: [...updatedLogs, `Being healed: ${newHealth.toFixed(1)}/100`]
+          };
+        } else {
+          // Slowly lose health if not being healed
+          const newHealth = player.health - 0.1; // Slowly dying
+          
+          if (newHealth <= 0) {
+            return {
+              ...player,
+              health: 0,
+              isAlive: false,
+              state: 'dead',
+              isDowned: false,
+              logs: [...updatedLogs, `Died from wounds.`]
+            };
+          }
+          
+          return {
+            ...player,
+            health: newHealth,
+            state: newState,
+            isDowned: true,
+            stateTime: stateChanged ? now : player.stateTime
+          };
+        }
+      }
+      
+      // Handle healing state - player is healing someone else
+      if (newState === 'healing') {
+        // Find a downed player to heal if there's no current target
+        const healTarget = player.healTarget || nearbyPlayers.find(p => p.isDowned)?.id;
+        
+        // If not currently healing anyone but there's a downed player nearby, heal them
+        if (healTarget) {
+          // Energy cost for healing
+          const newEnergy = Math.max(0, player.energy - 0.2);
+          
+          return {
+            ...player,
+            energy: newEnergy,
+            state: newState,
+            stateTime: stateChanged ? now : player.stateTime,
+            healTarget,
+            logs: [...updatedLogs, `Healing ally`]
+          };
+        }
+      }
+      
+      // If transition is possible, make a decision whether to continue or extract
+      if (newState === 'deciding' && gameState.canTransition) {
+        if (!player.progressionDecision) {
+          // Make the decision 
+          const decisionFactors = {
+            // Player stats
+            health: player.health,
+            maxHealth: player.maxHealth,
+            ammo: player.ammo,
+            
+            // Environmental factors
+            teamHealthAverage: players.filter(p => p.isAlive).reduce((sum, p) => sum + p.health, 0) / 
+                              Math.max(1, players.filter(p => p.isAlive).length),
+            teamAmmoAverage: players.filter(p => p.isAlive).reduce((sum, p) => sum + p.ammo.primary + p.ammo.secondary, 0) / 
+                           Math.max(1, players.filter(p => p.isAlive).length),
+            alivePlayers: players.filter(p => p.isAlive).length,
+            totalPlayers: players.length,
+            dowedPlayers: players.filter(p => p.isDowned).length,
+            enemiesNearby: visibleEnemies.length,
+            bossPresent: visibleEnemies.some(e => e.type === 'boss'),
+            waveDifficulty: gameState.wave * 0.5,
+            timeOfDay: gameState.time,
+            
+            // Progression
+            wave: gameState.wave,
+            enemiesKilled: gameState.enemiesKilled,
+            kills: player.kills,
+            levelExplored: 0.5, // Placeholder, would need actual exploration tracking
+            
+            // Loot factors
+            lootQuality: 5, // Placeholder, 0-10 scale
+            weaponTier: ['common', 'uncommon', 'rare', 'epic', 'legendary'].indexOf(player.weapons.primary.rarity)
+          };
+          
+          const aiConfig = player.aiConfig || {
+            mode: 'balanced',
+            aggressiveness: 0.5,
+            selfPreservation: 0.5,
+            teamwork: 0.5,
+            lootPriority: 0.5,
+            explorationDesire: 0.5,
+            adaptability: 0.5
+          };
+          
+          const decision = makeProgressionDecision(decisionFactors, aiConfig);
+          
+          return {
+            ...player,
+            state: newState,
+            stateTime: stateChanged ? now : player.stateTime,
+            progressionDecision: decision.action,
+            aiThoughts: decision.thoughts,
+            logs: [...updatedLogs, `Decision: ${decision.action} ${decision.reasons.join(', ')}`]
+          };
+        }
+      }
+      
+      // Handle player behavior based on state
+      
+      // Weapon selection based on state and range
+      let canUsePrimary = behavior.canUsePrimary;
+      let canUseSecondary = behavior.canUseSecondary;
+      let canUseMelee = behavior.canUseMelee;
       
       if (visibleEnemies.length > 0) {
         // Find closest enemy
@@ -1478,30 +2709,39 @@ const CityOfTheDamned: React.FC = () => {
           return prevDistance < currentDistance ? prev : current;
         });
         
+        player.lastTargetId = closestEnemy.id;
+        
         // Get distance to enemy
         const distance = Math.sqrt(
           Math.pow(closestEnemy.x - player.x, 2) + Math.pow(closestEnemy.y - player.y, 2)
         );
         
-        // If enemy is within weapon range, attack it
-        if (distance <= player.weapons[player.weapons.currentWeapon].range) {
-          // Switch to appropriate weapon based on distance
-          let newWeaponType = player.weapons.currentWeapon;
-          if (distance <= 1) {
-            newWeaponType = 'melee';
-          } else if (distance <= 5) {
-            newWeaponType = player.ammo.secondary > 0 ? 'secondary' : 'primary';
-          } else {
-            newWeaponType = player.ammo.primary > 0 ? 'primary' : 'secondary';
-          }
-          
-          // Fire at enemy
-          const now = Date.now();
-          const weapon = player.weapons[newWeaponType];
-          
+        // Choose appropriate weapon based on state and distance
+        let newWeaponType = player.weapons.currentWeapon;
+        
+        if (distance <= 1 && canUseMelee) {
+          newWeaponType = 'melee';
+        } else if (distance <= 5 && canUseSecondary && player.ammo.secondary > 0) {
+          newWeaponType = 'secondary';
+        } else if (canUsePrimary && player.ammo.primary > 0) {
+          newWeaponType = 'primary';
+        } else if (canUseSecondary && player.ammo.secondary > 0) {
+          newWeaponType = 'secondary';
+        } else if (canUseMelee) {
+          newWeaponType = 'melee';
+        }
+        
+        // Get current weapon
+        const weapon = player.weapons[newWeaponType];
+        
+        // Can fire if within range
+        if (distance <= weapon.range) {
           // Check cooldown and ammo
           if (now - weapon.lastFiredTime >= 1000 / weapon.fireRate &&
               (weapon.ammoType === 'melee' || player.ammo[weapon.ammoType] > 0)) {
+            
+            // Apply offensive bonus based on state
+            const damageBonus = behavior.offensiveBonus; // From player state
             
             return {
               ...player,
@@ -1518,65 +2758,105 @@ const CityOfTheDamned: React.FC = () => {
                 ...player.ammo,
                 [weapon.ammoType]: player.ammo[weapon.ammoType] - 1
               } : player.ammo,
-              logs: [...player.logs, `Firing at ${closestEnemy.type}`]
+              lastTargetId: closestEnemy.id,
+              state: newState,
+              isDowned: newState === 'downed',
+              stateTime: stateChanged ? now : player.stateTime,
+              logs: [...updatedLogs, `Firing at ${closestEnemy.type || 'enemy'}`]
             };
           }
         } else {
-          // Move towards enemy
-          const dx = Math.sign(closestEnemy.x - player.x);
-          const dy = Math.sign(closestEnemy.y - player.y);
+          // Move towards or away from enemy based on state
+          let dx = Math.sign(closestEnemy.x - player.x);
+          let dy = Math.sign(closestEnemy.y - player.y);
           
-          // Try to move towards the enemy
-          const newX = player.x + dx;
-          const newY = player.y + dy;
+          // If retreating, move away from enemy
+          if (newState === 'retreating') {
+            dx = -dx;
+            dy = -dy;
+          }
           
-          // Check if can move to new position
-          if (
-            newX >= 0 && newX < mapWidth && 
-            newY >= 0 && newY < mapHeight && 
-            map[newY][newX].type !== 'wall'
-          ) {
-            return {
-              ...player,
-              x: newX,
-              y: newY,
-              logs: [...player.logs, `Moving towards enemy`]
-            };
+          // Adjust movement speed based on state
+          const movementSpeed = behavior.movementSpeed;
+          const moveChance = Math.random() < movementSpeed;
+          
+          if (moveChance) {
+            // Try to move 
+            const newX = player.x + dx;
+            const newY = player.y + dy;
+            
+            // Check if can move to new position
+            if (
+              newX >= 0 && newX < mapWidth && 
+              newY >= 0 && newY < mapHeight && 
+              map[newY][newX].type !== 'wall'
+            ) {
+              const movementText = newState === 'retreating' ? 
+                'Retreating from enemy' : 
+                'Moving towards enemy';
+              
+              return {
+                ...player,
+                x: newX,
+                y: newY,
+                lastTargetId: closestEnemy.id,
+                state: newState,
+                isDowned: newState === 'downed',
+                stateTime: stateChanged ? now : player.stateTime,
+                logs: [...updatedLogs, movementText]
+              };
+            }
           }
         }
       } else {
-        // No enemies visible, explore or search for ammo/health
-        const nearbyAmmo = ammoCaches.find(cache => {
-          const distance = Math.sqrt(
-            Math.pow(cache.x - player.x, 2) + Math.pow(cache.y - player.y, 2)
-          );
-          return distance <= 5 && hasLineOfSight(map, player.x, player.y, cache.x, cache.y);
-        });
+        // No enemies visible - searching, healing, or exploring
         
-        if (nearbyAmmo) {
-          // Move towards ammo
-          const dx = Math.sign(nearbyAmmo.x - player.x);
-          const dy = Math.sign(nearbyAmmo.y - player.y);
+        if (newState === 'searching') {
+          // Look for ammo or health
+          const nearbyAmmo = ammoCaches.find(cache => {
+            const distance = Math.sqrt(
+              Math.pow(cache.x - player.x, 2) + Math.pow(cache.y - player.y, 2)
+            );
+            return distance <= 5 && hasLineOfSight(map, player.x, player.y, cache.x, cache.y);
+          });
           
-          // Try to move towards the ammo
-          const newX = player.x + dx;
-          const newY = player.y + dy;
-          
-          // Check if can move to new position
-          if (
-            newX >= 0 && newX < mapWidth && 
-            newY >= 0 && newY < mapHeight && 
-            map[newY][newX].type !== 'wall'
-          ) {
-            return {
-              ...player,
-              x: newX,
-              y: newY,
-              logs: [...player.logs, `Moving towards ammo`]
-            };
+          if (nearbyAmmo) {
+            // Move towards ammo
+            const dx = Math.sign(nearbyAmmo.x - player.x);
+            const dy = Math.sign(nearbyAmmo.y - player.y);
+            
+            // Adjust movement speed based on state
+            const movementSpeed = behavior.movementSpeed;
+            const moveChance = Math.random() < movementSpeed;
+            
+            if (moveChance) {
+              // Try to move towards the ammo
+              const newX = player.x + dx;
+              const newY = player.y + dy;
+              
+              // Check if can move to new position
+              if (
+                newX >= 0 && newX < mapWidth && 
+                newY >= 0 && newY < mapHeight && 
+                map[newY][newX].type !== 'wall'
+              ) {
+                return {
+                  ...player,
+                  x: newX,
+                  y: newY,
+                  state: newState,
+                  isDowned: newState === 'downed',
+                  stateTime: stateChanged ? now : player.stateTime,
+                  logs: [...updatedLogs, `Searching for supplies`]
+                };
+              }
+            }
           }
-        } else {
-          // Random exploration
+        }
+        
+        // Default behavior - explore
+        if (!['healing', 'trading', 'downed', 'dead'].includes(newState)) {
+          // Random movement with probability based on movement speed
           const directions = [
             {dx: 1, dy: 0},
             {dx: -1, dy: 0},
@@ -1585,26 +2865,43 @@ const CityOfTheDamned: React.FC = () => {
           ];
           
           const direction = directions[Math.floor(Math.random() * directions.length)];
-          const newX = player.x + direction.dx;
-          const newY = player.y + direction.dy;
           
-          // Check if can move to new position
-          if (
-            newX >= 0 && newX < mapWidth && 
-            newY >= 0 && newY < mapHeight && 
-            map[newY][newX].type !== 'wall'
-          ) {
-            return {
-              ...player,
-              x: newX,
-              y: newY,
-              logs: [...player.logs, `Exploring`]
-            };
+          // Adjust movement speed based on state
+          const movementSpeed = behavior.movementSpeed;
+          const moveChance = Math.random() < movementSpeed * 0.3; // Lower chance for random movement
+          
+          if (moveChance) {
+            const newX = player.x + direction.dx;
+            const newY = player.y + direction.dy;
+            
+            // Check if can move to new position
+            if (
+              newX >= 0 && newX < mapWidth && 
+              newY >= 0 && newY < mapHeight && 
+              map[newY][newX].type !== 'wall'
+            ) {
+              return {
+                ...player,
+                x: newX,
+                y: newY,
+                state: newState,
+                isDowned: newState === 'downed',
+                stateTime: stateChanged ? now : player.stateTime,
+                logs: [...updatedLogs, `Exploring`]
+              };
+            }
           }
         }
       }
       
-      return player;
+      // If no action was taken, just update the state
+      return {
+        ...player,
+        state: newState,
+        isDowned: newState === 'downed',
+        stateTime: stateChanged ? now : player.stateTime,
+        logs: updatedLogs
+      };
     }));
   };
 
@@ -2825,8 +4122,261 @@ const CityOfTheDamned: React.FC = () => {
     // Update debug info
     setDebugInfo(`FPS: ${Math.round(1 / deltaTime)} | Enemies: ${enemies.length} | Wave: ${gameState.wave}`);
     
-    // Continue game loop
-    gameLoopRef.current = requestAnimationFrame(gameLoop);
+    // Check for game end conditions
+    const gameEnded = checkGameEndConditions();
+    
+    // Continue game loop if game hasn't ended
+    if (!gameEnded) {
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
+    } else {
+      // Set game status to completed
+      setGameState(prev => ({
+        ...prev,
+        gameStatus: 'completed'
+      }));
+    }
+  };
+
+  // Store related functions
+  const openStore = () => {
+    if (gameState.time === 'day' && activePlayer && activePlayer.isHuman) {
+      setShowStoreModal(true);
+    } else {
+      addGlobalLog("The store is only available during daylight hours.");
+    }
+  };
+
+  const closeStore = () => {
+    setShowStoreModal(false);
+  };
+
+  const upgradeStat = (stat: 'strength' | 'agility' | 'endurance' | 'perception') => {
+    if (!activePlayer) return;
+    
+    const cost = 50 * activePlayer.stats[stat]; // Cost increases with stat level
+    
+    if (activePlayer.currency >= cost) {
+      setPlayers(prev => prev.map(player => {
+        if (player.id === activePlayer.id) {
+          // Update player stats and currency
+          const newPlayer = {
+            ...player,
+            currency: player.currency - cost,
+            stats: {
+              ...player.stats,
+              [stat]: player.stats[stat] + 1
+            }
+          };
+          
+          // Also update dependent attributes
+          if (stat === 'endurance') {
+            newPlayer.maxHealth = 100 + (newPlayer.stats.endurance * 10);
+            newPlayer.maxEnergy = 100 + (newPlayer.stats.endurance * 10);
+          } else if (stat === 'perception') {
+            newPlayer.visibilityRange = 12 + newPlayer.stats.perception;
+          }
+          
+          return newPlayer;
+        }
+        return player;
+      }));
+      
+      addPlayerLog(activePlayer, `Upgraded ${stat} to level ${activePlayer.stats[stat] + 1}`);
+    } else {
+      addPlayerLog(activePlayer, `Not enough currency to upgrade ${stat}`);
+    }
+  };
+
+  const buyWeapon = (weaponId: number) => {
+    if (!activePlayer) return;
+    
+    // This matches the array in PlayerStore component
+    const weapons = [
+      {
+        id: 1,
+        name: "Combat Shotgun",
+        type: "primary",
+        weaponType: "shotgun",
+        damage: 35,
+        price: 200,
+        rarity: "uncommon",
+        fireRate: 0.8,
+        range: 4,
+        description: "High damage at close range, spread pattern"
+      },
+      {
+        id: 2,
+        name: "Assault Rifle",
+        type: "primary",
+        weaponType: "assault",
+        damage: 22,
+        price: 250,
+        rarity: "uncommon",
+        fireRate: 2.5,
+        range: 8,
+        description: "Balanced damage and fire rate"
+      },
+      {
+        id: 3, 
+        name: "Sniper Rifle",
+        type: "primary",
+        weaponType: "sniper",
+        damage: 65,
+        price: 300,
+        rarity: "rare",
+        fireRate: 0.5,
+        range: 15,
+        description: "High damage at long range, slow fire rate"
+      },
+      {
+        id: 4,
+        name: "Heavy Pistol",
+        type: "secondary",
+        weaponType: "pistol",
+        damage: 25,
+        price: 150,
+        rarity: "uncommon",
+        fireRate: 1.2,
+        range: 6,
+        description: "Strong secondary weapon with decent range"
+      },
+      {
+        id: 5,
+        name: "Submachine Gun",
+        type: "secondary",
+        weaponType: "smg",
+        damage: 12,
+        price: 180,
+        rarity: "uncommon",
+        fireRate: 4,
+        range: 5,
+        description: "Fast firing rate, low damage per shot"
+      },
+      {
+        id: 6,
+        name: "Combat Knife",
+        type: "melee",
+        weaponType: "knife",
+        damage: 30,
+        price: 100,
+        rarity: "uncommon",
+        fireRate: 2,
+        range: 1,
+        description: "Silent and deadly at close range"
+      },
+      {
+        id: 7,
+        name: "Tactical Axe",
+        type: "melee",
+        weaponType: "axe",
+        damage: 40,
+        price: 120,
+        rarity: "rare",
+        fireRate: 1,
+        range: 1.5,
+        description: "Slower but more powerful melee weapon"
+      }
+    ];
+    
+    const weapon = weapons.find(w => w.id === weaponId);
+    if (!weapon) return;
+    
+    if (activePlayer.currency >= weapon.price) {
+      setPlayers(prev => prev.map(player => {
+        if (player.id === activePlayer.id) {
+          // Create the weapon object
+          const newWeapon: Weapon = {
+            name: weapon.name,
+            damage: weapon.damage,
+            range: weapon.range,
+            fireRate: weapon.fireRate,
+            isAutomatic: weapon.fireRate > 2,
+            ammoType: weapon.type as 'primary' | 'secondary' | 'melee',
+            lastFiredTime: 0,
+            icon: getWeaponIcon(weapon.weaponType),
+            rarity: weapon.rarity as 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary',
+            type: weapon.weaponType as any
+          };
+          
+          // Update the player
+          return {
+            ...player,
+            currency: player.currency - weapon.price,
+            weapons: {
+              ...player.weapons,
+              [weapon.type]: newWeapon
+            }
+          };
+        }
+        return player;
+      }));
+      
+      addPlayerLog(activePlayer, `Purchased ${weapon.name}`);
+    } else {
+      addPlayerLog(activePlayer, `Not enough currency to buy ${weapon.name}`);
+    }
+  };
+
+  const buyAmmo = (ammoType: 'primary' | 'secondary') => {
+    if (!activePlayer) return;
+    
+    const ammoPrices = {
+      primary: 50,
+      secondary: 30
+    };
+    
+    const ammoAmount = {
+      primary: 30,
+      secondary: 20
+    };
+    
+    const price = ammoPrices[ammoType];
+    
+    if (activePlayer.currency >= price) {
+      setPlayers(prev => prev.map(player => {
+        if (player.id === activePlayer.id) {
+          // Calculate new ammo amount without exceeding max
+          const newAmmo = Math.min(
+            player.ammo[ammoType] + ammoAmount[ammoType],
+            player.ammo[`max${ammoType.charAt(0).toUpperCase() + ammoType.slice(1)}` as keyof typeof player.ammo]
+          );
+          
+          return {
+            ...player,
+            currency: player.currency - price,
+            ammo: {
+              ...player.ammo,
+              [ammoType]: newAmmo
+            }
+          };
+        }
+        return player;
+      }));
+      
+      addPlayerLog(activePlayer, `Purchased ${ammoAmount[ammoType]} ${ammoType} ammo`);
+    } else {
+      addPlayerLog(activePlayer, `Not enough currency to buy ${ammoType} ammo`);
+    }
+  };
+  
+  // Helper to get a weapon icon based on type
+  const getWeaponIcon = (type: string): React.ReactNode => {
+    switch (type) {
+      case 'shotgun':
+      case 'assault':
+      case 'sniper':
+        return <Package2 className="h-4 w-4" />;
+      case 'pistol':
+      case 'smg':
+        return <Crosshair className="h-4 w-4" />;
+      case 'knife':
+      case 'axe':
+      case 'sword':
+      case 'hammer':
+        return <Zap className="h-4 w-4" />;
+      default:
+        return <Crosshair className="h-4 w-4" />;
+    }
   };
 
   // Render functions
@@ -2839,22 +4389,47 @@ const CityOfTheDamned: React.FC = () => {
     
     // Default cell color
     let backgroundColor = 'bg-gray-800'; // Unexplored
+    let backgroundPattern = '';
     let content = null;
     
     if (cell.visible) {
       // Visible cells
-      switch (cell.type) {
-        case 'wall':
-          backgroundColor = 'bg-gray-700';
-          break;
-        case 'floor':
-          backgroundColor = gameState.time === 'day' ? 'bg-gray-200' : 'bg-gray-400';
-          break;
-        case 'cover':
-          backgroundColor = 'bg-gray-500';
-          break;
-        default:
-          backgroundColor = 'bg-gray-300';
+      if (cell.type === 'wall') {
+        backgroundColor = 'bg-gray-700';
+      } else {
+        // Apply terrain colors for non-wall cells
+        switch (cell.terrain) {
+          case 'grass':
+            backgroundColor = gameState.time === 'day' ? 'bg-green-200' : 'bg-green-900';
+            break;
+          case 'dirt':
+            backgroundColor = gameState.time === 'day' ? 'bg-amber-200' : 'bg-amber-900';
+            break;
+          case 'stone':
+            backgroundColor = gameState.time === 'day' ? 'bg-slate-400' : 'bg-slate-700';
+            break;
+          case 'water':
+            backgroundColor = gameState.time === 'day' ? 'bg-blue-300' : 'bg-blue-900';
+            backgroundPattern = 'bg-opacity-70';
+            break;
+          case 'blood':
+            backgroundColor = 'bg-red-900';
+            break;
+          case 'ash':
+            backgroundColor = gameState.time === 'day' ? 'bg-gray-300' : 'bg-gray-600';
+            break;
+          default:
+            backgroundColor = gameState.time === 'day' ? 'bg-gray-200' : 'bg-gray-500';
+        }
+        
+        // Apply cell type modifications after terrain
+        if (cell.type === 'cover') {
+          // Darken the terrain color for cover
+          backgroundColor = backgroundColor.replace(/-\d+$/, (match) => {
+            const num = parseInt(match.substring(1));
+            return `-${Math.min(num + 300, 900)}`;
+          });
+        }
       }
       
       // Render entities
@@ -2891,29 +4466,66 @@ const CityOfTheDamned: React.FC = () => {
           <div className="w-full h-full flex items-center justify-center">
             <Skull size={12} className="text-red-500" />
           </div>;
+      } else if (cell.terrain === 'water') {
+        // Add ripple effect for water cells
+        content = 
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-2/3 h-2/3 rounded-full bg-blue-200 opacity-20"></div>
+          </div>;
+      } else if (cell.terrain === 'blood') {
+        // Add blood spatter for blood cells
+        content = 
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-1/2 h-1/2 bg-red-600 opacity-60 rotate-45"></div>
+          </div>;
       }
     } else if (cell.explored) {
-      // Explored but not visible
-      switch (cell.type) {
-        case 'wall':
-          backgroundColor = 'bg-gray-700';
-          break;
-        case 'floor':
-          backgroundColor = 'bg-gray-600';
-          break;
-        case 'cover':
-          backgroundColor = 'bg-gray-500';
-          break;
-        default:
-          backgroundColor = 'bg-gray-600';
+      // Explored but not visible - use darker versions of terrain colors
+      if (cell.type === 'wall') {
+        backgroundColor = 'bg-gray-800';
+      } else {
+        switch (cell.terrain) {
+          case 'grass':
+            backgroundColor = 'bg-green-900';
+            break;
+          case 'dirt':
+            backgroundColor = 'bg-amber-900';
+            break;
+          case 'stone':
+            backgroundColor = 'bg-slate-800';
+            break;
+          case 'water':
+            backgroundColor = 'bg-blue-900';
+            break;
+          case 'blood':
+            backgroundColor = 'bg-red-950';
+            break;
+          case 'ash':
+            backgroundColor = 'bg-gray-700';
+            break;
+          default:
+            backgroundColor = 'bg-gray-700';
+        }
+        
+        // Apply cell type modifications
+        if (cell.type === 'cover') {
+          backgroundColor = 'bg-gray-600'; // Simplify covers in fog of war
+        }
       }
+      
+      // Add a fog effect to explored but not visible cells
+      backgroundPattern = 'opacity-50';
     }
     
     return (
       <div 
         key={`${x}-${y}`} 
-        className={`w-${cellSize}px h-${cellSize}px ${backgroundColor} border border-gray-900`}
-        style={{ width: `${cellSize}px`, height: `${cellSize}px` }}
+        className={`w-${cellSize}px h-${cellSize}px ${backgroundColor} ${backgroundPattern} border border-gray-900`}
+        style={{ 
+          width: `${cellSize}px`, 
+          height: `${cellSize}px`, 
+          transition: 'background-color 0.3s ease'
+        }}
       >
         {content}
       </div>
@@ -3007,6 +4619,7 @@ const CityOfTheDamned: React.FC = () => {
                   </div>
                   <div className="text-xs text-gray-600">HP: {Math.floor(player.health)}/{player.maxHealth}</div>
                   <div className="text-xs text-gray-600">Kills: {player.kills}</div>
+                  <div className="text-xs text-yellow-600 font-bold">Currency: {player.currency}</div>
                 </div>
               ))}
             </div>
@@ -3097,8 +4710,11 @@ const CityOfTheDamned: React.FC = () => {
                   <span className="text-xs">Secondary: {activePlayer.ammo.secondary}/{activePlayer.ammo.maxSecondary}</span>
                 </div>
                 
-                <div className="mt-3 flex justify-between items-center">
-                  <span className="text-sm font-semibold">Kills: {activePlayer.kills}</span>
+                <div className="mt-2 flex justify-between items-center">
+                  <div>
+                    <div className="text-sm font-semibold">Kills: {activePlayer.kills}</div>
+                    <div className="text-sm font-semibold text-yellow-600">Currency: {activePlayer.currency}</div>
+                  </div>
                   {activePlayer.isHuman ? (
                     <button 
                       onClick={() => releaseControl(activePlayer)}
@@ -3114,6 +4730,17 @@ const CityOfTheDamned: React.FC = () => {
                       Take Control
                     </button>
                   )}
+                </div>
+                
+                <div className="mt-3 flex justify-center">
+                  <button 
+                    onClick={openStore}
+                    className="px-4 py-2 text-sm bg-yellow-600 text-white rounded-full hover:bg-yellow-700 flex items-center gap-2"
+                    disabled={gameState.time !== 'day'} 
+                  >
+                    <ShoppingBag size={16} />
+                    <span>Shop for Upgrades</span>
+                  </button>
                 </div>
                 <div className="mt-2 text-xs text-gray-500">
                   {activePlayer.isHuman ? 'Press ESC to return control to AI' : ''}
@@ -3293,6 +4920,17 @@ const CityOfTheDamned: React.FC = () => {
         </div>
       )}
       
+      {/* Store modal */}
+      {showStoreModal && activePlayer && (
+        <PlayerStore 
+          player={activePlayer}
+          onUpgradeStat={upgradeStat}
+          onBuyWeapon={buyWeapon}
+          onBuyAmmo={buyAmmo}
+          onClose={closeStore}
+        />
+      )}
+      
       {/* Debug info */}
       <div className="fixed bottom-0 left-0 text-xs text-gray-500 bg-white bg-opacity-50 px-2">
         {debugInfo}
@@ -3371,53 +5009,7 @@ const CityOfTheDamned: React.FC = () => {
     addGlobalLog(`${enemyType} enemy spawned!`);
   };
 
-  // Generate a patrol path for enemies
-  const generatePatrolPath = (startX: number, startY: number): {x: number, y: number}[] => {
-    const path: {x: number, y: number}[] = [];
-    const pathLength = 4 + Math.floor(Math.random() * 4); // 4-7 points in path
-    
-    // Start with the spawner location
-    path.push({x: startX, y: startY});
-    
-    // Generate random points around the start point
-    for (let i = 0; i < pathLength; i++) {
-      const lastPoint = path[path.length - 1];
-      const radius = 3 + Math.floor(Math.random() * 5); // 3-7 distance
-      const angle = (Math.PI * 2 / pathLength) * i;
-      
-      const newX = Math.floor(startX + Math.cos(angle) * radius);
-      const newY = Math.floor(startY + Math.sin(angle) * radius);
-      
-      // Make sure point is within map bounds and not in a wall
-      if (
-        newX >= 1 && newX < mapWidth - 1 && 
-        newY >= 1 && newY < mapHeight - 1 && 
-        map[newY][newX].type !== 'wall'
-      ) {
-        path.push({x: newX, y: newY});
-      } else {
-        // If point is invalid, try a closer point
-        const fallbackX = Math.floor(startX + Math.cos(angle) * 2);
-        const fallbackY = Math.floor(startY + Math.sin(angle) * 2);
-        
-        if (
-          fallbackX >= 1 && fallbackX < mapWidth - 1 && 
-          fallbackY >= 1 && fallbackY < mapHeight - 1 && 
-          map[fallbackY][fallbackX].type !== 'wall'
-        ) {
-          path.push({x: fallbackX, y: fallbackY});
-        } else {
-          // If all fails, just duplicate the last point
-          path.push({...lastPoint});
-        }
-      }
-    }
-    
-    // Close the loop by adding first point again
-    path.push({x: startX, y: startY});
-    
-    return path;
-  };
+  // Using the existing generatePatrolPath function defined earlier
 
   // Spawn a boss enemy
   const spawnBossEnemy = (spawner: Spawner) => {
