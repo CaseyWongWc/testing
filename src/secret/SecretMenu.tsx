@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles, Code, Lock, AlertTriangle, Gamepad2 } from "lucide-react";
+import { Sparkles, Code, Lock, AlertTriangle, Gamepad2, Skull } from "lucide-react";
 import UnrelatedMenu from "./unrelated/UnrelatedMenu";
 import EntertainmentMenu from "./entertainment/EntertainmentMenu";
 
@@ -29,6 +29,13 @@ const SecretMenu: React.FC<SecretMenuProps> = ({ onNavigate }) => {
       description: "Exploring three-dimensional space",
       icon: <Lock className="w-6 h-6 text-green-500" />,
       path: "not following syllabus/3dworld",
+    },
+    {
+      id: "cityofdamned",
+      name: "City of the Damned",
+      description: "Multi-player survival in a zombie-infested city",
+      icon: <Skull className="w-6 h-6 text-red-600" />,
+      path: "cityofdamned",
     },
     {
       id: "entertainment",

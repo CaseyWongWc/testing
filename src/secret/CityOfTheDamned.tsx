@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sun, Moon, Shield, Zap, Target, Clock, BarChart2, Skull, Package2, Crosshair, ChevronLeft, ChevronRight, Plus, UserPlus } from 'lucide-react';
+import { Sun, Moon, Shield, Zap, Target, Clock, Skull, Package2, Crosshair, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
 
 // Types definition
 interface Entity {

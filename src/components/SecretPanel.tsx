@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SecretMenu from '../secret/SecretMenu';
 import UnrelatedMenu from '../secret/unrelated/UnrelatedMenu';
 import EntertainmentMenu from '../secret/entertainment/EntertainmentMenu';
+import CityOfTheDamned from '../secret/CityOfTheDamned';
 
 interface SecretPanelProps {
   isOpen: boolean;
@@ -35,6 +36,8 @@ const SecretPanel: React.FC<SecretPanelProps> = ({ isOpen }) => {
         return <UnrelatedMenu onNavigate={handleNavigate} />;
       case 'for entertainment':
         return <EntertainmentMenu onSelect={(scene) => console.log(scene)} />;
+      case 'cityofdamned':
+        return <CityOfTheDamned />;
       case 'main':
       default:
         return <SecretMenu onNavigate={handleNavigate} />;

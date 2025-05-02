@@ -444,6 +444,12 @@ function App() {
               Combat
             </button>
             <button
+              onClick={() => setActiveGame("cityofdamned")}
+              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-lg font-medium"
+            >
+              City of the Damned
+            </button>
+            <button
               onClick={() => setActiveGame("replit")}
               className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium"
             >
