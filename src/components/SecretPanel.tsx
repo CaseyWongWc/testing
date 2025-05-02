@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Lock, Unlock, Folder } from 'lucide-react';
+import SecretMenu from '../secret/SecretMenu';
 
 interface SecretPanelProps {
   isOpen: boolean;
