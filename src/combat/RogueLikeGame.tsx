@@ -238,21 +238,46 @@ const RogueLikeGame: React.FC = () => {
 
   const [portalPulse, setPortalPulse] = useState(0);
 
+  const hasLineOfSight = (x1: number, y1: number, x2: number, y2: number, room: Cell[][]): boolean => {
+    const dx = Math.abs(x2 - x1);
+    const dy = Math.abs(y2 - y1);
+    const sx = x1 < x2 ? 1 : -1;
+    const sy = y1 < y2 ? 1 : -1;
+    let err = dx - dy;
+
+    let x = x1;
+    let y = y1;
+
+    while (true) {
+      if (x === x2 && y === y2) return true;
+      if (room[y][x].type === 'wall' && !(x === x1 && y === y1)) return false;
+
+      const e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        x += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        y += sy;
+      }
+    }
+  };
+
   const updateVisibility = useCallback(() => {
     setRoom(prev => {
-      const newRoom = JSON.parse(JSON.stringify(prev)); // Deep clone to avoid reference issues
+      const newRoom = JSON.parse(JSON.stringify(prev));
       const portalCell = newRoom.flat().find(cell => cell.type === 'portal');
-      const pulseRange = 3 + Math.sin(portalPulse * 0.5) * 1.5; // Pulsating range between 1.5 and 4.5
+      const pulseRange = 3 + Math.sin(portalPulse * 0.5) * 1.5;
 
       for (let y = 0; y < ROOM_HEIGHT; y++) {
         for (let x = 0; x < ROOM_WIDTH; x++) {
           const distanceToRobot = Math.sqrt(Math.pow(x - robot.x, 2) + Math.pow(y - robot.y, 2));
-          let isVisible = distanceToRobot <= VISION_RANGE;
+          let isVisible = distanceToRobot <= VISION_RANGE && hasLineOfSight(robot.x, robot.y, x, y, newRoom);
 
-          // Add portal visibility
           if (portalCell) {
             const distanceToPortal = Math.sqrt(Math.pow(x - portalCell.x, 2) + Math.pow(y - portalCell.y, 2));
-            if (distanceToPortal <= pulseRange) {
+            if (distanceToPortal <= pulseRange && hasLineOfSight(portalCell.x, portalCell.y, x, y, newRoom)) {
               isVisible = true;
             }
           }
