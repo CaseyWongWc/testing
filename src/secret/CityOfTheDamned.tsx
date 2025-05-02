@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sun, Moon, Shield, Zap, Target, Clock, Skull, Package2, Crosshair, ChevronLeft, ChevronRight, UserPlus, Flame } from 'lucide-react';
+import { Sun, Moon, Shield, Zap, Target, Clock, Skull, Package2, Crosshair, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
 
 // Types definition
 interface Entity {
@@ -128,7 +128,10 @@ interface GameState {
   wave: number;
   enemiesKilled: number;
   waveTimer: number;
-  gameStatus: 'preparing' | 'wave' | 'completed';
+  gameStatus: 'preparing' | 'wave' | 'completed' | 'transition';
+  mapLevel: number;
+  canTransition: boolean;
+  transitionVotes: {[playerId: number]: 'exit' | 'continue'};
 }
 
 interface Spawner {
@@ -173,7 +176,10 @@ const CityOfTheDamned: React.FC = () => {
     wave: 1,
     enemiesKilled: 0,
     waveTimer: 120, // 2 minutes until night
-    gameStatus: 'preparing'
+    gameStatus: 'preparing',
+    mapLevel: 1,
+    canTransition: false,
+    transitionVotes: {}
   });
   
   // Game loop ref
@@ -1741,6 +1747,266 @@ const CityOfTheDamned: React.FC = () => {
         const canSeePlayer = closestPlayer.distance <= enemy.detectionRange && 
                            hasLineOfSight(map, enemy.x, enemy.y, closestPlayer.player.x, closestPlayer.player.y);
         
+        // Check if this is a boss enemy
+        const isBoss = enemy.type === 'boss' && 'bossType' in enemy;
+        
+        // Special boss logic
+        if (isBoss && 'bossType' in enemy) {
+          const boss = enemy as Boss;
+          
+          // Boss special ability activation
+          if (canSeePlayer && now - boss.lastSummonTime > boss.summonCooldown && !boss.isSummoning) {
+            // Activate special ability
+            const abilityIndex = Math.floor(Math.random() * boss.specialAbilities.length);
+            const ability = boss.specialAbilities[abilityIndex];
+            
+            addGlobalLog(`Boss ${boss.bossType} is using ${ability}!`);
+            
+            // Different abilities based on boss type
+            switch (boss.bossType) {
+              case 'butcher':
+                // Cleave attack that hits all nearby players
+                if (ability === 'Cleave') {
+                  const cleaveRange = boss.attackRange + 1;
+                  
+                  // Find all players in cleave range
+                  const playersInRange = alivePlayers.filter(player => {
+                    const distance = Math.sqrt(
+                      Math.pow(player.x - boss.x, 2) + Math.pow(player.y - boss.y, 2)
+                    );
+                    return distance <= cleaveRange;
+                  });
+                  
+                  // Deal damage to all players in range
+                  setPlayers(players => players.map(p => {
+                    if (playersInRange.some(rangePlayer => rangePlayer.id === p.id)) {
+                      const cleaveDamage = Math.floor(boss.damage * 0.7); // Reduced cleave damage
+                      const newHealth = Math.max(0, p.health - cleaveDamage);
+                      addPlayerLog(p, `Hit by ${boss.bossType}'s Cleave for ${cleaveDamage} damage!`);
+                      
+                      if (newHealth === 0) {
+                        addGlobalLog(`${p.name} has been cleaved to death!`);
+                        return {
+                          ...p,
+                          health: 0,
+                          isAlive: false,
+                          logs: [...p.logs, 'You have been cleaved to death!']
+                        };
+                      }
+                      
+                      return {
+                        ...p,
+                        health: newHealth
+                      };
+                    }
+                    return p;
+                  }));
+                }
+                break;
+                
+              case 'necromancer':
+                // Necromancer summons undead minions
+                if (ability === 'Raise Dead') {
+                  // Spawn 2-3 melee enemies around the boss
+                  const spawnCount = 2 + Math.floor(Math.random() * 2);
+                  const spawnPositions = [];
+                  
+                  // Find valid spawn positions around boss
+                  for (let dx = -2; dx <= 2; dx++) {
+                    for (let dy = -2; dy <= 2; dy++) {
+                      const spawnX = boss.x + dx;
+                      const spawnY = boss.y + dy;
+                      
+                      if (
+                        spawnX >= 0 && spawnX < mapWidth &&
+                        spawnY >= 0 && spawnY < mapHeight &&
+                        map[spawnY][spawnX].type !== 'wall' &&
+                        !(dx === 0 && dy === 0) // Not on the boss
+                      ) {
+                        spawnPositions.push({ x: spawnX, y: spawnY });
+                      }
+                    }
+                  }
+                  
+                  // Shuffle and take the positions we need
+                  spawnPositions.sort(() => Math.random() - 0.5);
+                  const actualSpawnCount = Math.min(spawnCount, spawnPositions.length);
+                  
+                  // Create minions
+                  const minions: Enemy[] = [];
+                  for (let i = 0; i < actualSpawnCount; i++) {
+                    if (i < spawnPositions.length) {
+                      const position = spawnPositions[i];
+                      minions.push({
+                        id: Date.now() + i + Math.floor(Math.random() * 1000),
+                        x: position.x,
+                        y: position.y,
+                        health: 25,
+                        maxHealth: 25,
+                        damage: 8,
+                        attackRange: 1,
+                        attackSpeed: 1,
+                        type: 'melee',
+                        behavior: 'aggressive',
+                        lastAttackTime: 0,
+                        detectionRange: 10
+                      });
+                    }
+                  }
+                  
+                  // Add minions to the enemies
+                  setEnemies(prev => [...prev, ...minions]);
+                  addGlobalLog(`${boss.bossType} has summoned ${actualSpawnCount} undead minions!`);
+                }
+                break;
+                
+              case 'warlord':
+                // Warlord has a powerful charge attack
+                if (ability === 'Charge') {
+                  // Charge in the direction of the closest player
+                  const chargeDistance = 4; // Charge up to 4 cells
+                  const dx = Math.sign(closestPlayer.player.x - boss.x);
+                  const dy = Math.sign(closestPlayer.player.y - boss.y);
+                  
+                  // Calculate charge path
+                  const chargePath = [];
+                  for (let i = 1; i <= chargeDistance; i++) {
+                    const pathX = boss.x + (dx * i);
+                    const pathY = boss.y + (dy * i);
+                    
+                    // Stop charging if we hit a wall
+                    if (
+                      pathX < 0 || pathX >= mapWidth ||
+                      pathY < 0 || pathY >= mapHeight ||
+                      map[pathY][pathX].type === 'wall'
+                    ) {
+                      break;
+                    }
+                    
+                    chargePath.push({ x: pathX, y: pathY });
+                  }
+                  
+                  // Deal damage to any player in charge path
+                  if (chargePath.length > 0) {
+                    const endPoint = chargePath[chargePath.length - 1];
+                    const chargeDamage = boss.damage * 1.5; // Enhanced charge damage
+                    
+                    // Set boss position to end of charge
+                    newX = endPoint.x;
+                    newY = endPoint.y;
+                    
+                    // Check if any players are in the charge path
+                    setPlayers(players => players.map(p => {
+                      if (p.isAlive && chargePath.some(pos => pos.x === p.x && pos.y === p.y)) {
+                        const newHealth = Math.max(0, p.health - chargeDamage);
+                        addPlayerLog(p, `Hit by ${boss.bossType}'s Charge for ${chargeDamage} damage!`);
+                        
+                        if (newHealth === 0) {
+                          addGlobalLog(`${p.name} was trampled by the Warlord's charge!`);
+                          return {
+                            ...p,
+                            health: 0,
+                            isAlive: false,
+                            logs: [...p.logs, 'You were trampled by the Warlord\'s charge!']
+                          };
+                        }
+                        
+                        return {
+                          ...p,
+                          health: newHealth
+                        };
+                      }
+                      return p;
+                    }));
+                  }
+                }
+                break;
+                
+              case 'sentinel':
+                // Sentinel can fire a laser barrage
+                if (ability === 'Laser Barrage') {
+                  // Attack random players from range
+                  const targetCount = Math.min(3, alivePlayers.length);
+                  const targets = [...alivePlayers].sort(() => Math.random() - 0.5).slice(0, targetCount);
+                  
+                  const laserDamage = Math.floor(boss.damage * 1.2); // Enhanced laser damage
+                  
+                  // Deal damage to targeted players regardless of range/LOS (it's a special ability)
+                  setPlayers(players => players.map(p => {
+                    if (targets.some(target => target.id === p.id)) {
+                      const newHealth = Math.max(0, p.health - laserDamage);
+                      addPlayerLog(p, `Hit by ${boss.bossType}'s Laser Barrage for ${laserDamage} damage!`);
+                      
+                      if (newHealth === 0) {
+                        addGlobalLog(`${p.name} was vaporized by the Sentinel's lasers!`);
+                        return {
+                          ...p,
+                          health: 0,
+                          isAlive: false,
+                          logs: [...p.logs, 'You were vaporized by the Sentinel\'s lasers!']
+                        };
+                      }
+                      
+                      return {
+                        ...p,
+                        health: newHealth
+                      };
+                    }
+                    return p;
+                  }));
+                }
+                break;
+                
+              case 'hivemind':
+                // Hivemind can mind control a player temporarily
+                if (ability === 'Mind Control') {
+                  // Find a random alive player to control
+                  if (alivePlayers.length > 0) {
+                    const targetIndex = Math.floor(Math.random() * alivePlayers.length);
+                    const targetPlayer = alivePlayers[targetIndex];
+                    
+                    // Apply a status effect (in a real game, this would temporarily disable player control)
+                    addPlayerLog(targetPlayer, 'You have been mind controlled by the Hivemind!');
+                    addGlobalLog(`${targetPlayer.name} has been mind controlled by the Hivemind!`);
+                    
+                    // For this demo, just deal some psychic damage
+                    const psychicDamage = Math.floor(boss.damage * 0.8);
+                    setPlayers(players => players.map(p => {
+                      if (p.id === targetPlayer.id) {
+                        const newHealth = Math.max(0, p.health - psychicDamage);
+                        
+                        if (newHealth === 0) {
+                          addGlobalLog(`${p.name}'s mind was crushed by the Hivemind!`);
+                          return {
+                            ...p,
+                            health: 0,
+                            isAlive: false,
+                            logs: [...p.logs, 'Your mind was crushed by the Hivemind!']
+                          };
+                        }
+                        
+                        return {
+                          ...p,
+                          health: newHealth
+                        };
+                      }
+                      return p;
+                    }));
+                  }
+                }
+                break;
+            }
+            
+            // Update boss state after using special ability
+            return {
+              ...boss,
+              lastSummonTime: now,
+              minionsSpawned: boss.minionsSpawned + 1
+            };
+          }
+        }
+        
+        // Normal enemy behavior (for both regular enemies and bosses when not using special abilities)
         if (canSeePlayer) {
           // Switch to aggressive mode if player spotted
           newBehavior = 'aggressive';
@@ -2265,9 +2531,14 @@ const CityOfTheDamned: React.FC = () => {
     return path;
   };
 
-  // Update day/night cycle
+  // Update day/night cycle and handle map transitions
   const updateDayNightCycle = (deltaTime: number) => {
     setGameState(prev => {
+      // If in transition state, don't update the cycle
+      if (prev.gameStatus === 'transition') {
+        return prev;
+      }
+      
       const newTimeElapsed = prev.timeElapsed + deltaTime;
       const cycleLength = 180; // 3 minute day/night cycle
       const dayLength = 120; // 2 minutes of day
@@ -2277,6 +2548,7 @@ const CityOfTheDamned: React.FC = () => {
       let newDay = prev.day;
       let newWave = prev.wave;
       let newWaveTimer = prev.waveTimer;
+      let newGameStatus = prev.gameStatus;
       
       if (prev.time === 'day' && newTimeElapsed >= dayLength) {
         // Transition to night
@@ -2291,6 +2563,27 @@ const CityOfTheDamned: React.FC = () => {
         newDay = prev.day + 1;
         newWave = prev.wave + 1;
         newWaveTimer = 120; // Reset wave timer
+        
+        // Check if we reached a map transition point (every 10 waves)
+        if (newWave % 10 === 0 && newWave > 0) {
+          addGlobalLog(`🌍 WAVE ${newWave} REACHED! The city has been cleared of threats temporarily.`);
+          addGlobalLog(`Survivors must decide: Continue to a new area or escape with their lives?`);
+          
+          // Enter transition state
+          newGameStatus = 'transition';
+          
+          return {
+            ...prev,
+            time: newTime,
+            day: newDay,
+            wave: newWave,
+            timeElapsed: 0,
+            waveTimer: newWaveTimer,
+            gameStatus: newGameStatus,
+            canTransition: true,
+            transitionVotes: {} // Reset votes
+          };
+        }
         
         addGlobalLog(`Day ${newDay} has begun. Wave ${newWave} incoming!`);
         
@@ -2323,6 +2616,137 @@ const CityOfTheDamned: React.FC = () => {
         waveTimer: newWaveTimer
       };
     });
+  };
+  
+  // Clear all enemies from the map
+  const clearEnemies = () => {
+    setEnemies([]);
+  };
+  
+  // Handle player vote for map transition
+  const handleTransitionVote = (playerId: number, vote: 'exit' | 'continue') => {
+    if (!gameState.canTransition) return;
+    
+    setGameState(prev => {
+      // Update votes
+      const newVotes = {...prev.transitionVotes, [playerId]: vote};
+      
+      // Check if all living players have voted
+      const livingPlayers = players.filter(p => p.isAlive);
+      const allVoted = livingPlayers.every(p => p.id in newVotes);
+      
+      // Log the vote
+      const player = players.find(p => p.id === playerId);
+      if (player) {
+        addGlobalLog(`${player.name} voted to ${vote === 'continue' ? 'continue to a new area' : 'escape the city'}.`);
+      }
+      
+      if (allVoted) {
+        // Count votes
+        const continueVotes = Object.values(newVotes).filter(v => v === 'continue').length;
+        const exitVotes = Object.values(newVotes).filter(v => v === 'exit').length;
+        
+        if (continueVotes > exitVotes) {
+          // Majority wants to continue - generate new map
+          addGlobalLog(`The survivors have decided to continue their journey to a new area!`);
+          setTimeout(() => {
+            transitionToNewMap();
+          }, 2000);
+        } else {
+          // Majority wants to exit - end game
+          addGlobalLog(`The survivors have decided to escape while they can. Game completed!`);
+          setTimeout(() => {
+            endGame(true);
+          }, 2000);
+        }
+        
+        return {
+          ...prev,
+          transitionVotes: newVotes,
+          canTransition: false
+        };
+      }
+      
+      return {
+        ...prev,
+        transitionVotes: newVotes
+      };
+    });
+  };
+  
+  // Transition to a new map
+  const transitionToNewMap = () => {
+    // Save current player stats
+    const survivingPlayers = players.filter(p => p.isAlive).map(player => ({
+      ...player,
+      // Heal players for the new map
+      health: player.maxHealth,
+      energy: player.maxEnergy,
+      // Replenish some ammo
+      ammo: {
+        ...player.ammo,
+        primary: Math.min(player.ammo.primary + 30, player.ammo.maxPrimary),
+        secondary: Math.min(player.ammo.secondary + 15, player.ammo.maxSecondary)
+      },
+      // Reset position for the new map
+      x: 0,
+      y: 0,
+      logs: [...player.logs, `Entered a new area of the city.`]
+    }));
+    
+    // Generate new map with different parameters
+    const newMapLevel = gameState.mapLevel + 1;
+    
+    // Clear current game state
+    setMap([]);
+    setEnemies([]);
+    setAmmoCaches([]);
+    setSpawners([]);
+    
+    // Update game state
+    setGameState(prev => ({
+      ...prev,
+      mapLevel: newMapLevel,
+      gameStatus: 'preparing',
+      canTransition: false
+    }));
+    
+    // Generate new map with players positioned in center
+    generateMap();
+    
+    // Position players in the new map's center
+    setPlayers(survivingPlayers.map(player => ({
+      ...player,
+      x: Math.floor(mapWidth / 2) + Math.floor(Math.random() * 5) - 2,
+      y: Math.floor(mapHeight / 2) + Math.floor(Math.random() * 5) - 2
+    })));
+    
+    // Setup new spawners
+    setupSpawners();
+    placeAmmoCaches();
+    
+    // Global announcement
+    addGlobalLog(`Welcome to Area ${newMapLevel} of the City of the Damned!`);
+    addGlobalLog(`The threats here are stronger, but so are the rewards...`);
+  };
+  
+  // End the game
+  const endGame = (survived: boolean) => {
+    if (survived) {
+      addGlobalLog(`VICTORY! The survivors have escaped the City of the Damned!`);
+      
+      // Display stats
+      players.filter(p => p.isAlive).forEach(player => {
+        addGlobalLog(`${player.name}: ${player.kills} kills, survived ${gameState.wave} waves`);
+      });
+    } else {
+      addGlobalLog(`DEFEAT! All survivors have perished in the City of the Damned.`);
+    }
+    
+    setGameState(prev => ({
+      ...prev,
+      gameStatus: 'completed'
+    }));
   };
 
   // Reposition spawners
@@ -2775,6 +3199,64 @@ const CityOfTheDamned: React.FC = () => {
         </div>
       </div>
       
+      {/* Map transition UI */}
+      {gameState.gameStatus === 'transition' && gameState.canTransition && activePlayer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-lg text-white max-w-lg">
+            <h3 className="text-2xl font-bold mb-4 text-center">Wave {gameState.wave} Completed!</h3>
+            <p className="mb-6 text-center">
+              You've cleared wave {gameState.wave}. The path ahead leads deeper into the City of the Damned, 
+              but you could also escape with your life while you have the chance.
+            </p>
+            
+            <div className="mb-4">
+              <h4 className="text-lg font-semibold mb-2">Current Votes:</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-green-900 p-3 rounded">
+                  <p className="text-center font-bold">Continue</p>
+                  <p className="text-center text-3xl">
+                    {Object.values(gameState.transitionVotes).filter(v => v === 'continue').length}
+                  </p>
+                </div>
+                <div className="bg-red-900 p-3 rounded">
+                  <p className="text-center font-bold">Escape</p>
+                  <p className="text-center text-3xl">
+                    {Object.values(gameState.transitionVotes).filter(v => v === 'exit').length}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Check if player has already voted */}
+            {activePlayer.id in gameState.transitionVotes ? (
+              <div className="text-center p-3 bg-blue-700 rounded">
+                <p>You voted to {gameState.transitionVotes[activePlayer.id] === 'continue' ? 'continue' : 'escape'}.</p>
+                <p className="text-sm mt-2">Waiting for other survivors to vote...</p>
+              </div>
+            ) : (
+              <div className="flex justify-center gap-4">
+                <button 
+                  onClick={() => handleTransitionVote(activePlayer.id, 'continue')}
+                  className="px-6 py-3 bg-green-700 text-white rounded hover:bg-green-600 transition"
+                >
+                  Continue to Next Area
+                </button>
+                <button 
+                  onClick={() => handleTransitionVote(activePlayer.id, 'exit')}
+                  className="px-6 py-3 bg-red-700 text-white rounded hover:bg-red-600 transition"
+                >
+                  Escape with Your Life
+                </button>
+              </div>
+            )}
+            
+            <p className="mt-4 text-sm text-gray-400 text-center">
+              Decision will be based on majority vote. Players who have died cannot vote.
+            </p>
+          </div>
+        </div>
+      )}
+      
       {/* Add player modal */}
       {showAddPlayerModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -2817,195 +3299,195 @@ const CityOfTheDamned: React.FC = () => {
       </div>
     </div>
   );
-};
-
-// Spawn a regular enemy
-const spawnEnemy = (spawner: Spawner) => {
-  // Define enemy types and base stats
-  const enemyTypes = {
-    'melee': {
-      damage: 10,
-      attackRange: 1,
-      attackSpeed: 1,
-      detectionRange: 8,
-      health: 50,
-      maxHealth: 50
-    },
-    'ranged': {
-      damage: 8,
-      attackRange: 5,
-      attackSpeed: 0.5,
-      detectionRange: 10,
-      health: 30,
-      maxHealth: 30
-    },
-    'tank': {
-      damage: 15,
-      attackRange: 1,
-      attackSpeed: 0.7,
-      detectionRange: 7,
-      health: 100,
-      maxHealth: 100
-    },
-    'boss': {
-      damage: 25,
-      attackRange: 3,
-      attackSpeed: 0.8,
-      detectionRange: 12,
-      health: 200,
-      maxHealth: 200
-    }
-  };
   
-  const enemyType = spawner.enemyType;
-  const enemyData = enemyTypes[enemyType];
-  
-  // Create enemy with stats based on current wave/day
-  const waveMultiplier = 1 + (gameState.wave - 1) * 0.2;
-  const newEnemy: Enemy = {
-    id: Date.now(),
-    x: spawner.x,
-    y: spawner.y,
-    health: Math.floor(enemyData.health * waveMultiplier),
-    maxHealth: Math.floor(enemyData.maxHealth * waveMultiplier),
-    damage: Math.floor(enemyData.damage * waveMultiplier),
-    attackRange: enemyData.attackRange,
-    attackSpeed: enemyData.attackSpeed,
-    type: enemyType,
-    behavior: Math.random() < 0.7 ? 'aggressive' : 'defensive',
-    lastAttackTime: 0,
-    detectionRange: enemyData.detectionRange
-  };
-  
-  // Add patrol behavior for some enemies
-  if (Math.random() < 0.3) {
-    newEnemy.behavior = 'patrol';
-    newEnemy.movementPattern = {
-      path: generatePatrolPath(spawner.x, spawner.y),
-      currentPathIndex: 0
-    };
-  }
-  
-  setEnemies(prev => [...prev, newEnemy]);
-  addGlobalLog(`${enemyType} enemy spawned!`);
-};
-
-// Generate a patrol path for enemies
-const generatePatrolPath = (startX: number, startY: number): {x: number, y: number}[] => {
-  const path: {x: number, y: number}[] = [];
-  const pathLength = 4 + Math.floor(Math.random() * 4); // 4-7 points in path
-  
-  // Start with the spawner location
-  path.push({x: startX, y: startY});
-  
-  // Generate random points around the start point
-  for (let i = 0; i < pathLength; i++) {
-    const lastPoint = path[path.length - 1];
-    const radius = 3 + Math.floor(Math.random() * 5); // 3-7 distance
-    const angle = (Math.PI * 2 / pathLength) * i;
-    
-    const newX = Math.floor(startX + Math.cos(angle) * radius);
-    const newY = Math.floor(startY + Math.sin(angle) * radius);
-    
-    // Make sure point is within map bounds and not in a wall
-    if (
-      newX >= 1 && newX < mapWidth - 1 && 
-      newY >= 1 && newY < mapHeight - 1 && 
-      map[newY][newX].type !== 'wall'
-    ) {
-      path.push({x: newX, y: newY});
-    } else {
-      // If point is invalid, try a closer point
-      const fallbackX = Math.floor(startX + Math.cos(angle) * 2);
-      const fallbackY = Math.floor(startY + Math.sin(angle) * 2);
-      
-      if (
-        fallbackX >= 1 && fallbackX < mapWidth - 1 && 
-        fallbackY >= 1 && fallbackY < mapHeight - 1 && 
-        map[fallbackY][fallbackX].type !== 'wall'
-      ) {
-        path.push({x: fallbackX, y: fallbackY});
-      } else {
-        // If all fails, just duplicate the last point
-        path.push({...lastPoint});
-      }
-    }
-  }
-  
-  // Close the loop by adding first point again
-  path.push({x: startX, y: startY});
-  
-  return path;
-};
-
-// Spawn a boss enemy
-const spawnBossEnemy = (spawner: Spawner) => {
-  const boss = createBoss(spawner.x, spawner.y, gameState.wave);
-  setEnemies(prev => [...prev, boss as unknown as Enemy]);
-  
-  // Global announcement
-  addGlobalLog(`⚠️ WARNING: BOSS APPEARED! The ${boss.bossType} has arrived!`);
-  
-  // Spawn minions around the boss
-  const numMinions = Math.min(3, Math.floor(gameState.wave / 5));
-  
-  for (let i = 0; i < numMinions; i++) {
-    const angle = (Math.PI * 2 / numMinions) * i;
-    const distance = 2;
-    
-    const minionX = Math.floor(boss.x + Math.cos(angle) * distance);
-    const minionY = Math.floor(boss.y + Math.sin(angle) * distance);
-    
-    // Check if position is valid
-    if (
-      minionX >= 1 && minionX < mapWidth - 1 && 
-      minionY >= 1 && minionY < mapHeight - 1 && 
-      map[minionY][minionX].type !== 'wall'
-    ) {
-      // Create a minion (weaker enemy)
-      const minion: Enemy = {
-        id: Date.now() + i + 1000,
-        x: minionX,
-        y: minionY,
-        health: 30,
-        maxHealth: 30,
-        damage: 5,
+  // Spawn a regular enemy
+  const spawnEnemy = (spawner: Spawner) => {
+    // Define enemy types and base stats
+    const enemyTypes = {
+      'melee': {
+        damage: 10,
         attackRange: 1,
         attackSpeed: 1,
-        type: 'melee',
-        behavior: 'aggressive',
-        lastAttackTime: 0,
-        detectionRange: 8
+        detectionRange: 8,
+        health: 50,
+        maxHealth: 50
+      },
+      'ranged': {
+        damage: 8,
+        attackRange: 5,
+        attackSpeed: 0.5,
+        detectionRange: 10,
+        health: 30,
+        maxHealth: 30
+      },
+      'tank': {
+        damage: 15,
+        attackRange: 1,
+        attackSpeed: 0.7,
+        detectionRange: 7,
+        health: 100,
+        maxHealth: 100
+      },
+      'boss': {
+        damage: 25,
+        attackRange: 3,
+        attackSpeed: 0.8,
+        detectionRange: 12,
+        health: 200,
+        maxHealth: 200
+      }
+    };
+    
+    const enemyType = spawner.enemyType;
+    const enemyData = enemyTypes[enemyType];
+    
+    // Create enemy with stats based on current wave/day
+    const waveMultiplier = 1 + (gameState.wave - 1) * 0.2;
+    const newEnemy: Enemy = {
+      id: Date.now(),
+      x: spawner.x,
+      y: spawner.y,
+      health: Math.floor(enemyData.health * waveMultiplier),
+      maxHealth: Math.floor(enemyData.maxHealth * waveMultiplier),
+      damage: Math.floor(enemyData.damage * waveMultiplier),
+      attackRange: enemyData.attackRange,
+      attackSpeed: enemyData.attackSpeed,
+      type: enemyType,
+      behavior: Math.random() < 0.7 ? 'aggressive' : 'defensive',
+      lastAttackTime: 0,
+      detectionRange: enemyData.detectionRange
+    };
+    
+    // Add patrol behavior for some enemies
+    if (Math.random() < 0.3) {
+      newEnemy.behavior = 'patrol';
+      newEnemy.movementPattern = {
+        path: generatePatrolPath(spawner.x, spawner.y),
+        currentPathIndex: 0
       };
-      
-      setEnemies(prev => [...prev, minion]);
     }
-  }
-};
-
-// Spawn a hostile AI player
-const spawnHostileAI = (spawner: HostileSpawner) => {
-  const typedSpawner = spawner as {
-    x: number;
-    y: number;
-    id: number;
-    hostileAIType: 'normal' | 'elite' | 'boss';
-    weapons: Weapon[];
+    
+    setEnemies(prev => [...prev, newEnemy]);
+    addGlobalLog(`${enemyType} enemy spawned!`);
   };
-  
-  const hostilePlayer = createHostileAIPlayer(
-    typedSpawner.x,
-    typedSpawner.y,
-    typedSpawner.id,
-    typedSpawner.hostileAIType,
-    typedSpawner.weapons
-  );
-  
-  // Add to players array
-  setPlayers(prev => [...prev, hostilePlayer]);
-  
-  // Announcement
-  addGlobalLog(`⚠️ Hostile survivor ${hostilePlayer.name} spotted with a ${hostilePlayer.weapons.primary.name}!`);
+
+  // Generate a patrol path for enemies
+  const generatePatrolPath = (startX: number, startY: number): {x: number, y: number}[] => {
+    const path: {x: number, y: number}[] = [];
+    const pathLength = 4 + Math.floor(Math.random() * 4); // 4-7 points in path
+    
+    // Start with the spawner location
+    path.push({x: startX, y: startY});
+    
+    // Generate random points around the start point
+    for (let i = 0; i < pathLength; i++) {
+      const lastPoint = path[path.length - 1];
+      const radius = 3 + Math.floor(Math.random() * 5); // 3-7 distance
+      const angle = (Math.PI * 2 / pathLength) * i;
+      
+      const newX = Math.floor(startX + Math.cos(angle) * radius);
+      const newY = Math.floor(startY + Math.sin(angle) * radius);
+      
+      // Make sure point is within map bounds and not in a wall
+      if (
+        newX >= 1 && newX < mapWidth - 1 && 
+        newY >= 1 && newY < mapHeight - 1 && 
+        map[newY][newX].type !== 'wall'
+      ) {
+        path.push({x: newX, y: newY});
+      } else {
+        // If point is invalid, try a closer point
+        const fallbackX = Math.floor(startX + Math.cos(angle) * 2);
+        const fallbackY = Math.floor(startY + Math.sin(angle) * 2);
+        
+        if (
+          fallbackX >= 1 && fallbackX < mapWidth - 1 && 
+          fallbackY >= 1 && fallbackY < mapHeight - 1 && 
+          map[fallbackY][fallbackX].type !== 'wall'
+        ) {
+          path.push({x: fallbackX, y: fallbackY});
+        } else {
+          // If all fails, just duplicate the last point
+          path.push({...lastPoint});
+        }
+      }
+    }
+    
+    // Close the loop by adding first point again
+    path.push({x: startX, y: startY});
+    
+    return path;
+  };
+
+  // Spawn a boss enemy
+  const spawnBossEnemy = (spawner: Spawner) => {
+    const boss = createBoss(spawner.x, spawner.y, gameState.wave);
+    setEnemies(prev => [...prev, boss as unknown as Enemy]);
+    
+    // Global announcement
+    addGlobalLog(`⚠️ WARNING: BOSS APPEARED! The ${boss.bossType} has arrived!`);
+    
+    // Spawn minions around the boss
+    const numMinions = Math.min(3, Math.floor(gameState.wave / 5));
+    
+    for (let i = 0; i < numMinions; i++) {
+      const angle = (Math.PI * 2 / numMinions) * i;
+      const distance = 2;
+      
+      const minionX = Math.floor(boss.x + Math.cos(angle) * distance);
+      const minionY = Math.floor(boss.y + Math.sin(angle) * distance);
+      
+      // Check if position is valid
+      if (
+        minionX >= 1 && minionX < mapWidth - 1 && 
+        minionY >= 1 && minionY < mapHeight - 1 && 
+        map[minionY][minionX].type !== 'wall'
+      ) {
+        // Create a minion (weaker enemy)
+        const minion: Enemy = {
+          id: Date.now() + i + 1000,
+          x: minionX,
+          y: minionY,
+          health: 30,
+          maxHealth: 30,
+          damage: 5,
+          attackRange: 1,
+          attackSpeed: 1,
+          type: 'melee',
+          behavior: 'aggressive',
+          lastAttackTime: 0,
+          detectionRange: 8
+        };
+        
+        setEnemies(prev => [...prev, minion]);
+      }
+    }
+  };
+
+  // Spawn a hostile AI player
+  const spawnHostileAI = (spawner: HostileSpawner) => {
+    const typedSpawner = spawner as {
+      x: number;
+      y: number;
+      id: number;
+      hostileAIType: 'normal' | 'elite' | 'boss';
+      weapons: Weapon[];
+    };
+    
+    const hostilePlayer = createHostileAIPlayer(
+      typedSpawner.x,
+      typedSpawner.y,
+      typedSpawner.id,
+      typedSpawner.hostileAIType,
+      typedSpawner.weapons
+    );
+    
+    // Add to players array
+    setPlayers(prev => [...prev, hostilePlayer]);
+    
+    // Announcement
+    addGlobalLog(`⚠️ Hostile survivor ${hostilePlayer.name} spotted with a ${hostilePlayer.weapons.primary.name}!`);
+  };
 };
 
 export default CityOfTheDamned;
