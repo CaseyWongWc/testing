@@ -1,36 +1,17 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChefHat, DollarSign, Trash2, Timer, User, Coffee, Pizza } from 'lucide-react';
+import { ChefHat, DollarSign, Trash2, Timer, User, Coffee, Pizza, Star } from 'lucide-react';
 
-interface Position {
-  x: number;
-  y: number;
-}
+// Keep existing interfaces from before
 
-interface NPC {
+// Add new states and types
+interface Order {
   id: string;
-  type: 'chef' | 'cashier' | 'janitor' | 'customer';
-  position: Position;
-  state: string;
-  target?: Position;
-  inventory?: string[];
-  money?: number;
-  patience?: number;
-  order?: string;
-}
-
-interface GridCell {
-  type: 'empty' | 'wall' | 'oven' | 'counter' | 'table' | 'chair' | 'storage';
-  occupied?: boolean;
-  content?: string;
-  cleanLevel?: number;
-}
-
-interface Recipe {
-  name: string;
-  ingredients: string[];
-  cookTime: number;
-  price: number;
+  recipe: Recipe;
+  status: 'pending' | 'cooking' | 'ready' | 'delivered';
+  customer: string;
+  satisfaction: number;
+  timePlaced: number;
 }
 
 const RECIPES: Recipe[] = [
@@ -60,115 +41,184 @@ const PizzaPlace: React.FC = () => {
     cheese: 50,
     pepperoni: 30
   });
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [cleaningQueue, setCleaningQueue] = useState<Position[]>([]);
+  const [earnings, setEarnings] = useState(0);
 
-  const initializeGrid = useCallback(() => {
-    const newGrid: GridCell[][] = Array(GRID_SIZE.height).fill(null).map(() =>
-      Array(GRID_SIZE.width).fill(null).map(() => ({ type: 'empty' }))
-    );
-
-    // Add walls
-    for (let x = 0; x < GRID_SIZE.width; x++) {
-      newGrid[0][x].type = 'wall';
-      newGrid[GRID_SIZE.height - 1][x].type = 'wall';
-    }
-    for (let y = 0; y < GRID_SIZE.height; y++) {
-      newGrid[y][0].type = 'wall';
-      newGrid[y][GRID_SIZE.width - 1].type = 'wall';
-    }
-
-    // Add kitchen area
-    for (let x = 2; x < 6; x++) {
-      newGrid[2][x].type = 'counter';
-      newGrid[4][x].type = 'oven';
-    }
-
-    // Add tables and chairs
-    for (let y = 2; y < GRID_SIZE.height - 2; y += 3) {
-      for (let x = 8; x < GRID_SIZE.width - 2; x += 4) {
-        newGrid[y][x].type = 'table';
-        newGrid[y + 1][x].type = 'chair';
-        newGrid[y - 1][x].type = 'chair';
+  // Pathfinding helper function
+  const findPath = (start: Position, end: Position): Position[] => {
+    const queue: Position[] = [start];
+    const visited = new Set<string>();
+    const parent = new Map<string, Position>();
+    
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const key = `${current.x},${current.y}`;
+      
+      if (current.x === end.x && current.y === end.y) {
+        const path: Position[] = [];
+        let pos: Position | undefined = current;
+        while (pos) {
+          path.unshift(pos);
+          pos = parent.get(`${pos.x},${pos.y}`);
+        }
+        return path;
+      }
+      
+      if (!visited.has(key)) {
+        visited.add(key);
+        const neighbors = [
+          { x: current.x + 1, y: current.y },
+          { x: current.x - 1, y: current.y },
+          { x: current.x, y: current.y + 1 },
+          { x: current.x, y: current.y - 1 }
+        ].filter(pos => 
+          pos.x >= 0 && pos.x < GRID_SIZE.width && 
+          pos.y >= 0 && pos.y < GRID_SIZE.height &&
+          grid[pos.y][pos.x].type !== 'wall'
+        );
+        
+        for (const neighbor of neighbors) {
+          const neighborKey = `${neighbor.x},${neighbor.y}`;
+          if (!visited.has(neighborKey)) {
+            queue.push(neighbor);
+            parent.set(neighborKey, current);
+          }
+        }
       }
     }
-
-    return newGrid;
-  }, []);
-
-  const initializeNPCs = useCallback(() => {
-    const newNPCs: NPC[] = [
-      {
-        id: 'chef1',
-        type: 'chef',
-        position: { x: 2, y: 3 },
-        state: 'idle',
-        inventory: []
-      },
-      {
-        id: 'cashier1',
-        type: 'cashier',
-        position: { x: 2, y: 1 },
-        state: 'idle',
-        inventory: []
-      },
-      {
-        id: 'janitor1',
-        type: 'janitor',
-        position: { x: GRID_SIZE.width - 2, y: 1 },
-        state: 'patrolling',
-      }
-    ];
-    return newNPCs;
-  }, []);
-
-  useEffect(() => {
-    setGrid(initializeGrid());
-    setNPCs(initializeNPCs());
-  }, [initializeGrid, initializeNPCs]);
-
-  const renderCell = (cell: GridCell, npc?: NPC) => {
-    if (npc) {
-      switch (npc.type) {
-        case 'chef':
-          return <ChefHat className="w-6 h-6 text-yellow-500" />;
-        case 'cashier':
-          return <DollarSign className="w-6 h-6 text-green-500" />;
-        case 'janitor':
-          return <Trash2 className="w-6 h-6 text-blue-500" />;
-        case 'customer':
-          return <User className="w-6 h-6 text-purple-500" />;
-      }
-    }
-
-    switch (cell.type) {
-      case 'wall':
-        return <div className="w-full h-full bg-gray-800" />;
-      case 'oven':
-        return <Timer className="w-6 h-6 text-red-500" />;
-      case 'counter':
-        return <Coffee className="w-6 h-6 text-brown-500" />;
-      case 'table':
-        return <div className="w-full h-full bg-yellow-200 rounded" />;
-      case 'chair':
-        return <div className="w-full h-full bg-yellow-100 rounded-full" />;
-      case 'storage':
-        return <Pizza className="w-6 h-6 text-orange-500" />;
-      default:
-        return null;
-    }
+    return [];
   };
+
+  // NPC behavior function
+  const updateNPCs = useCallback(() => {
+    setNPCs(prevNPCs => {
+      return prevNPCs.map(npc => {
+        switch (npc.type) {
+          case 'chef': {
+            // Chef logic
+            const pendingOrders = orders.filter(o => o.status === 'pending');
+            if (pendingOrders.length > 0 && !npc.target) {
+              const order = pendingOrders[0];
+              const ovenPos = { x: 4, y: 4 }; // Example oven position
+              const path = findPath(npc.position, ovenPos);
+              return {
+                ...npc,
+                target: ovenPos,
+                state: 'cooking',
+                path: path
+              };
+            }
+            break;
+          }
+          case 'cashier': {
+            // Cashier logic - stay at counter and process orders
+            if (Math.random() < 0.1 && orders.length < 5) {
+              const newOrder: Order = {
+                id: `order_${Date.now()}`,
+                recipe: RECIPES[Math.floor(Math.random() * RECIPES.length)],
+                status: 'pending',
+                customer: `customer_${Date.now()}`,
+                satisfaction: 100,
+                timePlace: Date.now()
+              };
+              setOrders(prev => [...prev, newOrder]);
+            }
+            break;
+          }
+          case 'janitor': {
+            // Janitor logic
+            if (cleaningQueue.length > 0 && !npc.target) {
+              const nextSpot = cleaningQueue[0];
+              const path = findPath(npc.position, nextSpot);
+              return {
+                ...npc,
+                target: nextSpot,
+                state: 'cleaning',
+                path: path
+              };
+            }
+            break;
+          }
+          case 'customer': {
+            // Customer logic
+            if (!npc.target) {
+              const availableSeats = grid.flatMap((row, y) => 
+                row.map((cell, x) => ({ x, y, cell }))
+              ).filter(pos => pos.cell.type === 'chair' && !pos.cell.occupied);
+              
+              if (availableSeats.length > 0) {
+                const seat = availableSeats[Math.floor(Math.random() * availableSeats.length)];
+                const path = findPath(npc.position, seat);
+                return {
+                  ...npc,
+                  target: seat,
+                  state: 'finding_seat',
+                  path: path
+                };
+              }
+            }
+            break;
+          }
+        }
+        return npc;
+      });
+    });
+  }, [grid, orders, cleaningQueue]);
+
+  // Main simulation loop
+  useEffect(() => {
+    if (!isRunning) return;
+    
+    const interval = setInterval(() => {
+      // Update NPCs
+      updateNPCs();
+      
+      // Update orders
+      setOrders(prevOrders => 
+        prevOrders.map(order => {
+          if (order.status === 'pending' && Math.random() < 0.1) {
+            return { ...order, status: 'cooking' };
+          }
+          if (order.status === 'cooking' && Math.random() < 0.1) {
+            return { ...order, status: 'ready' };
+          }
+          return order;
+        })
+      );
+      
+      // Add cleaning tasks
+      if (Math.random() < 0.05) {
+        const newCleaningSpot = {
+          x: Math.floor(Math.random() * GRID_SIZE.width),
+          y: Math.floor(Math.random() * GRID_SIZE.height)
+        };
+        setCleaningQueue(prev => [...prev, newCleaningSpot]);
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [isRunning, updateNPCs]);
+
+  // Keep existing rendering functions
 
   return (
     <div className="p-4">
-      <div className="mb-4">
-        <h2 className="text-2xl font-bold mb-2">Pizza Place Simulation</h2>
-        <button
-          onClick={() => setIsRunning(!isRunning)}
-          className={`px-4 py-2 rounded ${
-            isRunning ? 'bg-red-500' : 'bg-green-500'
-          } text-white`}
-        >
-          {isRunning ? 'Stop' : 'Start'} Simulation
-        </button>
+      <div className="mb-4 flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Pizza Place Simulation</h2>
+          <button
+            onClick={() => setIsRunning(!isRunning)}
+            className={`px-4 py-2 rounded ${
+              isRunning ? 'bg-red-500' : 'bg-green-500'
+            } text-white`}
+          >
+            {isRunning ? 'Stop' : 'Start'} Simulation
+          </button>
+        </div>
+        <div className="text-xl font-bold">
+          Earnings: ${earnings}
+        </div>
       </div>
 
       <div className="grid gap-0.5 bg-gray-100 p-2 rounded-lg">
@@ -179,7 +229,9 @@ const PizzaPlace: React.FC = () => {
               return (
                 <div
                   key={`${x}-${y}`}
-                  className="w-8 h-8 bg-white flex items-center justify-center"
+                  className={`w-8 h-8 flex items-center justify-center ${
+                    cell.cleanLevel && cell.cleanLevel < 50 ? 'bg-yellow-100' : 'bg-white'
+                  }`}
                 >
                   {renderCell(cell, npc)}
                 </div>
@@ -189,7 +241,7 @@ const PizzaPlace: React.FC = () => {
         ))}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-4">
+      <div className="mt-4 grid grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="font-bold mb-2">Inventory</h3>
           <ul>
@@ -197,6 +249,23 @@ const PizzaPlace: React.FC = () => {
               <li key={item} className="flex justify-between">
                 <span className="capitalize">{item}</span>
                 <span>{quantity}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="font-bold mb-2">Active Orders</h3>
+          <ul>
+            {orders.map(order => (
+              <li key={order.id} className="flex justify-between items-center mb-2">
+                <span>{order.recipe.name}</span>
+                <span className="flex items-center">
+                  <Star className={`w-4 h-4 ${
+                    order.satisfaction > 70 ? 'text-yellow-500' : 'text-gray-400'
+                  }`} />
+                  {order.status}
+                </span>
               </li>
             ))}
           </ul>
