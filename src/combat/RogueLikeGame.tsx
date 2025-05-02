@@ -500,11 +500,28 @@ const RogueLikeGame: React.FC = () => {
       target = { x: nearestItem.x, y: nearestItem.y };
       decision = `Moving to collect ${nearestItem.type}`;
     } else {
-      newMode = 'portal';
-      const portalCell = room.flat().find(cell => cell.type === 'portal');
-      if (portalCell) {
-        target = { x: portalCell.x, y: portalCell.y };
-        decision = 'Seeking portal to next level';
+      // Evaluate if it's a good time to progress to next level
+      const shouldProgress = (
+        // Cleared most enemies (>80%)
+        enemies.length <= Math.ceil(gameState.level * 0.2) &&
+        // Has good health (>50%)
+        robot.health >= robot.maxHealth * 0.5 &&
+        // Has sufficient ammo (>30%)
+        robot.ammo >= robot.maxAmmo * 0.3 &&
+        // Collected majority of beneficial items
+        items.filter(i => !i.collected && (i.type === 'damage' || i.type === 'shield')).length <= 2
+      );
+
+      if (shouldProgress) {
+        newMode = 'portal';
+        const portalCell = room.flat().find(cell => cell.type === 'portal');
+        if (portalCell) {
+          target = { x: portalCell.x, y: portalCell.y };
+          decision = 'Room cleared, proceeding to next level';
+        }
+      } else {
+        newMode = 'explore';
+        decision = 'Continuing to clear current level';
       }
     }
 
