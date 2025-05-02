@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import PizzaPlace from './PizzaPlace';
+import PizzaPlace from './pizzaplacefiles/PizzaPlace';
 import { Pizza, PlusCircle } from 'lucide-react';
 
 const UnrelatedMenu: React.FC = () => {
