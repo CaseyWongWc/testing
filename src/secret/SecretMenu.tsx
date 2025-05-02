@@ -35,7 +35,12 @@ const SecretMenu: React.FC<SecretMenuProps> = ({ onNavigate }) => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 p-8 text-white">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold mb-4">Secret Laboratory</h1>
+          <h1 
+            className="text-4xl font-bold mb-4 cursor-pointer hover:text-blue-400 transition-colors"
+            onClick={() => onNavigate('exit')}
+          >
+            Secret Laboratory
+          </h1>
           <p className="text-gray-400">Breaking the boundaries of conventional development</p>
         </div>
         
