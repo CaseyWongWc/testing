@@ -21,10 +21,10 @@ const ArrowIcon: React.FC<ArrowIconProps> = ({
     <button 
       onClick={onClick}
       className={`inline-flex items-center justify-center transition-all hover:scale-110 ${
-        isActive ? 'text-red-500 animate-pulse shadow-lg shadow-red-500/50' : ''
+        isActive ? 'text-green-500 shadow-lg shadow-green-500/50' : ''
       } ${className}`}
     >
-      <ArrowRight size={size} color={isActive ? '#ef4444' : color} />
+      <ArrowRight size={size} color={isActive ? '#22c55e' : color} />
     </button>
   );
 };
