@@ -1,7 +1,7 @@
 import React from "react";
 import { Sparkles, Code, Lock, AlertTriangle, Gamepad2 } from "lucide-react";
 import UnrelatedMenu from "./unrelated/UnrelatedMenu";
-import EntertainmentMenu from "./for entertainment/EntertainmentMenu";
+import EntertainmentMenu from "./entertainment/EntertainmentMenu";
 
 interface SecretMenuProps {
   onNavigate: (path: string) => void;
