@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sun, Moon, Shield, Zap, Target, Clock, Skull, Package2, Crosshair, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
+import { Sun, Moon, Shield, Zap, Target, Clock, Skull, Package2, Crosshair, ChevronLeft, ChevronRight, UserPlus, Flame } from 'lucide-react';
 
 // Types definition
 interface Entity {
@@ -65,6 +65,44 @@ interface Weapon {
   ammoType: 'primary' | 'secondary' | 'melee';
   lastFiredTime: number;
   icon: React.ReactNode;
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  type: 'assault' | 'smg' | 'shotgun' | 'sniper' | 'pistol' | 'heavy' | 'knife' | 'axe' | 'sword' | 'hammer';
+  special?: {
+    effect: 'fire' | 'ice' | 'shock' | 'poison' | 'explosion';
+    damage: number;
+    duration: number;
+  };
+}
+
+// Define hostile AI players (enemy survivors)
+interface HostilePlayer extends Player {
+  isHostile: true;
+  spawnerId?: number;
+  difficulty: 'normal' | 'elite' | 'boss';
+  loot?: {
+    weapons?: Weapon[];
+    ammo?: number;
+    health?: number;
+  };
+}
+
+// Define boss types
+interface Boss extends Enemy {
+  bossType: 'butcher' | 'necromancer' | 'warlord' | 'sentinel' | 'hivemind';
+  phase: number;
+  totalPhases: number;
+  specialAbilities: string[];
+  minionsSpawned: number;
+  isSummoning: boolean;
+  summonCooldown: number;
+  lastSummonTime: number;
+}
+
+// Define hostile AI spawner
+interface HostileSpawner extends Spawner {
+  spawnType: 'hostile-ai';
+  hostileAIType: 'normal' | 'elite' | 'boss';
+  weapons: Weapon[];
 }
 
 interface Cell {
@@ -123,12 +161,7 @@ const CityOfTheDamned: React.FC = () => {
   const [spawners, setSpawners] = useState<Spawner[]>([]);
   
   // UI state
-  const [selectedWeapon, setSelectedWeapon] = useState<'primary' | 'secondary' | 'melee'>('primary');
   const [debugInfo, setDebugInfo] = useState<string>('');
-  const [playerNames] = useState<string[]>([
-    'Alex', 'Bailey', 'Casey', 'Dakota', 'Ellis', 
-    'Finley', 'Gray', 'Harper', 'Indigo', 'Jordan'
-  ]);
   const [showAddPlayerModal, setShowAddPlayerModal] = useState<boolean>(false);
   const [pendingPlayerName, setPendingPlayerName] = useState<string>('');
 
@@ -209,10 +242,304 @@ const CityOfTheDamned: React.FC = () => {
     setNpcs([newNPC]);
   };
   
+  // Weapons database
+  const weaponsDatabase: Record<string, Weapon> = {
+    // Primary weapons
+    assaultRifle: {
+      name: 'Assault Rifle',
+      damage: 15,
+      range: 8,
+      fireRate: 5,
+      isAutomatic: true,
+      ammoType: 'primary',
+      lastFiredTime: 0,
+      icon: <Crosshair size={16} />,
+      rarity: 'common',
+      type: 'assault'
+    },
+    tacticaRifle: {
+      name: 'Tactical Rifle',
+      damage: 22,
+      range: 10,
+      fireRate: 3,
+      isAutomatic: false,
+      ammoType: 'primary',
+      lastFiredTime: 0,
+      icon: <Crosshair size={16} />,
+      rarity: 'uncommon',
+      type: 'assault'
+    },
+    smg: {
+      name: 'SMG',
+      damage: 9,
+      range: 6,
+      fireRate: 8,
+      isAutomatic: true,
+      ammoType: 'primary',
+      lastFiredTime: 0,
+      icon: <Crosshair size={16} />,
+      rarity: 'common',
+      type: 'smg'
+    },
+    shotgun: {
+      name: 'Shotgun',
+      damage: 45,
+      range: 4,
+      fireRate: 1,
+      isAutomatic: false,
+      ammoType: 'primary',
+      lastFiredTime: 0,
+      icon: <Crosshair size={16} />,
+      rarity: 'uncommon',
+      type: 'shotgun'
+    },
+    sniperRifle: {
+      name: 'Sniper Rifle',
+      damage: 80,
+      range: 15,
+      fireRate: 0.5,
+      isAutomatic: false,
+      ammoType: 'primary',
+      lastFiredTime: 0,
+      icon: <Crosshair size={16} />,
+      rarity: 'rare',
+      type: 'sniper'
+    },
+    flamethrower: {
+      name: 'Flamethrower',
+      damage: 18,
+      range: 5,
+      fireRate: 7,
+      isAutomatic: true,
+      ammoType: 'primary',
+      lastFiredTime: 0,
+      icon: <Flame size={16} />,
+      rarity: 'rare',
+      type: 'heavy',
+      special: {
+        effect: 'fire',
+        damage: 5,
+        duration: 3
+      }
+    },
+    
+    // Secondary weapons
+    pistol: {
+      name: 'Pistol',
+      damage: 25,
+      range: 5,
+      fireRate: 2,
+      isAutomatic: false,
+      ammoType: 'secondary',
+      lastFiredTime: 0,
+      icon: <Target size={16} />,
+      rarity: 'common',
+      type: 'pistol'
+    },
+    revolver: {
+      name: 'Revolver',
+      damage: 45,
+      range: 6,
+      fireRate: 1.2,
+      isAutomatic: false,
+      ammoType: 'secondary',
+      lastFiredTime: 0,
+      icon: <Target size={16} />,
+      rarity: 'uncommon',
+      type: 'pistol'
+    },
+    machineGun: {
+      name: 'Machine Pistol',
+      damage: 18,
+      range: 4,
+      fireRate: 6,
+      isAutomatic: true,
+      ammoType: 'secondary',
+      lastFiredTime: 0,
+      icon: <Target size={16} />,
+      rarity: 'rare',
+      type: 'pistol'
+    },
+    
+    // Melee weapons
+    combatKnife: {
+      name: 'Combat Knife',
+      damage: 40,
+      range: 1,
+      fireRate: 1.5,
+      isAutomatic: false,
+      ammoType: 'melee',
+      lastFiredTime: 0,
+      icon: <Zap size={16} />,
+      rarity: 'common',
+      type: 'knife'
+    },
+    baseballBat: {
+      name: 'Baseball Bat',
+      damage: 55,
+      range: 1.5,
+      fireRate: 1,
+      isAutomatic: false,
+      ammoType: 'melee',
+      lastFiredTime: 0,
+      icon: <Zap size={16} />,
+      rarity: 'common',
+      type: 'hammer'
+    },
+    machete: {
+      name: 'Machete',
+      damage: 60,
+      range: 1.2,
+      fireRate: 1.2,
+      isAutomatic: false,
+      ammoType: 'melee',
+      lastFiredTime: 0,
+      icon: <Zap size={16} />,
+      rarity: 'uncommon',
+      type: 'sword'
+    },
+    fireaxe: {
+      name: 'Fire Axe',
+      damage: 75,
+      range: 1.3,
+      fireRate: 0.8,
+      isAutomatic: false,
+      ammoType: 'melee',
+      lastFiredTime: 0,
+      icon: <Zap size={16} />,
+      rarity: 'uncommon',
+      type: 'axe'
+    },
+    katana: {
+      name: 'Katana',
+      damage: 70,
+      range: 1.5,
+      fireRate: 1.3,
+      isAutomatic: false,
+      ammoType: 'melee',
+      lastFiredTime: 0,
+      icon: <Zap size={16} />,
+      rarity: 'rare',
+      type: 'sword'
+    },
+    sledgehammer: {
+      name: 'Sledgehammer',
+      damage: 100,
+      range: 1.3,
+      fireRate: 0.6,
+      isAutomatic: false,
+      ammoType: 'melee',
+      lastFiredTime: 0,
+      icon: <Zap size={16} />,
+      rarity: 'rare',
+      type: 'hammer'
+    },
+    
+    // Legendary weapons
+    flamingKatana: {
+      name: 'Flaming Katana',
+      damage: 90,
+      range: 1.5,
+      fireRate: 1.4,
+      isAutomatic: false,
+      ammoType: 'melee',
+      lastFiredTime: 0,
+      icon: <Flame size={16} />,
+      rarity: 'legendary',
+      type: 'sword',
+      special: {
+        effect: 'fire',
+        damage: 15,
+        duration: 3
+      }
+    },
+    pulseRifle: {
+      name: 'Pulse Rifle',
+      damage: 40,
+      range: 12,
+      fireRate: 4,
+      isAutomatic: true,
+      ammoType: 'primary',
+      lastFiredTime: 0,
+      icon: <Zap size={16} />,
+      rarity: 'legendary',
+      type: 'assault',
+      special: {
+        effect: 'shock',
+        damage: 10,
+        duration: 2
+      }
+    },
+    toxinPistol: {
+      name: 'Toxin Pistol',
+      damage: 25,
+      range: 6,
+      fireRate: 2.5,
+      isAutomatic: false,
+      ammoType: 'secondary',
+      lastFiredTime: 0,
+      icon: <Skull size={16} />,
+      rarity: 'legendary',
+      type: 'pistol',
+      special: {
+        effect: 'poison',
+        damage: 8,
+        duration: 4
+      }
+    }
+  };
+
+  // Get random weapon by type and rarity
+  const getRandomWeapon = (type: 'primary' | 'secondary' | 'melee', minRarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' = 'common'): Weapon => {
+    // Filter weapons by type and minimum rarity
+    const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+    const minRarityIndex = rarityOrder.indexOf(minRarity);
+    
+    const eligibleWeapons = Object.values(weaponsDatabase).filter(weapon => {
+      const rarityIndex = rarityOrder.indexOf(weapon.rarity);
+      return weapon.ammoType === type && rarityIndex >= minRarityIndex;
+    });
+    
+    // If no weapons match the criteria, return a default
+    if (eligibleWeapons.length === 0) {
+      if (type === 'primary') return weaponsDatabase.assaultRifle;
+      if (type === 'secondary') return weaponsDatabase.pistol;
+      return weaponsDatabase.combatKnife;
+    }
+    
+    // Return a random weapon from the eligible ones
+    return {...eligibleWeapons[Math.floor(Math.random() * eligibleWeapons.length)]};
+  };
+
   // Create a new player
   const createPlayer = (name: string, isHuman: boolean, x?: number, y?: number): Player => {
     const playerX = x ?? Math.floor(Math.random() * (mapWidth - 6)) + 3;
     const playerY = y ?? Math.floor(Math.random() * (mapHeight - 6)) + 3;
+    
+    // Get random weapons based on wave level
+    const waveLevel = gameState.wave;
+    let primaryRarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' = 'common';
+    let secondaryRarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' = 'common';
+    let meleeRarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' = 'common';
+    
+    // Higher wave = better weapons
+    if (waveLevel >= 10) {
+      primaryRarity = 'legendary';
+      secondaryRarity = 'rare';
+      meleeRarity = 'rare';
+    } else if (waveLevel >= 7) {
+      primaryRarity = 'rare';
+      secondaryRarity = 'uncommon';
+      meleeRarity = 'uncommon';
+    } else if (waveLevel >= 4) {
+      primaryRarity = 'uncommon';
+      secondaryRarity = 'uncommon';
+      meleeRarity = 'common';
+    }
+    
+    const primaryWeapon = getRandomWeapon('primary', primaryRarity);
+    const secondaryWeapon = getRandomWeapon('secondary', secondaryRarity);
+    const meleeWeapon = getRandomWeapon('melee', meleeRarity);
     
     return {
       id: Date.now() + Math.floor(Math.random() * 1000),
@@ -230,36 +557,9 @@ const CityOfTheDamned: React.FC = () => {
         maxSecondary: 60
       },
       weapons: {
-        primary: {
-          name: 'Assault Rifle',
-          damage: 15,
-          range: 8,
-          fireRate: 5,
-          isAutomatic: true,
-          ammoType: 'primary',
-          lastFiredTime: 0,
-          icon: <Crosshair size={16} />
-        },
-        secondary: {
-          name: 'Pistol',
-          damage: 25,
-          range: 5,
-          fireRate: 2,
-          isAutomatic: false,
-          ammoType: 'secondary',
-          lastFiredTime: 0,
-          icon: <Target size={16} />
-        },
-        melee: {
-          name: 'Combat Knife',
-          damage: 40,
-          range: 1,
-          fireRate: 1.5,
-          isAutomatic: false,
-          ammoType: 'melee',
-          lastFiredTime: 0,
-          icon: <Zap size={16} />
-        },
+        primary: primaryWeapon,
+        secondary: secondaryWeapon,
+        melee: meleeWeapon,
         currentWeapon: 'primary'
       },
       kills: 0,
@@ -377,8 +677,9 @@ const CityOfTheDamned: React.FC = () => {
 
   // Setup spawners
   const setupSpawners = () => {
-    const newSpawners: Spawner[] = [];
+    const newSpawners: (Spawner | HostileSpawner)[] = [];
     
+    // Regular enemy spawners (4 of them)
     for (let i = 0; i < 4; i++) {
       const angle = (Math.PI * 2 / 4) * i;
       const distance = Math.min(mapWidth, mapHeight) * 0.4;
@@ -396,6 +697,54 @@ const CityOfTheDamned: React.FC = () => {
         lastSpawnTime: 0
       });
     }
+    
+    // Hostile AI spawners (will activate at higher wave levels)
+    // These will spawn hostile AI players that use weapons
+    for (let i = 0; i < 2; i++) {
+      const angle = (Math.PI * 2 / 4) * (i + 0.5); // Offset from regular spawners
+      const distance = Math.min(mapWidth, mapHeight) * 0.6; // Further away
+      
+      const x = Math.floor(mapWidth / 2 + Math.cos(angle) * distance);
+      const y = Math.floor(mapHeight / 2 + Math.sin(angle) * distance);
+      
+      // Select random weapons for hostile AI spawner
+      const hostileWeapons: Weapon[] = [
+        getRandomWeapon('primary', 'uncommon'),
+        getRandomWeapon('secondary', 'uncommon'),
+        getRandomWeapon('melee', 'rare')
+      ];
+      
+      newSpawners.push({
+        id: i + 5, // Start after the regular spawners
+        x,
+        y,
+        active: false,
+        enemyType: 'tank', // Base type, but these will spawn hostile AIs
+        spawnRate: 1 + Math.random(), // Slower spawn rate for hostiles
+        lastSpawnTime: 0,
+        spawnType: 'hostile-ai',
+        hostileAIType: Math.random() < 0.2 ? 'elite' : 'normal',
+        weapons: hostileWeapons
+      });
+    }
+    
+    // Boss spawner (appears at wave milestones)
+    // Only activates at waves 5, 10, 15, etc.
+    const bossAngle = Math.PI; // Opposite of starting position
+    const bossDistance = Math.min(mapWidth, mapHeight) * 0.7; // Far from start
+    
+    const bossX = Math.floor(mapWidth / 2 + Math.cos(bossAngle) * bossDistance);
+    const bossY = Math.floor(mapHeight / 2 + Math.sin(bossAngle) * bossDistance);
+    
+    newSpawners.push({
+      id: 7, // Special ID for boss spawner
+      x: bossX,
+      y: bossY,
+      active: false,
+      enemyType: 'boss',
+      spawnRate: 0.5, // Very slow spawn rate
+      lastSpawnTime: 0
+    });
     
     setSpawners(newSpawners);
   };
@@ -497,10 +846,51 @@ const CityOfTheDamned: React.FC = () => {
         prevPlayer();
       }
     }
+    
+    // ESC key to release control back to AI
+    if (e.key === 'Escape' && activePlayer) {
+      releaseControl(activePlayer);
+    }
   };
 
   const handleKeyUp = (e: KeyboardEvent) => {
     keysPressed.current.delete(e.key.toLowerCase());
+  };
+  
+  // Take control of a player
+  const takeControl = (player: Player) => {
+    if (!player.isAlive) return;
+    
+    setPlayers(prev => prev.map(p => {
+      if (p.id === player.id) {
+        return {
+          ...p,
+          isHuman: true,
+          logs: [...p.logs, "Human has taken control."]
+        };
+      }
+      return p;
+    }));
+    
+    addGlobalLog(`Human has taken control of ${player.name}.`);
+  };
+  
+  // Release control back to AI
+  const releaseControl = (player: Player) => {
+    if (!player.isAlive) return;
+    
+    setPlayers(prev => prev.map(p => {
+      if (p.id === player.id) {
+        return {
+          ...p,
+          isHuman: false,
+          logs: [...p.logs, "AI has resumed control."]
+        };
+      }
+      return p;
+    }));
+    
+    addGlobalLog(`${player.name} is now controlled by AI.`);
   };
   
   // Handle mouse input for the canvas
@@ -595,24 +985,22 @@ const CityOfTheDamned: React.FC = () => {
   const switchWeapon = (player: Player, weaponType: 'primary' | 'secondary' | 'melee') => {
     if (!player.isAlive) return;
     
-    setPlayers(prev => prev.map(p => {
-      if (p.id === player.id) {
-        return {
-          ...p,
-          weapons: {
-            ...p.weapons,
-            currentWeapon: weaponType
-          }
-        };
-      }
-      return p;
-    }));
-    
-    if (player.id === activePlayer?.id) {
-      setSelectedWeapon(weaponType);
-    }
-    
-    addPlayerLog(player, `Switched to ${player.weapons[weaponType].name}`);
+    setPlayers(prev => {
+      // Create updated player state
+      const updatedPlayer = {
+        ...player,
+        weapons: {
+          ...player.weapons,
+          currentWeapon: weaponType
+        }
+      };
+      
+      // Log the weapon switch
+      addPlayerLog(updatedPlayer, `Switched to ${updatedPlayer.weapons[weaponType].name}`);
+      
+      // Return updated players array
+      return prev.map(p => p.id === player.id ? updatedPlayer : p);
+    });
   };
 
   // Collect ammo
@@ -851,7 +1239,7 @@ const CityOfTheDamned: React.FC = () => {
   // Update AI-controlled players
   const updateAIPlayers = () => {
     setPlayers(prev => prev.map(player => {
-      // Skip human players and dead players
+      // Skip human-controlled players and dead players
       if (player.isHuman || !player.isAlive) return player;
       
       // AI player logic
@@ -1533,22 +1921,28 @@ const CityOfTheDamned: React.FC = () => {
     const deltaTime = (now - lastUpdateTimeRef.current) / 1000; // Convert to seconds
     lastUpdateTimeRef.current = now;
     
-    // Process player input for human player
-    if (activePlayer?.isHuman && activePlayer?.isAlive) {
-      if (keysPressed.current.has('w')) movePlayer(activePlayer, 0, -1);
-      if (keysPressed.current.has('s')) movePlayer(activePlayer, 0, 1);
-      if (keysPressed.current.has('a')) movePlayer(activePlayer, -1, 0);
-      if (keysPressed.current.has('d')) movePlayer(activePlayer, 1, 0);
-      if (keysPressed.current.has('1')) switchWeapon(activePlayer, 'primary');
-      if (keysPressed.current.has('2')) switchWeapon(activePlayer, 'secondary');
-      if (keysPressed.current.has('3')) switchWeapon(activePlayer, 'melee');
-      if (keysPressed.current.has(' ')) fireWeapon(activePlayer);
-    }
+    // Process all players
+    players.forEach(player => {
+      // Process player input for human-controlled players
+      if (player.isHuman && player.isAlive) {
+        // If this is the active player, process keyboard input
+        if (activePlayer && player.id === activePlayer.id) {
+          if (keysPressed.current.has('w')) movePlayer(player, 0, -1);
+          if (keysPressed.current.has('s')) movePlayer(player, 0, 1);
+          if (keysPressed.current.has('a')) movePlayer(player, -1, 0);
+          if (keysPressed.current.has('d')) movePlayer(player, 1, 0);
+          if (keysPressed.current.has('1')) switchWeapon(player, 'primary');
+          if (keysPressed.current.has('2')) switchWeapon(player, 'secondary');
+          if (keysPressed.current.has('3')) switchWeapon(player, 'melee');
+          if (keysPressed.current.has(' ')) fireWeapon(player);
+        }
+      }
+    });
     
     // Update visibility
     updateVisibility();
     
-    // Update AI
+    // Update AI for non-human players
     updateAI(deltaTime);
     
     // Update day/night cycle
@@ -1800,9 +2194,16 @@ const CityOfTheDamned: React.FC = () => {
             <>
               {/* Player info */}
               <div className="bg-gray-100 p-3 rounded mb-4">
-                <div className="text-lg font-bold mb-2 flex items-center">
-                  <Shield className="mr-2 text-blue-500" size={18} />
-                  {activePlayer.name}
+                <div className="text-lg font-bold mb-2 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Shield className="mr-2 text-blue-500" size={18} />
+                    {activePlayer.name}
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <span className={`font-semibold ${activePlayer.isHuman ? 'text-blue-500' : 'text-green-500'}`}>
+                      {activePlayer.isHuman ? 'Human' : 'AI'}
+                    </span>
+                  </div>
                 </div>
                 <div className="mb-2">
                   <div className="flex justify-between text-sm mb-1">
@@ -1825,7 +2226,27 @@ const CityOfTheDamned: React.FC = () => {
                   <span className="text-xs">Secondary: {activePlayer.ammo.secondary}/{activePlayer.ammo.maxSecondary}</span>
                 </div>
                 
-                <div className="mt-3 text-sm font-semibold">Kills: {activePlayer.kills}</div>
+                <div className="mt-3 flex justify-between items-center">
+                  <span className="text-sm font-semibold">Kills: {activePlayer.kills}</span>
+                  {activePlayer.isHuman ? (
+                    <button 
+                      onClick={() => releaseControl(activePlayer)}
+                      className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                    >
+                      Release Control
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => takeControl(activePlayer)}
+                      className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Take Control
+                    </button>
+                  )}
+                </div>
+                <div className="mt-2 text-xs text-gray-500">
+                  {activePlayer.isHuman ? 'Press ESC to return control to AI' : ''}
+                </div>
               </div>
               
               {/* Weapon selection */}
