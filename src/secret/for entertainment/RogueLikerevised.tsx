@@ -280,7 +280,7 @@ const RogueLikeGame: React.FC = () => {
 
   const [attackLine, setAttackLine] = useState<{x1: number, y1: number, x2: number, y2: number} | null>(null);
 
-  const attackEnemy = (enemy: Enemy) => {
+  const attackEnemy = (enemy: Enemy, allowMovement: boolean = true) => {
     if (robot.ammo <= 0) return false;
 
     const distance = Math.sqrt(Math.pow(enemy.x - robot.x, 2) + Math.pow(enemy.y - robot.y, 2));
@@ -522,6 +522,7 @@ const RogueLikeGame: React.FC = () => {
       }
 
       const distance = Math.sqrt(Math.pow(enemy.x - robot.x, 2) + Math.pow(enemy.y - robot.y, 2));
+      // Enemies can now attack and move in the same turn
       if (distance <= enemy.attackRange) {
         const damage = Math.max(0, enemy.damage - robot.defense);
         setRobot(prev => ({
@@ -529,7 +530,8 @@ const RogueLikeGame: React.FC = () => {
           health: prev.health - damage
         }));
         addLog(`${enemy.type} hits for ${damage} damage!`, 'damage');
-      } else if (distance <= enemy.moveRange) {
+      }
+      if (distance <= enemy.moveRange) {
         const dx = Math.sign(robot.x - enemy.x);
         const dy = Math.sign(robot.y - enemy.y);
         const newX = enemy.x + dx;
