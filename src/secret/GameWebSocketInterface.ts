@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import wsClient from '../utils/WebSocketClient';
+import React, { useEffect, useState } from 'react';
+import { WebSocketClient } from '../utils/WebSocketClient';
 import { Bot, HelpCircle } from 'lucide-react';
 
 // Import game types
@@ -130,37 +130,55 @@ export const useGameWebSocket = () => {
   };
 };
 
-/**
- * Connection status indicator component
- */
-export const WebSocketConnectionStatus: React.FC = () => {
+interface WebSocketConnectionStatusProps {
+  className?: string;
+}
+
+export const WebSocketConnectionStatus: React.FC<WebSocketConnectionStatusProps> = ({ className }) => {
   const [isConnected, setIsConnected] = useState(false);
-  
+  const [lastPing, setLastPing] = useState<number | null>(null);
+
   useEffect(() => {
-    wsClient.onConnect(() => setIsConnected(true));
-    wsClient.onDisconnect(() => setIsConnected(false));
-    
-    // Check current connection status
-    setIsConnected(wsClient.isSocketConnected());
+    const client = WebSocketClient.getInstance();
+
+    const handleConnect = () => {
+      setIsConnected(true);
+      setLastPing(Date.now());
+    };
+
+    const handleDisconnect = () => {
+      setIsConnected(false);
+    };
+
+    const handlePong = () => {
+      setLastPing(Date.now());
+    };
+
+    client.on('connect', handleConnect);
+    client.on('disconnect', handleDisconnect);
+    client.on('pong', handlePong);
+
+    // Ping every 5 seconds
+    const pingInterval = setInterval(() => {
+      client.send({ type: 'ping' });
+    }, 5000);
+
+    return () => {
+      client.off('connect', handleConnect);
+      client.off('disconnect', handleDisconnect);
+      client.off('pong', handlePong);
+      clearInterval(pingInterval);
+    };
   }, []);
-  
+
   return (
     <div className="flex items-center gap-1 text-xs">
       <div 
         className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} 
+        title={isConnected ? 'Connected' : 'Disconnected'}
       />
-      <span className="text-gray-300">
-        {isConnected ? 'Connected' : 'Disconnected'}
-      </span>
-      {!isConnected && (
-        <button 
-          onClick={() => wsClient.initializeSocket()} 
-          className="text-blue-400 ml-1 hover:text-blue-300"
-          title="Reconnect"
-        >
-          <HelpCircle size={12} />
-        </button>
-      )}
+      <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+      {lastPing && <span className="text-gray-500">({Math.floor((Date.now() - lastPing) / 1000)}s)</span>}
     </div>
   );
 };
