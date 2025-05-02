@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pizza, Coffee, Utensils, ChevronLeft } from 'lucide-react';
-import PizzaPlace from '../unrelated/PizzaPlace';
+import PizzaPlace from '../unrelated/pizzaplacefiles/PizzaPlace';
 
 interface FoodMenuProps {
   onBack: () => void;
@@ -51,7 +51,7 @@ const FoodMenu: React.FC<FoodMenuProps> = ({ onBack }) => {
         </button>
         <h2 className="text-2xl font-bold text-white">Food Simulations</h2>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {scenes.map((scene) => (
           <button
@@ -68,7 +68,7 @@ const FoodMenu: React.FC<FoodMenuProps> = ({ onBack }) => {
           </button>
         ))}
       </div>
-      
+
       <div className="mt-8 p-4 bg-blue-900/20 rounded-lg">
         <div className="flex items-center gap-2 text-blue-500 mb-2">
           <Utensils className="w-5 h-5" />
