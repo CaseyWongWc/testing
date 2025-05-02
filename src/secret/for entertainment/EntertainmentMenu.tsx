@@ -1,12 +1,15 @@
 
 import React from 'react';
-import { Star, Sparkles } from 'lucide-react';
+import { Star, Sparkles, Gamepad2 } from 'lucide-react';
+import RogueLikerevised from './RogueLikerevised';
 
 interface EntertainmentMenuProps {
   onSelect: (scene: string) => void;
 }
 
 const EntertainmentMenu: React.FC<EntertainmentMenuProps> = ({ onSelect }) => {
+  const [activeGame, setActiveGame] = React.useState<string | null>(null);
+
   const scenes = [
     {
       id: 'particle_playground',
@@ -19,8 +22,18 @@ const EntertainmentMenu: React.FC<EntertainmentMenuProps> = ({ onSelect }) => {
       name: 'Color Mixer',
       description: 'Experimental color mixing and pattern generation',
       icon: <Star className="w-5 h-5 text-purple-400" />
+    },
+    {
+      id: 'rogue_like',
+      name: 'Rogue Like',
+      description: 'AI-driven dungeon crawler with dynamic combat',
+      icon: <Gamepad2 className="w-5 h-5 text-green-400" />
     }
   ];
+
+  if (activeGame === 'rogue_like') {
+    return <RogueLikerevised />;
+  }
 
   return (
     <div className="p-6">
@@ -29,7 +42,7 @@ const EntertainmentMenu: React.FC<EntertainmentMenuProps> = ({ onSelect }) => {
         {scenes.map((scene) => (
           <button
             key={scene.id}
-            onClick={() => onSelect(scene.id)}
+            onClick={() => setActiveGame(scene.id)}
             className="bg-gray-800/50 p-4 rounded-lg hover:bg-gray-700/50 transition-all"
           >
             <div className="flex items-center gap-3 mb-2">
@@ -44,4 +57,4 @@ const EntertainmentMenu: React.FC<EntertainmentMenuProps> = ({ onSelect }) => {
   );
 };
 
-export default misc;
+export default EntertainmentMenu;
