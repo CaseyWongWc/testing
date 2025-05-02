@@ -5,9 +5,17 @@ import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 
 const app = express();
-const PORT = 5000; // Changed from 3000 to avoid conflicts
+const PORT = 5000;
 const VITE_PORT = 5173;
 const server = http.createServer(app);
+
+// Enable CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
 
 // Start Vite dev server
 const vite = spawn('npx', ['vite', '--host', '0.0.0.0', '--port', VITE_PORT.toString()], {
