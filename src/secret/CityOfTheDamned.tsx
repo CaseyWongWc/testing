@@ -313,7 +313,7 @@ const CityOfTheDamned: React.FC = () => {
       isAutomatic: true,
       ammoType: 'primary',
       lastFiredTime: 0,
-      icon: <Flame size={16} />,
+      icon: <Zap size={16} />,
       rarity: 'rare',
       type: 'heavy',
       special: {
@@ -444,7 +444,7 @@ const CityOfTheDamned: React.FC = () => {
       isAutomatic: false,
       ammoType: 'melee',
       lastFiredTime: 0,
-      icon: <Flame size={16} />,
+      icon: <Zap size={16} />,
       rarity: 'legendary',
       type: 'sword',
       special: {
@@ -619,7 +619,7 @@ const CityOfTheDamned: React.FC = () => {
     setActivePlayerIndex(prevIndex);
   };
 
-  // Map generation
+  // Map generation with more varied terrain
   const generateMap = () => {
     const newMap: Cell[][] = [];
     
@@ -627,14 +627,12 @@ const CityOfTheDamned: React.FC = () => {
     for (let y = 0; y < mapHeight; y++) {
       const row: Cell[] = [];
       for (let x = 0; x < mapWidth; x++) {
-        const isWall = 
-          x === 0 || y === 0 || x === mapWidth - 1 || y === mapHeight - 1 || 
-          (Math.random() < 0.08 && x > 5 && y > 5 && x < mapWidth - 5 && y < mapHeight - 5);
-        
+        // Border walls
+        const isBorder = x === 0 || y === 0 || x === mapWidth - 1 || y === mapHeight - 1;
         row.push({
           x,
           y,
-          type: isWall ? 'wall' : 'floor',
+          type: isBorder ? 'wall' : 'floor',
           visible: false,
           explored: false
         });
@@ -642,17 +640,227 @@ const CityOfTheDamned: React.FC = () => {
       newMap.push(row);
     }
     
-    // Add some cover
-    for (let i = 0; i < 40; i++) {
-      const x = Math.floor(Math.random() * (mapWidth - 4)) + 2;
-      const y = Math.floor(Math.random() * (mapHeight - 4)) + 2;
+    // Define the safe center area (will have fewer obstacles and more resources)
+    const centerX = Math.floor(mapWidth / 2);
+    const centerY = Math.floor(mapHeight / 2);
+    const centerRadius = 7; // Safe zone radius
+    
+    // Generate maze-like structures in some areas
+    generateMazePatterns(newMap);
+    
+    // Generate larger open areas
+    createOpenSpaces(newMap);
+    
+    // Generate jagged terrain formations
+    createJaggedFormations(newMap);
+    
+    // Ensure the center is accessible
+    clearCenterArea(newMap, centerX, centerY, centerRadius);
+    
+    // Add cover throughout the map
+    addCoverElements(newMap);
+    
+    // Place weapon caches in the center area
+    placeWeaponCaches(newMap, centerX, centerY, centerRadius);
+    
+    setMap(newMap);
+  };
+  
+  // Create semi-regular maze patterns in various areas
+  const generateMazePatterns = (mapData: Cell[][]) => {
+    // We'll divide the map into sections and apply different maze densities
+    const sectionSize = 10;
+    const mazeDensities = [0.25, 0.4, 0.55]; // Different wall densities
+    
+    for (let sectionY = 1; sectionY < Math.floor(mapHeight / sectionSize); sectionY++) {
+      for (let sectionX = 1; sectionX < Math.floor(mapWidth / sectionSize); sectionX++) {
+        // Skip center section
+        const isCenterSection = 
+          sectionX === Math.floor(mapWidth / (2 * sectionSize)) && 
+          sectionY === Math.floor(mapHeight / (2 * sectionSize));
+        
+        if (isCenterSection) continue;
+        
+        // Choose a random density for this section
+        const density = mazeDensities[Math.floor(Math.random() * mazeDensities.length)];
+        
+        // Apply maze pattern to this section
+        for (let y = sectionY * sectionSize; y < (sectionY + 1) * sectionSize && y < mapHeight - 1; y++) {
+          for (let x = sectionX * sectionSize; x < (sectionX + 1) * sectionSize && x < mapWidth - 1; x++) {
+            if (Math.random() < density) {
+              // Create walls in patterns
+              if ((x + y) % 2 === 0 || Math.random() < 0.3) {
+                mapData[y][x].type = 'wall';
+              }
+            }
+          }
+        }
+        
+        // Create pathways through the maze
+        if (Math.random() < 0.7) {
+          const pathY = sectionY * sectionSize + Math.floor(Math.random() * sectionSize);
+          for (let x = sectionX * sectionSize; x < (sectionX + 1) * sectionSize && x < mapWidth - 1; x++) {
+            if (pathY < mapHeight - 1) {
+              mapData[pathY][x].type = 'floor';
+            }
+          }
+        }
+        
+        if (Math.random() < 0.7) {
+          const pathX = sectionX * sectionSize + Math.floor(Math.random() * sectionSize);
+          for (let y = sectionY * sectionSize; y < (sectionY + 1) * sectionSize && y < mapHeight - 1; y++) {
+            if (pathX < mapWidth - 1) {
+              mapData[y][pathX].type = 'floor';
+            }
+          }
+        }
+      }
+    }
+  };
+  
+  // Create larger open spaces
+  const createOpenSpaces = (mapData: Cell[][]) => {
+    // Create 3-5 open areas
+    const numOpenAreas = 3 + Math.floor(Math.random() * 3);
+    
+    for (let i = 0; i < numOpenAreas; i++) {
+      const areaX = 5 + Math.floor(Math.random() * (mapWidth - 15));
+      const areaY = 5 + Math.floor(Math.random() * (mapHeight - 15));
+      const areaWidth = 5 + Math.floor(Math.random() * 8);
+      const areaHeight = 5 + Math.floor(Math.random() * 8);
       
-      if (newMap[y][x].type === 'floor') {
-        newMap[y][x].type = 'cover';
+      // Clear this area
+      for (let y = areaY; y < areaY + areaHeight && y < mapHeight - 1; y++) {
+        for (let x = areaX; x < areaX + areaWidth && x < mapWidth - 1; x++) {
+          mapData[y][x].type = 'floor';
+        }
+      }
+    }
+  };
+  
+  // Create jagged terrain formations
+  const createJaggedFormations = (mapData: Cell[][]) => {
+    // Create 2-4 jagged formations
+    const numFormations = 2 + Math.floor(Math.random() * 3);
+    
+    for (let formation = 0; formation < numFormations; formation++) {
+      const startX = 3 + Math.floor(Math.random() * (mapWidth - 6));
+      const startY = 3 + Math.floor(Math.random() * (mapHeight - 6));
+      
+      // Use a noise-based approach to create jagged formations
+      const numPoints = 15 + Math.floor(Math.random() * 20);
+      const points: {x: number, y: number}[] = [];
+      
+      // Generate points
+      points.push({x: startX, y: startY});
+      
+      for (let i = 0; i < numPoints; i++) {
+        const lastPoint = points[points.length - 1];
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 1 + Math.floor(Math.random() * 3);
+        
+        const newX = Math.floor(lastPoint.x + Math.cos(angle) * distance);
+        const newY = Math.floor(lastPoint.y + Math.sin(angle) * distance);
+        
+        // Keep within bounds
+        if (newX > 1 && newX < mapWidth - 2 && newY > 1 && newY < mapHeight - 2) {
+          points.push({x: newX, y: newY});
+        }
+      }
+      
+      // Create walls at these points and sometimes around them
+      for (const point of points) {
+        mapData[point.y][point.x].type = 'wall';
+        
+        // Sometimes extend the formation
+        if (Math.random() < 0.7) {
+          const dx = Math.random() < 0.5 ? 1 : -1;
+          const dy = Math.random() < 0.5 ? 1 : -1;
+          
+          if (point.x + dx > 1 && point.x + dx < mapWidth - 2) {
+            mapData[point.y][point.x + dx].type = 'wall';
+          }
+          
+          if (point.y + dy > 1 && point.y + dy < mapHeight - 2) {
+            mapData[point.y + dy][point.x].type = 'wall';
+          }
+        }
+      }
+    }
+  };
+  
+  // Ensure the center area is clear and accessible
+  const clearCenterArea = (mapData: Cell[][], centerX: number, centerY: number, radius: number) => {
+    for (let y = centerY - radius; y <= centerY + radius; y++) {
+      for (let x = centerX - radius; x <= centerX + radius; x++) {
+        if (x >= 1 && x < mapWidth - 1 && y >= 1 && y < mapHeight - 1) {
+          // Calculate distance from center
+          const distanceFromCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+          
+          if (distanceFromCenter <= radius) {
+            // Clear center area
+            mapData[y][x].type = 'floor';
+          }
+        }
       }
     }
     
-    setMap(newMap);
+    // Add some strategic cover in the center area
+    for (let i = 0; i < 8; i++) {
+      const angle = (Math.PI * 2 / 8) * i;
+      const distance = radius * 0.7;
+      
+      const coverX = Math.floor(centerX + Math.cos(angle) * distance);
+      const coverY = Math.floor(centerY + Math.sin(angle) * distance);
+      
+      if (coverX >= 1 && coverX < mapWidth - 1 && coverY >= 1 && coverY < mapHeight - 1) {
+        mapData[coverY][coverX].type = 'cover';
+      }
+    }
+  };
+  
+  // Add cover elements throughout the map
+  const addCoverElements = (mapData: Cell[][]) => {
+    // Add cover in strategic places
+    for (let y = 2; y < mapHeight - 2; y++) {
+      for (let x = 2; x < mapWidth - 2; x++) {
+        // Add cover near walls for tactical advantage
+        if (mapData[y][x].type === 'floor') {
+          const hasNearbyWall = 
+            mapData[y-1][x].type === 'wall' || 
+            mapData[y+1][x].type === 'wall' || 
+            mapData[y][x-1].type === 'wall' || 
+            mapData[y][x+1].type === 'wall';
+          
+          if (hasNearbyWall && Math.random() < 0.2) {
+            mapData[y][x].type = 'cover';
+          } 
+          // Random cover
+          else if (Math.random() < 0.03) {
+            mapData[y][x].type = 'cover';
+          }
+        }
+      }
+    }
+  };
+  
+  // Place weapon caches near the center
+  const placeWeaponCaches = (mapData: Cell[][], centerX: number, centerY: number, radius: number) => {
+    const numCaches = 3 + Math.floor(Math.random() * 2);
+    
+    for (let i = 0; i < numCaches; i++) {
+      const angle = (Math.PI * 2 / numCaches) * i;
+      const distance = radius * 0.5;
+      
+      const cacheX = Math.floor(centerX + Math.cos(angle) * distance);
+      const cacheY = Math.floor(centerY + Math.sin(angle) * distance);
+      
+      if (cacheX >= 1 && cacheX < mapWidth - 1 && cacheY >= 1 && cacheY < mapHeight - 1) {
+        if (mapData[cacheY][cacheX].type === 'floor') {
+          mapData[cacheY][cacheX].type = 'ammo';
+        }
+      }
+    }
   };
 
   // Place ammo caches
@@ -1693,6 +1901,183 @@ const CityOfTheDamned: React.FC = () => {
     return nearest;
   };
 
+  // Create a boss enemy
+  const createBoss = (x: number, y: number, wave: number): Boss => {
+    // Boss types by wave
+    const bossTypes: ('butcher' | 'necromancer' | 'warlord' | 'sentinel' | 'hivemind')[] = [
+      'butcher',      // Wave 5
+      'necromancer',  // Wave 10
+      'warlord',      // Wave 15
+      'sentinel',     // Wave 20
+      'hivemind'      // Wave 25+
+    ];
+    
+    const bossIndex = Math.min(Math.floor(wave / 5) - 1, bossTypes.length - 1);
+    const bossType = bossTypes[bossIndex];
+    
+    // Boss scaling based on wave
+    const waveScaling = 1 + (wave * 0.2);
+    
+    // Base boss stats
+    const bossStats = {
+      butcher: {
+        health: 300,
+        damage: 35,
+        attackRange: 2,
+        attackSpeed: 1.2,
+        specialAbilities: ['Cleave', 'Blood Frenzy', 'Ground Slam'],
+        detectionRange: 12
+      },
+      necromancer: {
+        health: 200,
+        damage: 15,
+        attackRange: 8,
+        attackSpeed: 0.8,
+        specialAbilities: ['Raise Dead', 'Soul Drain', 'Death Bolt'],
+        detectionRange: 14
+      },
+      warlord: {
+        health: 400,
+        damage: 25,
+        attackRange: 1,
+        attackSpeed: 1.5,
+        specialAbilities: ['War Cry', 'Charge', 'Sweeping Strike'],
+        detectionRange: 10
+      },
+      sentinel: {
+        health: 350,
+        damage: 30,
+        attackRange: 6,
+        attackSpeed: 1,
+        specialAbilities: ['Energy Barrier', 'Laser Barrage', 'Overcharge'],
+        detectionRange: 16
+      },
+      hivemind: {
+        health: 500,
+        damage: 20,
+        attackRange: 4,
+        attackSpeed: 2,
+        specialAbilities: ['Spawn Swarm', 'Mind Control', 'Psychic Blast'],
+        detectionRange: 20
+      }
+    };
+    
+    const stats = bossStats[bossType];
+    
+    // Boss creation with scaled stats
+    const boss: Boss = {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      x,
+      y,
+      health: stats.health * waveScaling,
+      maxHealth: stats.health * waveScaling,
+      damage: stats.damage * waveScaling,
+      attackRange: stats.attackRange,
+      attackSpeed: stats.attackSpeed,
+      type: 'boss',
+      behavior: 'aggressive',
+      lastAttackTime: 0,
+      detectionRange: stats.detectionRange,
+      bossType,
+      phase: 1,
+      totalPhases: 3,
+      specialAbilities: stats.specialAbilities,
+      minionsSpawned: 0,
+      isSummoning: false,
+      summonCooldown: 20000, // 20 seconds between summons
+      lastSummonTime: 0
+    };
+    
+    // Boss announcement
+    addGlobalLog(`WARNING: A ${bossType.charAt(0).toUpperCase() + bossType.slice(1)} has appeared! ${stats.specialAbilities[0]} ability detected!`);
+    
+    return boss;
+  };
+  
+  // Create a hostile AI player
+  const createHostileAIPlayer = (x: number, y: number, spawnerId: number, difficulty: 'normal' | 'elite' | 'boss', spawnerWeapons: Weapon[]): HostilePlayer => {
+    // Generate a name for the hostile AI
+    const names = ['Raider', 'Hunter', 'Marauder', 'Scavenger', 'Rogue', 'Bandit', 'Executioner', 'Survivor'];
+    const adjectives = ['Ruthless', 'Deadly', 'Violent', 'Brutal', 'Savage', 'Merciless', 'Rogue', 'Hostile'];
+    
+    let name = '';
+    if (difficulty === 'normal') {
+      name = `${names[Math.floor(Math.random() * names.length)]}`;
+    } else if (difficulty === 'elite') {
+      name = `Elite ${names[Math.floor(Math.random() * names.length)]}`;
+    } else {
+      name = `${adjectives[Math.floor(Math.random() * adjectives.length)]} ${names[Math.floor(Math.random() * names.length)]}`;
+    }
+    
+    // Scale stats based on difficulty
+    let healthMultiplier = 1;
+    let damageMultiplier = 1;
+    
+    if (difficulty === 'elite') {
+      healthMultiplier = 1.5;
+      damageMultiplier = 1.3;
+    } else if (difficulty === 'boss') {
+      healthMultiplier = 2.5;
+      damageMultiplier = 1.8;
+    }
+    
+    // Use spawner's weapons or generate better ones for elite/boss
+    const primaryWeapon = {...(difficulty === 'normal' ? spawnerWeapons[0] : 
+                          getRandomWeapon('primary', difficulty === 'elite' ? 'rare' : 'legendary'))};
+    const secondaryWeapon = {...(difficulty === 'normal' ? spawnerWeapons[1] : 
+                            getRandomWeapon('secondary', difficulty === 'elite' ? 'uncommon' : 'rare'))};
+    const meleeWeapon = {...(difficulty === 'normal' ? spawnerWeapons[2] : 
+                        getRandomWeapon('melee', difficulty === 'elite' ? 'uncommon' : 'rare'))};
+    
+    // Boost weapon damage
+    primaryWeapon.damage *= damageMultiplier;
+    secondaryWeapon.damage *= damageMultiplier;
+    meleeWeapon.damage *= damageMultiplier;
+    
+    // Create the hostile player
+    const hostilePlayer: HostilePlayer = {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      name,
+      x,
+      y,
+      health: 100 * healthMultiplier,
+      maxHealth: 100 * healthMultiplier,
+      energy: 100,
+      maxEnergy: 100,
+      ammo: {
+        primary: 100,
+        secondary: 50,
+        maxPrimary: 200,
+        maxSecondary: 100
+      },
+      weapons: {
+        primary: primaryWeapon,
+        secondary: secondaryWeapon,
+        melee: meleeWeapon,
+        currentWeapon: 'primary'
+      },
+      kills: 0,
+      type: 'player',
+      visibilityRange: 14, // Better vision than regular players
+      logs: [`Hostile ${name} has entered the city.`],
+      isHuman: false,
+      isAlive: true,
+      isHostile: true,
+      spawnerId,
+      difficulty,
+      loot: {
+        weapons: [primaryWeapon, secondaryWeapon, meleeWeapon],
+        ammo: 50,
+        health: 25
+      }
+    };
+    
+    // Announce hostile player
+    addGlobalLog(`WARNING: Hostile survivor "${name}" detected! Armed and dangerous!`);
+    
+    return hostilePlayer;
+  };
+
   // Update spawners
   const updateSpawners = () => {
     const now = Date.now();
@@ -1700,9 +2085,71 @@ const CityOfTheDamned: React.FC = () => {
     // Activate spawners at night
     const shouldActivate = gameState.time === 'night';
     
+    // Special conditions for boss spawners
+    const isBossWave = gameState.wave % 5 === 0 && gameState.wave > 0;
+    
+    // Hostile AI spawner activation (higher waves only)
+    const hostileAIThreshold = 3; // Start spawning hostile AI after wave 3
+    
     setSpawners(prev => {
       return prev.map(spawner => {
-        if (shouldActivate && spawner.active) {
+        // Check if this is a hostile AI spawner
+        if ('spawnType' in spawner && spawner.spawnType === 'hostile-ai') {
+          // Only activate hostile AI spawners after certain wave threshold and at night
+          const shouldActivateHostile = shouldActivate && gameState.wave >= hostileAIThreshold;
+          
+          // If active and time to spawn
+          if (shouldActivateHostile && spawner.active && now - spawner.lastSpawnTime > (60000 / spawner.spawnRate)) {
+            // Create a hostile AI player
+            const hostilePlayer = createHostileAIPlayer(
+              spawner.x, 
+              spawner.y, 
+              spawner.id, 
+              spawner.hostileAIType,
+              spawner.weapons
+            );
+            
+            // Add to players list
+            setPlayers(prev => [...prev, hostilePlayer]);
+            
+            return {
+              ...spawner,
+              lastSpawnTime: now
+            };
+          }
+          
+          return {
+            ...spawner,
+            active: shouldActivateHostile
+          };
+        }
+        // Boss spawner logic
+        else if (spawner.enemyType === 'boss') {
+          // Only activate boss spawner on boss waves and at night
+          const shouldActivateBoss = shouldActivate && isBossWave;
+          
+          // If active, it's a boss wave, and time to spawn
+          if (shouldActivateBoss && spawner.active && now - spawner.lastSpawnTime > (60000 / spawner.spawnRate)) {
+            // Create a boss enemy
+            const boss = createBoss(spawner.x, spawner.y, gameState.wave);
+            
+            // Add to enemies list
+            setEnemies(prev => [...prev, boss]);
+            
+            return {
+              ...spawner,
+              lastSpawnTime: now,
+              active: false // Deactivate after spawning a boss (one per wave)
+            };
+          }
+          
+          return {
+            ...spawner,
+            active: shouldActivateBoss
+          };
+        }
+        // Regular enemy spawner logic
+        else if (shouldActivate && spawner.active) {
           // Check if it's time to spawn
           if (now - spawner.lastSpawnTime > (60000 / spawner.spawnRate)) {
             // Spawn enemy
