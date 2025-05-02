@@ -35,8 +35,8 @@ class WebSocketClient {
       // Handle both Replit and local development environments
       let host = window.location.host;
       // When using vite dev server, we need to adjust the port
-      if (host.includes('localhost') && host.includes('5173')) {
-        host = host.replace('5173', '3001'); // Updated to use port 3001
+      if (host.includes('localhost') || host.includes('0.0.0.0')) {
+        host = host.replace(/:(5173|3001)/, ':5000');
       } 
       
       const wsUrl = `${protocol}//${host}/ws`;

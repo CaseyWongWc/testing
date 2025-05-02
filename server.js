@@ -44,7 +44,7 @@ app.get('/api/arrow', (req, res) => {
 
 // Proxy all other requests to Vite
 app.use('/', createProxyMiddleware({
-  target: `http://localhost:${VITE_PORT}`,
+  target: `http://0.0.0.0:${VITE_PORT}`,
   changeOrigin: true,
   ws: true,
   onProxyReq: (proxyReq, req, res) => {
