@@ -33,7 +33,7 @@ type GameType =
   | "replit";
 
 function App() {
-  const [activeGame, setActiveGame] = useState<GameType>("maze");
+  const [activeGame, setActiveGame] = useState<GameType>("combat");
   const [isSecretOpen, setIsSecretOpen] = useState(false);
   const [width, setWidth] = useState(20);
   const [height, setHeight] = useState(15);
