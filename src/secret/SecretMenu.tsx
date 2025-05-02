@@ -1,7 +1,7 @@
 import React from "react";
 import { Sparkles, Code, Lock, AlertTriangle, Gamepad2 } from "lucide-react";
-import UnrelatedMenu from './unrelated/UnrelatedMenu';
-import EntertainmentMenu from './for entertainment/EntertainmentMenu';
+import UnrelatedMenu from "./unrelated/UnrelatedMenu";
+import EntertainmentMenu from "./entertainment/EntertainmentMenu";
 
 interface SecretMenuProps {
   onNavigate: (path: string) => void;
@@ -35,7 +35,7 @@ const SecretMenu: React.FC<SecretMenuProps> = ({ onNavigate }) => {
       name: "Entertainment",
       description: "Specialized or unique scenes",
       icon: <Gamepad2 className="w-6 h-6 text-yellow-500" />,
-      path: "for entertainment",
+      path: "entertainment",
     },
     {
       id: "unrelated",
