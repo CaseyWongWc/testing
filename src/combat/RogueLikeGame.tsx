@@ -615,16 +615,34 @@ const RogueLikeGame: React.FC = () => {
     // Check for items
     items.forEach(item => collectItem(item));
 
-    // Check for portal
-    if (room[robot.y][robot.x].type === 'portal') {
-      addLog('Entering portal to next level!', 'portal');
-      const newRoom = createEmptyRoom();
-      setGameState(prev => ({ ...prev, level: prev.level + 1 }));
-      setRoom(newRoom);
-      setEnemies(generateEnemies(newRoom, gameState.level + 1));
-      setItems(generateItems(newRoom)); // Updated item generation
-      setRobot(prev => ({ ...prev, x: 1, y: 1 }));
-      setIsPortalActive(false); // Reset portal activation for the next level
+    // Check for portal range and portal entry
+    const portalCell = room.flat().find(cell => cell.type === 'portal');
+    if (portalCell) {
+      const distanceToPortal = Math.sqrt(Math.pow(portalCell.x - robot.x, 2) + Math.pow(portalCell.y - robot.y, 2));
+      const pulseRange = 3 + Math.sin(portalPulse * 0.5) * 1.5;
+      
+      if (room[robot.y][robot.x].type === 'portal') {
+        // Portal entry - heal and restore ammo
+        addLog('Entering portal to next level! Health and ammo restored!', 'portal');
+        const newRoom = createEmptyRoom();
+        setGameState(prev => ({ ...prev, level: prev.level + 1 }));
+        setRoom(newRoom);
+        setEnemies(generateEnemies(newRoom, gameState.level + 1));
+        setItems(generateItems(newRoom));
+        setRobot(prev => ({ 
+          ...prev, 
+          x: 1, 
+          y: 1,
+          health: prev.maxHealth,
+          ammo: prev.maxAmmo 
+        }));
+        setIsPortalActive(false);
+      } else if (isPortalActive && distanceToPortal <= pulseRange) {
+        // Within portal pulse range - override other behaviors
+        newMode = 'portal';
+        target = { x: portalCell.x, y: portalCell.y };
+        decision = 'Within portal range - proceeding to portal';
+      }
     }
 
     // Update game state and portal pulse
