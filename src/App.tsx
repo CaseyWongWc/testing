@@ -14,6 +14,8 @@ import ReplitScene from "./replit/ReplitScene";
 import BeeHiveSimulation from "./replit/BeeHiveSimulation";
 import ArrowIcon from "./components/ArrowIcon";
 import { MultiValuedItemCollector } from "./replit/MultiValuedItemCollector";
+import SecretPanel from "./components/SecretPanel";
+import { Lock, Unlock } from 'lucide-react';
 
 type GameType =
   | "maze"
@@ -32,6 +34,7 @@ type GameType =
 
 function App() {
   const [activeGame, setActiveGame] = useState<GameType>("maze");
+  const [isSecretOpen, setIsSecretOpen] = useState(false);
   const [width, setWidth] = useState(20);
   const [height, setHeight] = useState(15);
   const [wallDensity, setWallDensity] = useState(0.3);
@@ -444,8 +447,17 @@ function App() {
             >
               Replit
             </button>
+            <button
+              onMouseEnter={() => setIsSecretOpen(true)}
+              onMouseLeave={() => setIsSecretOpen(false)}
+              className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors text-lg font-medium flex items-center gap-2"
+            >
+              {isSecretOpen ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+              Secret
+            </button>
           </div>
         )}
+        {isSecretOpen && <SecretPanel isOpen={isSecretOpen} />}
         {activeGame === "combat" && <Combat />}
         {activeGame === "replit" && <ReplitScene />}
         
