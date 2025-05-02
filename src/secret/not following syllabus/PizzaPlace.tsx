@@ -285,19 +285,48 @@ const PizzaPlace: React.FC = () => {
 
   return (
     <div className="p-4">
-      <div className="mb-4 flex justify-between items-center">
-        <div>
+      <div className="mb-4 flex flex-wrap gap-4 items-center">
+        <div className="flex-1">
           <h2 className="text-2xl font-bold mb-2">Pizza Place Simulation</h2>
-          <button
-            onClick={() => setIsRunning(!isRunning)}
-            className={`px-4 py-2 rounded ${
-              isRunning ? 'bg-red-500' : 'bg-green-500'
-            } text-white`}
-          >
-            {isRunning ? 'Stop' : 'Start'} Simulation
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setIsRunning(!isRunning)}
+              className={`px-4 py-2 rounded hover:opacity-90 transition-opacity ${
+                isRunning ? 'bg-red-500' : 'bg-green-500'
+              } text-white cursor-pointer`}
+            >
+              {isRunning ? 'Stop' : 'Start'} Simulation
+            </button>
+            
+            <button
+              onClick={() => {
+                setNPCs(initializeNPCs());
+                setGrid(initializeGrid());
+                setEarnings(0);
+                setOrders([]);
+              }}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              Reset
+            </button>
+
+            <div className="flex items-center gap-2 px-4 py-2 bg-white rounded shadow">
+              <span className="text-sm text-gray-600">Speed:</span>
+              <input
+                type="range"
+                min="0.5"
+                max="2"
+                step="0.1"
+                value={1}
+                onChange={(e) => {
+                  // Add speed control logic here
+                }}
+                className="w-24 cursor-pointer"
+              />
+            </div>
+          </div>
         </div>
-        <div className="text-xl font-bold">
+        <div className="text-xl font-bold bg-green-100 px-4 py-2 rounded">
           Earnings: ${earnings}
         </div>
       </div>
