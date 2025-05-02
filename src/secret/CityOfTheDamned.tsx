@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sun, Moon, Shield, Zap, Target, Clock, Skull, Package2, Crosshair, ChevronLeft, ChevronRight, UserPlus, ShoppingBag } from 'lucide-react';
+import { Sun, Moon, Shield, Zap, Target, Clock, Skull, Package2, Crosshair, ChevronLeft, ChevronRight, UserPlus, ShoppingBag, X } from 'lucide-react';
 import { getNextPlayerState, getPlayerBehavior, getStateIcon, makeProgressionDecision, resurrectPlayer } from './PlayerAI';
 import PlayerStore from './PlayerStore';
+import MainMenu from './MainMenu';
+import GameSettings, { GameSettingsData } from './GameSettings';
 import * as fs from 'fs';
 
 // Types definition
@@ -211,6 +213,26 @@ const CityOfTheDamned: React.FC = () => {
   const [showAddPlayerModal, setShowAddPlayerModal] = useState<boolean>(false);
   const [showStoreModal, setShowStoreModal] = useState<boolean>(false);
   const [pendingPlayerName, setPendingPlayerName] = useState<string>('');
+  
+  // Game control state
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [showHelp, setShowHelp] = useState<boolean>(false);
+  
+  // Game settings
+  const [gameSettings, setGameSettings] = useState<GameSettingsData>({
+    difficulty: 'normal',
+    playerCount: 2,
+    dayLength: 120,
+    nightLength: 180,
+    fogOfWar: true,
+    friendlyFire: false,
+    permadeath: false,
+    showTutorial: true,
+    soundVolume: 0.7,
+    musicVolume: 0.5
+  });
 
   // Game state
   const [gameState, setGameState] = useState<GameState>({
@@ -250,6 +272,23 @@ const CityOfTheDamned: React.FC = () => {
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
+  
+  // Effect to handle pause/resume
+  useEffect(() => {
+    if (isPaused) {
+      // If paused, cancel the current game loop
+      if (gameLoopRef.current) {
+        cancelAnimationFrame(gameLoopRef.current);
+        gameLoopRef.current = null;
+      }
+    } else if (isPlaying) {
+      // If playing and not paused, ensure the game loop is running
+      if (!gameLoopRef.current) {
+        lastUpdateTimeRef.current = Date.now(); // Reset time to avoid large delta
+        gameLoopRef.current = requestAnimationFrame(gameLoop);
+      }
+    }
+  }, [isPaused, isPlaying]);
   
   // Update active player when players change or index changes
   useEffect(() => {
@@ -4047,8 +4086,241 @@ const CityOfTheDamned: React.FC = () => {
     addGlobalLog(`The threats here are stronger, but so are the rewards...`);
   };
   
+  // Game control functions
+  const startGame = () => {
+    if (!isPlaying) {
+      setIsPlaying(true);
+      setIsPaused(false);
+      
+      // Reset game state if it was completed
+      if (gameState.gameStatus === 'completed') {
+        resetGame();
+      } else {
+        // Update game status to start
+        setGameState(prev => ({
+          ...prev,
+          gameStatus: 'preparing'
+        }));
+        
+        addGlobalLog('Game started. Prepare for the challenges ahead!');
+      }
+    }
+  };
+  
+  const pauseGame = () => {
+    if (isPlaying && !isPaused) {
+      setIsPaused(true);
+      addGlobalLog('Game paused.');
+    }
+  };
+  
+  const resumeGame = () => {
+    if (isPlaying && isPaused) {
+      setIsPaused(false);
+      addGlobalLog('Game resumed.');
+    }
+  };
+  
+  const resetGame = () => {
+    // Reset the game state
+    setGameState({
+      day: 1,
+      time: 'day',
+      timeElapsed: 0,
+      wave: 1,
+      enemiesKilled: 0,
+      waveTimer: 120,
+      gameStatus: 'preparing',
+      mapLevel: 1,
+      canTransition: false,
+      transitionVotes: {}
+    });
+    
+    // Clear existing entities
+    setPlayers([]);
+    setEnemies([]);
+    setNpcs([]);
+    setAmmoCaches([]);
+    setSpawners([]);
+    
+    // Reset UI state
+    setGlobalLogs(['Game reset. A new survival begins.']);
+    setActivePlayerIndex(0);
+    
+    // Reinitialize
+    generateMap();
+    createInitialPlayer();
+    setupSpawners();
+    placeAmmoCaches();
+    
+    // Set game playing state
+    setIsPlaying(true);
+    setIsPaused(false);
+  };
+  
+  // Transition to night - start wave
+  const transitionToNight = () => {
+    setGameState(prev => ({
+      ...prev,
+      time: 'night',
+      gameStatus: 'wave',
+      waveTimer: gameSettings.nightLength
+    }));
+    
+    // Activate spawners
+    setSpawners(prev => prev.map(spawner => ({
+      ...spawner,
+      active: true
+    })));
+    
+    addGlobalLog(`Night falls on Day ${gameState.day}. Wave ${gameState.wave} begins!`);
+  };
+  
+  // Transition to day - prepare for next wave
+  const transitionToDay = () => {
+    setGameState(prev => ({
+      ...prev,
+      day: prev.day + 1,
+      time: 'day',
+      wave: prev.wave + 1,
+      gameStatus: 'preparing',
+      waveTimer: gameSettings.dayLength,
+      canTransition: false,
+      transitionVotes: {}
+    }));
+    
+    // Deactivate spawners
+    setSpawners(prev => prev.map(spawner => ({
+      ...spawner,
+      active: false
+    })));
+    
+    // Reposition spawners for next night
+    repositionSpawners();
+    
+    // Place new ammo caches
+    placeAmmoCaches();
+    
+    addGlobalLog(`Dawn breaks on Day ${gameState.day + 1}. Prepare for Wave ${gameState.wave + 1}...`);
+  };
+  
+  const skipWave = () => {
+    if (isPlaying && !isPaused && gameState.gameStatus !== 'completed') {
+      // Skip to the next wave/day
+      if (gameState.time === 'day') {
+        // Skip to night
+        transitionToNight();
+      } else {
+        // Skip to next day
+        transitionToDay();
+      }
+      
+      addGlobalLog('Skipping to the next phase...');
+    }
+  };
+  
+  const saveGame = () => {
+    if (isPlaying) {
+      try {
+        // Create results directory if it doesn't exist
+        if (!fs.existsSync('cityresults')) {
+          fs.mkdirSync('cityresults');
+        }
+        
+        // Prepare the save data
+        const saveData = {
+          timestamp: Date.now(),
+          gameState,
+          players,
+          enemies,
+          npcs,
+          ammoCaches,
+          spawners,
+          map
+        };
+        
+        // Save to file
+        const filename = `cityresults/save_${Date.now()}.json`;
+        fs.writeFileSync(filename, JSON.stringify(saveData, null, 2));
+        
+        addGlobalLog('Game saved successfully.');
+        return true;
+      } catch (error) {
+        console.error('Error saving game:', error);
+        addGlobalLog('Failed to save the game.');
+        return false;
+      }
+    }
+    return false;
+  };
+  
+  const showHelpScreen = () => {
+    setShowHelp(true);
+  };
+  
+  const hideHelpScreen = () => {
+    setShowHelp(false);
+  };
+  
+  const showSettingsScreen = () => {
+    setShowSettings(true);
+  };
+  
+  const hideSettingsScreen = () => {
+    setShowSettings(false);
+  };
+  
+  const saveSettings = (settings: GameSettingsData) => {
+    setGameSettings(settings);
+    
+    // Apply settings to the game
+    // TODO: Apply specific settings like fogOfWar, dayLength, etc.
+    
+    hideSettingsScreen();
+    addGlobalLog('Game settings updated.');
+  };
+
   // End the game
   const endGame = (survived: boolean) => {
+    // Export results
+    try {
+      if (!fs.existsSync('cityresults')) {
+        fs.mkdirSync('cityresults');
+      }
+      
+      // Prepare results data
+      const results = {
+        date: new Date().toISOString(),
+        daysSurvived: gameState.day,
+        wavesSurvived: gameState.wave,
+        enemiesKilled: gameState.enemiesKilled,
+        survived: survived,
+        players: players.map(p => ({
+          name: p.name,
+          isHuman: p.isHuman,
+          kills: p.kills,
+          survived: p.isAlive,
+          currency: p.currency
+        }))
+      };
+      
+      // Save to file
+      const filename = `cityresults/results_${Date.now()}.json`;
+      fs.writeFileSync(filename, JSON.stringify(results, null, 2));
+    } catch (error) {
+      console.error('Error saving game results:', error);
+    }
+    
+    // Update game state
+    setGameState(prev => ({
+      ...prev,
+      gameStatus: 'completed'
+    }));
+    
+    // Update game playing state
+    setIsPlaying(false);
+    setIsPaused(false);
+    
     if (survived) {
       addGlobalLog(`VICTORY! The survivors have escaped the City of the Damned!`);
       
@@ -4105,6 +4377,12 @@ const CityOfTheDamned: React.FC = () => {
 
   // Main game loop
   const gameLoop = () => {
+    // Skip game loop if paused or not playing
+    if (isPaused || !isPlaying) {
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
+      return;
+    }
+    
     const now = Date.now();
     const deltaTime = (now - lastUpdateTimeRef.current) / 1000; // Convert to seconds
     lastUpdateTimeRef.current = now;
@@ -4154,6 +4432,9 @@ const CityOfTheDamned: React.FC = () => {
         ...prev,
         gameStatus: 'completed'
       }));
+      
+      // Update game playing state
+      setIsPlaying(false);
     }
   };
 
@@ -4585,6 +4866,88 @@ const CityOfTheDamned: React.FC = () => {
   // Main render
   return (
     <div className="p-4 flex flex-col h-full">
+      {/* Main Menu */}
+      <div className="mb-4">
+        <MainMenu 
+          onStart={startGame}
+          onPause={pauseGame}
+          onResume={resumeGame}
+          onReset={resetGame}
+          onSkipWave={skipWave}
+          onShowSettings={showSettingsScreen}
+          onShowHelp={showHelpScreen}
+          onEnd={() => endGame(false)}
+          onSave={saveGame}
+          gameState={gameState}
+          isPlaying={isPlaying}
+          isMultiplayer={false}
+        />
+      </div>
+      
+      {/* Game Settings Modal */}
+      {showSettings && (
+        <GameSettings 
+          settings={gameSettings}
+          onSave={saveSettings}
+          onClose={hideSettingsScreen}
+          onStart={startGame}
+          onStop={pauseGame}
+          onEnd={() => endGame(false)}
+          isMultiplayer={false}
+          isPlaying={isPlaying}
+        />
+      )}
+      
+      {/* Help Screen */}
+      {showHelp && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg shadow-lg max-w-xl w-full p-5 text-white relative max-h-[90vh] overflow-y-auto">
+            <button 
+              onClick={hideHelpScreen}
+              className="absolute top-3 right-3 text-gray-400 hover:text-white"
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
+            
+            <h2 className="text-2xl font-bold mb-4">City of the Damned - Help</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold">Game Objective</h3>
+                <p>Survive as long as possible in the city. Collect resources, upgrade your equipment, and decide whether to continue or extract when the opportunity arises.</p>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold">Controls</h3>
+                <ul className="list-disc pl-5">
+                  <li>WASD - Move your character</li>
+                  <li>1, 2, 3 - Switch between primary, secondary, and melee weapons</li>
+                  <li>Space - Fire current weapon</li>
+                  <li>ESC - Return control to AI (when controlling a robot)</li>
+                  <li>Mouse - Aim and target enemies</li>
+                </ul>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold">Day/Night Cycle</h3>
+                <p>During the day, survivors can heal and shop for upgrades. At night, enemies are more numerous and aggressive.</p>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold">Tips</h3>
+                <ul className="list-disc pl-5">
+                  <li>Melee weapons don't require ammo but are riskier to use</li>
+                  <li>Collect ammo caches to replenish your weapons</li>
+                  <li>Coordinate with AI teammates by positioning yourself strategically</li>
+                  <li>Use the shop during day to upgrade stats and weapons</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Header - Game status */}
       <div className="flex justify-between mb-4 items-center">
         <div className="flex items-center gap-2">
