@@ -44,4 +44,4 @@ const EntertainmentMenu: React.FC<EntertainmentMenuProps> = ({ onSelect }) => {
   );
 };
 
-export default EntertainmentMenu;
+export default misc;
