@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
 import PizzaPlace from './pizzaplacefiles/PizzaPlace';
-import { Pizza, PlusCircle } from 'lucide-react';
+import RobotDating from './robotdating/RobotDating';
+import { Pizza, PlusCircle, Heart } from 'lucide-react';
 
 interface UnrelatedMenuProps {
   onNavigate?: (path: string) => void;
 }
 
 const UnrelatedMenu: React.FC<UnrelatedMenuProps> = ({ onNavigate }) => {
-  const [activeScene, setActiveScene] = useState<'pizza' | null>(null);
+  const [activeScene, setActiveScene] = useState<'pizza' | 'robot_dating' | null>(null);
 
   const scenes = [
     {
@@ -16,11 +17,21 @@ const UnrelatedMenu: React.FC<UnrelatedMenuProps> = ({ onNavigate }) => {
       name: 'Pizza Place Simulation',
       description: 'Manage a pizzeria with NPCs, orders, and customer satisfaction',
       icon: <Pizza className="w-5 h-5 text-orange-400" />
+    },
+    {
+      id: 'robot_dating',
+      name: 'Love Me Love Me Not',
+      description: 'Robot dating simulation with personality matching and conversations',
+      icon: <Heart className="w-5 h-5 text-pink-400" />
     }
   ];
 
   if (activeScene === 'pizza') {
     return <PizzaPlace />;
+  }
+  
+  if (activeScene === 'robot_dating') {
+    return <RobotDating onBack={() => setActiveScene(null)} />;
   }
 
   return (

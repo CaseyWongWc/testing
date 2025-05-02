@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 
-function EntertainmentMenu() {
-  const [activeGame, setActiveGame] = useState(null);
+interface EntertainmentMenuProps {
+  onSelect?: (scene: string) => void;
+}
+
+function EntertainmentMenu({ onSelect }: EntertainmentMenuProps) {
+  const [activeGame, setActiveGame] = useState<string | null>(null);
 
   const startRogueLike = () => {
     setActiveGame('rogue_like');
+    if (onSelect) onSelect('rogue_like');
   };
 
   return (
@@ -18,7 +23,11 @@ function EntertainmentMenu() {
   );
 }
 
-function RogueLikerevised({ onBack }) {
+interface RogueLikeRevisedProps {
+  onBack: () => void;
+}
+
+function RogueLikerevised({ onBack }: RogueLikeRevisedProps) {
   return (
     <div>
       <h1>Roguelike Game</h1>

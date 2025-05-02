@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, Unlock, Folder } from 'lucide-react';
 import SecretMenu from '../secret/SecretMenu';
 import UnrelatedMenu from '../secret/unrelated/UnrelatedMenu';
-import EntertainmentMenu from '../secret/entertainment/EntertainmentMenu';
+import EntertainmentMenu from '../secret/for entertainment/EntertainmentMenu';
 
 interface SecretPanelProps {
   isOpen: boolean;
