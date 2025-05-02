@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Play, Pause, SkipForward, Settings, RefreshCw, HelpCircle, Power, Save } from 'lucide-react';
-import { WebSocketConnectionStatus } from './GameWebSocketInterface';
+// import { WebSocketConnectionStatus } from './GameWebSocketInterface';
 import { GameState } from './GameTypes';
 
 interface MainMenuProps {

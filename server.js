@@ -26,22 +26,22 @@ app.use('/', createProxyMiddleware({
   }
 }));
 
-// Set up WebSocket server
-const wss = new WebSocketServer({ server });
+// // Set up WebSocket server
+// const wss = new WebSocketServer({ server });
 
-wss.on('connection', (ws) => {
-  console.log('Client connected to WebSocket server');
-  ws.isAlive = true;
+// wss.on('connection', (ws) => {
+//   console.log('Client connected to WebSocket server');
+//   ws.isAlive = true;
 
-  ws.on('message', (message) => {
-    try {
-      const data = JSON.parse(message.toString());
-      console.log('Received message:', data);
-    } catch (error) {
-      console.error('Error processing message:', error);
-    }
-  });
-});
+//   ws.on('message', (message) => {
+//     try {
+//       const data = JSON.parse(message.toString());
+//       console.log('Received message:', data);
+//     } catch (error) {
+//       console.error('Error processing message:', error);
+//     }
+//   });
+// });
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);

@@ -475,14 +475,14 @@ function App() {
         )}
         
         {/* WebSocket Testing Component shown in every view */}
-        {(activeGame === "other-apps" || activeGame === "cityofdamned") && (
+        {/* {(activeGame === "other-apps" || activeGame === "cityofdamned") && (
           <div className="mt-8 mx-auto max-w-md">
             <details className="bg-white rounded-lg shadow-sm p-4">
               <summary className="text-xl font-bold cursor-pointer">WebSocket Test Panel</summary>
               <WebSocketStatus className="w-full mt-4" />
             </details>
           </div>
-        )}
+        )} */}
         <button
           onMouseEnter={() => setIsSecretOpen(true)}
           onMouseLeave={() => setIsSecretOpen(false)}
