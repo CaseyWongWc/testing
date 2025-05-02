@@ -65,12 +65,13 @@ app.use('/', createProxyMiddleware({
   target: `http://0.0.0.0:${VITE_PORT}`,
   changeOrigin: true,
   ws: true,
+  secure: false,
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxying ${req.method} ${req.url}`);
   },
-  // Improve WebSocket handling
   onProxyReqWs: (proxyReq, req, socket, options, head) => {
     console.log(`Proxying WebSocket: ${req.url}`);
+    socket.on('error', (err) => console.log('WebSocket error:', err));
   },
   onError: (err, req, res) => {
     console.error('Proxy error:', err);
