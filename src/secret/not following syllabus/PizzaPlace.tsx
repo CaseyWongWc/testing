@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChefHat, DollarSign, Trash2, Timer, User, Coffee, Pizza, Star } from 'lucide-react';
 
@@ -12,6 +11,21 @@ interface Order {
   customer: string;
   satisfaction: number;
   timePlaced: number;
+}
+
+interface DialogueLine {
+  text: string;
+  speaker: string;
+  duration: number;
+}
+
+interface GridCell {
+  type: 'empty' | 'wall' | 'oven' | 'counter' | 'table' | 'chair' | 'storage' | 'plant' | 'decoration' | 'tv';
+  occupied?: boolean;
+  content?: string;
+  cleanLevel?: number;
+  dialogue?: DialogueLine;
+  decorationType?: string;
 }
 
 const RECIPES: Recipe[] = [
@@ -30,6 +44,19 @@ const RECIPES: Recipe[] = [
 ];
 
 const GRID_SIZE = { width: 20, height: 15 };
+
+const DIALOGUE_LINES = [
+  { text: "Welcome to Pizza Palace!", speaker: "cashier", duration: 3000 },
+  { text: "One delicious pizza coming right up!", speaker: "chef", duration: 3000 },
+  { text: "Need to clean this spot...", speaker: "janitor", duration: 2000 },
+  { text: "I'm so hungry!", speaker: "customer", duration: 2000 }
+];
+
+const DECORATIONS = [
+  { type: 'plant', icon: '🌿' },
+  { type: 'tv', icon: '📺' },
+  { type: 'decoration', icon: '🎨' }
+];
 
 const PizzaPlace: React.FC = () => {
   const [grid, setGrid] = useState<GridCell[][]>([]);
@@ -50,11 +77,11 @@ const PizzaPlace: React.FC = () => {
     const queue: Position[] = [start];
     const visited = new Set<string>();
     const parent = new Map<string, Position>();
-    
+
     while (queue.length > 0) {
       const current = queue.shift()!;
       const key = `${current.x},${current.y}`;
-      
+
       if (current.x === end.x && current.y === end.y) {
         const path: Position[] = [];
         let pos: Position | undefined = current;
@@ -64,7 +91,7 @@ const PizzaPlace: React.FC = () => {
         }
         return path;
       }
-      
+
       if (!visited.has(key)) {
         visited.add(key);
         const neighbors = [
@@ -77,7 +104,7 @@ const PizzaPlace: React.FC = () => {
           pos.y >= 0 && pos.y < GRID_SIZE.height &&
           grid[pos.y][pos.x].type !== 'wall'
         );
-        
+
         for (const neighbor of neighbors) {
           const neighborKey = `${neighbor.x},${neighbor.y}`;
           if (!visited.has(neighborKey)) {
@@ -146,7 +173,7 @@ const PizzaPlace: React.FC = () => {
               const availableSeats = grid.flatMap((row, y) => 
                 row.map((cell, x) => ({ x, y, cell }))
               ).filter(pos => pos.cell.type === 'chair' && !pos.cell.occupied);
-              
+
               if (availableSeats.length > 0) {
                 const seat = availableSeats[Math.floor(Math.random() * availableSeats.length)];
                 const path = findPath(npc.position, seat);
@@ -169,11 +196,11 @@ const PizzaPlace: React.FC = () => {
   // Main simulation loop
   useEffect(() => {
     if (!isRunning) return;
-    
+
     const interval = setInterval(() => {
       // Update NPCs
       updateNPCs();
-      
+
       // Update orders
       setOrders(prevOrders => 
         prevOrders.map(order => {
@@ -186,7 +213,7 @@ const PizzaPlace: React.FC = () => {
           return order;
         })
       );
-      
+
       // Add cleaning tasks
       if (Math.random() < 0.05) {
         const newCleaningSpot = {
@@ -196,11 +223,65 @@ const PizzaPlace: React.FC = () => {
         setCleaningQueue(prev => [...prev, newCleaningSpot]);
       }
     }, 1000);
-    
+
     return () => clearInterval(interval);
   }, [isRunning, updateNPCs]);
 
-  // Keep existing rendering functions
+  const initializeGrid = useCallback(() => {
+    const newGrid: GridCell[][] = Array(GRID_SIZE.height)
+      .fill(null)
+      .map((_, y) =>
+        Array(GRID_SIZE.width)
+          .fill(null)
+          .map((_, x) => ({
+            type: 'empty',
+            cleanLevel: 100,
+            x,
+            y
+          }))
+      );
+
+    // Add decorations
+    for (let y = 1; y < GRID_SIZE.height - 1; y += 4) {
+      for (let x = 1; x < GRID_SIZE.width - 1; x += 4) {
+        if (Math.random() < 0.3 && newGrid[y][x].type === 'empty') {
+          const decoration = DECORATIONS[Math.floor(Math.random() * DECORATIONS.length)];
+          newGrid[y][x].type = decoration.type as any;
+          newGrid[y][x].decorationType = decoration.icon;
+        }
+      }
+    }
+    setGrid(newGrid);
+  }, []);
+
+  const renderCell = (cell: GridCell, npc?: NPC) => {
+    switch (cell.type) {
+      case 'wall':
+        return <div className="w-full h-full bg-gray-800" />;
+      case 'oven':
+        return <Timer className="w-6 h-6 text-red-500" />;
+      case 'counter':
+        return <Coffee className="w-6 h-6 text-brown-500" />;
+      case 'table':
+        return <div className="w-full h-full bg-yellow-200 rounded" />;
+      case 'chair':
+        return <div className="w-full h-full bg-yellow-100 rounded-full" />;
+      case 'storage':
+        return <Pizza className="w-6 h-6 text-orange-500" />;
+      case 'plant':
+        return <div className="text-lg">🌿</div>;
+      case 'tv':
+        return <div className="text-lg">📺</div>;
+      case 'decoration':
+        return <div className="text-lg">🎨</div>;
+      default:
+        return null;
+    }
+  };
+
+  useEffect(() => {
+    initializeGrid();
+  }, [initializeGrid]);
 
   return (
     <div className="p-4">
@@ -229,11 +310,18 @@ const PizzaPlace: React.FC = () => {
               return (
                 <div
                   key={`${x}-${y}`}
-                  className={`w-8 h-8 flex items-center justify-center ${
-                    cell.cleanLevel && cell.cleanLevel < 50 ? 'bg-yellow-100' : 'bg-white'
-                  }`}
+                  className="relative"
                 >
-                  {renderCell(cell, npc)}
+                  <div className={`w-8 h-8 flex items-center justify-center ${
+                    cell.cleanLevel && cell.cleanLevel < 50 ? 'bg-yellow-100' : 'bg-white'
+                  }`}>
+                    {renderCell(cell, npc)}
+                  </div>
+                  {npc?.dialogue && (
+                    <div className="absolute -top-8 left-0 bg-white border border-gray-200 rounded px-2 py-1 text-xs whitespace-nowrap z-10">
+                      {npc.dialogue.text}
+                    </div>
+                  )}
                 </div>
               );
             })}
