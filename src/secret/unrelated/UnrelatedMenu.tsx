@@ -3,7 +3,11 @@ import React, { useState } from 'react';
 import PizzaPlace from './pizzaplacefiles/PizzaPlace';
 import { Pizza, PlusCircle } from 'lucide-react';
 
-const UnrelatedMenu: React.FC = () => {
+interface UnrelatedMenuProps {
+  onNavigate?: (path: string) => void;
+}
+
+const UnrelatedMenu: React.FC<UnrelatedMenuProps> = ({ onNavigate }) => {
   const [activeScene, setActiveScene] = useState<'pizza' | null>(null);
 
   const scenes = [
@@ -21,7 +25,12 @@ const UnrelatedMenu: React.FC = () => {
 
   return (
     <div className="p-6 bg-gray-900 min-h-screen">
-      <h2 className="text-2xl font-bold mb-6 text-center text-white">Unrelated Experiments</h2>
+      <h2 
+        onClick={() => onNavigate?.('main')} 
+        className="text-2xl font-bold mb-6 text-center text-white cursor-pointer hover:text-blue-400 transition-colors"
+      >
+        Unrelated Experiments
+      </h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {scenes.map((scene) => (

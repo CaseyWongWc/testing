@@ -33,7 +33,7 @@ const SecretPanel: React.FC<SecretPanelProps> = ({ isOpen }) => {
   const renderContent = () => {
     switch (currentView) {
       case 'unrelated':
-        return <UnrelatedMenu />;
+        return <UnrelatedMenu onNavigate={handleNavigate} />;
       case 'main':
       default:
         return <SecretMenu onNavigate={handleNavigate} />;
