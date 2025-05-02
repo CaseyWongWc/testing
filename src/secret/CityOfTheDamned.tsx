@@ -2819,4 +2819,193 @@ const CityOfTheDamned: React.FC = () => {
   );
 };
 
+// Spawn a regular enemy
+const spawnEnemy = (spawner: Spawner) => {
+  // Define enemy types and base stats
+  const enemyTypes = {
+    'melee': {
+      damage: 10,
+      attackRange: 1,
+      attackSpeed: 1,
+      detectionRange: 8,
+      health: 50,
+      maxHealth: 50
+    },
+    'ranged': {
+      damage: 8,
+      attackRange: 5,
+      attackSpeed: 0.5,
+      detectionRange: 10,
+      health: 30,
+      maxHealth: 30
+    },
+    'tank': {
+      damage: 15,
+      attackRange: 1,
+      attackSpeed: 0.7,
+      detectionRange: 7,
+      health: 100,
+      maxHealth: 100
+    },
+    'boss': {
+      damage: 25,
+      attackRange: 3,
+      attackSpeed: 0.8,
+      detectionRange: 12,
+      health: 200,
+      maxHealth: 200
+    }
+  };
+  
+  const enemyType = spawner.enemyType;
+  const enemyData = enemyTypes[enemyType];
+  
+  // Create enemy with stats based on current wave/day
+  const waveMultiplier = 1 + (gameState.wave - 1) * 0.2;
+  const newEnemy: Enemy = {
+    id: Date.now(),
+    x: spawner.x,
+    y: spawner.y,
+    health: Math.floor(enemyData.health * waveMultiplier),
+    maxHealth: Math.floor(enemyData.maxHealth * waveMultiplier),
+    damage: Math.floor(enemyData.damage * waveMultiplier),
+    attackRange: enemyData.attackRange,
+    attackSpeed: enemyData.attackSpeed,
+    type: enemyType,
+    behavior: Math.random() < 0.7 ? 'aggressive' : 'defensive',
+    lastAttackTime: 0,
+    detectionRange: enemyData.detectionRange
+  };
+  
+  // Add patrol behavior for some enemies
+  if (Math.random() < 0.3) {
+    newEnemy.behavior = 'patrol';
+    newEnemy.movementPattern = {
+      path: generatePatrolPath(spawner.x, spawner.y),
+      currentPathIndex: 0
+    };
+  }
+  
+  setEnemies(prev => [...prev, newEnemy]);
+  addGlobalLog(`${enemyType} enemy spawned!`);
+};
+
+// Generate a patrol path for enemies
+const generatePatrolPath = (startX: number, startY: number): {x: number, y: number}[] => {
+  const path: {x: number, y: number}[] = [];
+  const pathLength = 4 + Math.floor(Math.random() * 4); // 4-7 points in path
+  
+  // Start with the spawner location
+  path.push({x: startX, y: startY});
+  
+  // Generate random points around the start point
+  for (let i = 0; i < pathLength; i++) {
+    const lastPoint = path[path.length - 1];
+    const radius = 3 + Math.floor(Math.random() * 5); // 3-7 distance
+    const angle = (Math.PI * 2 / pathLength) * i;
+    
+    const newX = Math.floor(startX + Math.cos(angle) * radius);
+    const newY = Math.floor(startY + Math.sin(angle) * radius);
+    
+    // Make sure point is within map bounds and not in a wall
+    if (
+      newX >= 1 && newX < mapWidth - 1 && 
+      newY >= 1 && newY < mapHeight - 1 && 
+      map[newY][newX].type !== 'wall'
+    ) {
+      path.push({x: newX, y: newY});
+    } else {
+      // If point is invalid, try a closer point
+      const fallbackX = Math.floor(startX + Math.cos(angle) * 2);
+      const fallbackY = Math.floor(startY + Math.sin(angle) * 2);
+      
+      if (
+        fallbackX >= 1 && fallbackX < mapWidth - 1 && 
+        fallbackY >= 1 && fallbackY < mapHeight - 1 && 
+        map[fallbackY][fallbackX].type !== 'wall'
+      ) {
+        path.push({x: fallbackX, y: fallbackY});
+      } else {
+        // If all fails, just duplicate the last point
+        path.push({...lastPoint});
+      }
+    }
+  }
+  
+  // Close the loop by adding first point again
+  path.push({x: startX, y: startY});
+  
+  return path;
+};
+
+// Spawn a boss enemy
+const spawnBossEnemy = (spawner: Spawner) => {
+  const boss = createBoss(spawner.x, spawner.y, gameState.wave);
+  setEnemies(prev => [...prev, boss as unknown as Enemy]);
+  
+  // Global announcement
+  addGlobalLog(`⚠️ WARNING: BOSS APPEARED! The ${boss.bossType} has arrived!`);
+  
+  // Spawn minions around the boss
+  const numMinions = Math.min(3, Math.floor(gameState.wave / 5));
+  
+  for (let i = 0; i < numMinions; i++) {
+    const angle = (Math.PI * 2 / numMinions) * i;
+    const distance = 2;
+    
+    const minionX = Math.floor(boss.x + Math.cos(angle) * distance);
+    const minionY = Math.floor(boss.y + Math.sin(angle) * distance);
+    
+    // Check if position is valid
+    if (
+      minionX >= 1 && minionX < mapWidth - 1 && 
+      minionY >= 1 && minionY < mapHeight - 1 && 
+      map[minionY][minionX].type !== 'wall'
+    ) {
+      // Create a minion (weaker enemy)
+      const minion: Enemy = {
+        id: Date.now() + i + 1000,
+        x: minionX,
+        y: minionY,
+        health: 30,
+        maxHealth: 30,
+        damage: 5,
+        attackRange: 1,
+        attackSpeed: 1,
+        type: 'melee',
+        behavior: 'aggressive',
+        lastAttackTime: 0,
+        detectionRange: 8
+      };
+      
+      setEnemies(prev => [...prev, minion]);
+    }
+  }
+};
+
+// Spawn a hostile AI player
+const spawnHostileAI = (spawner: HostileSpawner) => {
+  const typedSpawner = spawner as {
+    x: number;
+    y: number;
+    id: number;
+    hostileAIType: 'normal' | 'elite' | 'boss';
+    weapons: Weapon[];
+  };
+  
+  const hostilePlayer = createHostileAIPlayer(
+    typedSpawner.x,
+    typedSpawner.y,
+    typedSpawner.id,
+    typedSpawner.hostileAIType,
+    typedSpawner.weapons
+  );
+  
+  // Add to players array
+  setPlayers(prev => [...prev, hostilePlayer]);
+  
+  // Announcement
+  addGlobalLog(`⚠️ Hostile survivor ${hostilePlayer.name} spotted with a ${hostilePlayer.weapons.primary.name}!`);
+};
+
 export default CityOfTheDamned;
