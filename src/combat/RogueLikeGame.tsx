@@ -781,7 +781,6 @@ const RogueLikeGame: React.FC = () => {
                       position: 'relative',
                       ...(attackLine && ((x === robot.x && y === robot.y) || (x === attackLine.x2 && y === attackLine.y2)) && {
                         '&::after': {
-                          zIndex: 20,
                           content: '""',
                           position: 'absolute',
                           top: '50%',
@@ -792,7 +791,7 @@ const RogueLikeGame: React.FC = () => {
                           transform: `rotate(${Math.atan2(attackLine.y2 - attackLine.y1, attackLine.x2 - attackLine.x1) * (180 / Math.PI)}deg)`,
                           transformOrigin: 'top left',
                           pointerEvents: 'none',
-                          zIndex: 10
+                          zIndex: 30
                         }
                       })
                     }}
