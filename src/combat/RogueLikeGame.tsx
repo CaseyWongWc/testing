@@ -773,9 +773,9 @@ const RogueLikeGame: React.FC = () => {
           
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="grid grid-cols-[repeat(15,2rem)] grid-rows-[repeat(15,2rem)] gap-px bg-gray-200">
-            {room.map((row, y) =>
-              row.map((cell, x) => (
-                <div
+              {room.map((row, y) =>
+                row.map((cell, x) => (
+                  <div
                   key={`${x}-${y}`}
                   style={{
                     position: 'relative',
