@@ -46,7 +46,7 @@ function App() {
         <div className="flex flex-col items-center gap-4 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-3 flex items-center justify-center w-full mb-2">
             <h1 className="text-2xl font-bold text-blue-600 flex items-center">
-              {activeGame === "other-apps" ? "AI Simulation Framework" : "WSS Components"}{" "}
+              {activeGame === "other-apps" ? "WSS Components" : "AI Simulation Framework"}{" "}
               <ArrowIcon 
                 size={24} 
                 color="#2563eb" 
@@ -442,7 +442,7 @@ function App() {
               onClick={() => setActiveGame("replit")}
               className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium"
             >
-              Advanced
+              Replit
             </button>
           </div>
         )}
