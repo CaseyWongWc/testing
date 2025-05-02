@@ -740,8 +740,39 @@ const RogueLikeGame: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-[2fr,1fr] gap-4">
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <div className="grid grid-cols-[repeat(15,2rem)] grid-rows-[repeat(15,2rem)] gap-px bg-gray-200">
+        <div className="space-y-4">
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <h2 className="text-lg font-semibold mb-2">Weapon Status</h2>
+            <div className="space-y-2">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Damage</span>
+                  <span>{robot.damage}</span>
+                </div>
+                <div className="h-2 bg-gray-200 rounded-full">
+                  <div
+                    className="h-full bg-orange-500 rounded-full"
+                    style={{ width: `${(robot.damage / 30) * 100}%` }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Range</span>
+                  <span>{robot.attackRange}</span>
+                </div>
+                <div className="h-2 bg-gray-200 rounded-full">
+                  <div
+                    className="h-full bg-blue-500 rounded-full"
+                    style={{ width: `${(robot.attackRange / 6) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="grid grid-cols-[repeat(15,2rem)] grid-rows-[repeat(15,2rem)] gap-px bg-gray-200">
             {room.map((row, y) =>
               row.map((cell, x) => (
                 <div
