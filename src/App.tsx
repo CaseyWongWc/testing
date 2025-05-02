@@ -447,16 +447,16 @@ function App() {
             >
               Replit
             </button>
-            <button
-              onMouseEnter={() => setIsSecretOpen(true)}
-              onMouseLeave={() => setIsSecretOpen(false)}
-              className="px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors text-lg font-medium flex items-center gap-2"
-            >
-              {isSecretOpen ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
-              Secret
-            </button>
           </div>
         )}
+        <button
+          onMouseEnter={() => setIsSecretOpen(true)}
+          onMouseLeave={() => setIsSecretOpen(false)}
+          className="fixed bottom-0 right-0 w-8 h-8 opacity-0 hover:opacity-100 transition-opacity duration-300 text-gray-400 hover:text-gray-800 flex items-center justify-center"
+          aria-hidden="true"
+        >
+          {isSecretOpen ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+        </button>
         {isSecretOpen && <SecretPanel isOpen={isSecretOpen} />}
         {activeGame === "combat" && <Combat />}
         {activeGame === "replit" && <ReplitScene />}
