@@ -909,43 +909,6 @@ const RogueLikeGame: React.FC = () => {
                 <span>{robot.attackRange}</span>
               </div>
             </div>
-            
-            {/* Weapon Performance Graphs */}
-            <div className="mt-4">
-              <div className="bg-gray-100 rounded-lg p-2">
-                <h3 className="text-sm font-semibold mb-2">Damage Output</h3>
-                <div className="h-16 flex items-end space-x-1">
-                  {[...Array(8)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 bg-orange-500 rounded-t"
-                      style={{
-                        height: `${Math.min(100, (robot.damage / 20) * 100)}%`,
-                        opacity: 0.5 + (i / 16)
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-              
-              <div className="bg-gray-100 rounded-lg p-2 mt-2">
-                <h3 className="text-sm font-semibold mb-2">Attack Range</h3>
-                <div className="h-16 flex items-center justify-center">
-                  <div className="relative w-full h-full">
-                    <div 
-                      className="absolute inset-0 bg-blue-500 rounded-full opacity-25"
-                      style={{
-                        transform: `scale(${robot.attackRange / 5})`,
-                        transition: 'transform 0.3s ease'
-                      }}
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-xs font-medium">{robot.attackRange}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm p-4">
