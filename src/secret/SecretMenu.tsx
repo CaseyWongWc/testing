@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Folder, Lock, Sparkles, Code, AlertTriangle } from 'lucide-react';
+import { Sparkles, Code, Lock, AlertTriangle, Gamepad2 } from 'lucide-react';
 
 interface SecretMenuProps {
   onNavigate: (path: string) => void;
@@ -28,6 +27,13 @@ const SecretMenu: React.FC<SecretMenuProps> = ({ onNavigate }) => {
       description: 'Exploring three-dimensional space',
       icon: <Lock className="w-6 h-6 text-green-500" />,
       path: 'not following syllabus/3dworld'
+    },
+    {
+      id: 'entertainment',
+      name: 'Entertainment',
+      description: 'Specialized or unique scenes',
+      icon: <Gamepad2 className="w-6 h-6 text-yellow-500" />,
+      path: 'for entertainment'
     }
   ];
 
@@ -43,7 +49,7 @@ const SecretMenu: React.FC<SecretMenuProps> = ({ onNavigate }) => {
           </h1>
           <p className="text-gray-400">Breaking the boundaries of conventional development</p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {sections.map((section) => (
             <button
