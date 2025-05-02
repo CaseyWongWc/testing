@@ -16,7 +16,8 @@ import ArrowIcon from "./components/ArrowIcon";
 import { MultiValuedItemCollector } from "./replit/MultiValuedItemCollector";
 import SecretPanel from "./components/SecretPanel";
 import { Lock, Unlock } from 'lucide-react';
-import CityOfTheDamned from "./secret/CityOfTheDamned";
+// Use the wrapper component instead of directly importing the component
+import CityOfDamnedWrapper from "./CityOfDamnedWrapper";
 import WebSocketStatus from "./components/WebSocketStatus";
 
 type GameType =
@@ -36,7 +37,21 @@ type GameType =
   | "replit";
 
 function App() {
-  const [activeGame, setActiveGame] = useState<GameType>("combat");
+  // Check URL parameters for direct game loading
+  const [activeGame, setActiveGame] = useState<GameType>(() => {
+    // Check if there's a game parameter in the URL
+    const params = new URLSearchParams(window.location.search);
+    const gameParam = params.get('game');
+    
+    // If there's a valid game parameter, use it as the initial state
+    if (gameParam === 'cityofdamned') {
+      return 'cityofdamned';
+    }
+    
+    // Default to combat if no valid parameter is found
+    return 'combat';
+  });
+  
   const [isSecretOpen, setIsSecretOpen] = useState(false);
   const [width, setWidth] = useState(20);
   const [height, setHeight] = useState(15);
@@ -478,7 +493,7 @@ function App() {
         </button>
         {isSecretOpen && <SecretPanel isOpen={isSecretOpen} />}
         {activeGame === "combat" && <Combat />}
-        {activeGame === "cityofdamned" && <CityOfTheDamned />}
+        {activeGame === "cityofdamned" && <CityOfDamnedWrapper />}
         {activeGame === "replit" && <ReplitScene />}
         
       </div>
