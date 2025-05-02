@@ -182,7 +182,7 @@ const generateItems = (currentRoom: Cell[][]): Item[] => {
 
   for (let i = 0; i < itemCount; i++) {
     const type = types[Math.floor(Math.random() * types.length)];
-    const position = findValidPosition(room);
+    const position = findValidPosition(currentRoom);
     items.push({
       id: Date.now() + i,
       x: position.x,
