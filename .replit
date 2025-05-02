@@ -55,7 +55,7 @@ mode = "parallel"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node server.js"
+args = "npm run dev"
 
 [[workflows.workflow]]
 name = "arrow"

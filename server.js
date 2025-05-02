@@ -5,7 +5,7 @@ import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 
 const app = express();
-const PORT = 3001; // Changed from 3000 to avoid conflicts
+const PORT = 5000; // Changed from 3000 to avoid conflicts
 const VITE_PORT = 5173;
 const server = http.createServer(app);
 
