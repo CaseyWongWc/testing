@@ -16,6 +16,7 @@ import ArrowIcon from "./components/ArrowIcon";
 import { MultiValuedItemCollector } from "./replit/MultiValuedItemCollector";
 import SecretPanel from "./components/SecretPanel";
 import { Lock, Unlock } from 'lucide-react';
+import CityOfTheDamned from "./secret/CityOfTheDamned";
 
 type GameType =
   | "maze"
@@ -30,6 +31,7 @@ type GameType =
   | "trading"
   | "other-apps"
   | "combat"
+  | "cityofdamned"
   | "replit";
 
 function App() {
@@ -459,6 +461,7 @@ function App() {
         </button>
         {isSecretOpen && <SecretPanel isOpen={isSecretOpen} />}
         {activeGame === "combat" && <Combat />}
+        {activeGame === "cityofdamned" && <CityOfTheDamned />}
         {activeGame === "replit" && <ReplitScene />}
         
       </div>

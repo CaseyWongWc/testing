@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import ZombiesAhh from "./ZombiesAhh";
 import EmptyClassroom from "./EmptyClassroom";
 import RogueLikeGame from "./RogueLikeGame";
+import CombatInterface from "./CombatInterface";
 
 const Combat: React.FC = () => {
   const [activeScene, setActiveScene] = useState<
-    "zombies" | "classroom" | "rogue"
+    "zombies" | "classroom" | "rogue" | "combat"
   >("zombies");
 
   return (
@@ -41,11 +42,22 @@ const Combat: React.FC = () => {
         >
           Rogue Like
         </button>
+        <button
+          onClick={() => setActiveScene("combat")}
+          className={`px-4 py-2 rounded transition-colors ${
+            activeScene === "combat"
+              ? "bg-blue-500 text-white"
+              : "bg-gray-100 hover:bg-gray-200"
+          }`}
+        >
+          Combat Interface
+        </button>
       </div>
 
       {activeScene === "zombies" && <ZombiesAhh />}
       {activeScene === "classroom" && <EmptyClassroom />}
       {activeScene === "rogue" && <RogueLikeGame />}
+      {activeScene === "combat" && <CombatInterface />}
     </div>
   );
 };
