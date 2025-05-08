@@ -1,11 +1,25 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Bot, Skull, Heart, Timer, Play, Pause, HelpCircle, Crosshair, Package, Zap, Shield, Swords, Brain } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import {
+  Bot,
+  Skull,
+  Heart,
+  Timer,
+  Play,
+  Pause,
+  HelpCircle,
+  Crosshair,
+  Package,
+  Zap,
+  Shield,
+  Swords,
+  Brain,
+} from "lucide-react";
 
 interface Cell {
   x: number;
   y: number;
-  type: 'floor' | 'wall' | 'portal';
-  terrain: 'normal' | 'water' | 'lava' | 'grass';
+  type: "floor" | "wall" | "portal";
+  terrain: "normal" | "water" | "lava" | "grass";
   isVisible: boolean;
   wasVisible: boolean;
   isWall?: boolean;
@@ -19,7 +33,7 @@ interface Enemy {
   id: number;
   x: number;
   y: number;
-  type: 'slime' | 'skeleton' | 'ghost' | 'mage' | 'boss';
+  type: "slime" | "skeleton" | "ghost" | "mage" | "boss";
   health: number;
   maxHealth: number;
   damage: number;
@@ -32,7 +46,7 @@ interface Item {
   id: number;
   x: number;
   y: number;
-  type: 'health' | 'ammo' | 'shield' | 'damage' | 'range';
+  type: "health" | "ammo" | "shield" | "damage" | "range";
   value: number;
 }
 
@@ -58,11 +72,11 @@ interface GameState {
 interface CombatLog {
   message: string;
   timestamp: number;
-  type: 'attack' | 'damage' | 'heal' | 'item' | 'portal';
+  type: "attack" | "damage" | "heal" | "item" | "portal";
 }
 
 interface AIState {
-  mode: 'explore' | 'combat' | 'heal' | 'portal';
+  mode: "explore" | "combat" | "heal" | "portal";
   target?: { x: number; y: number };
   path: Cell[];
   lastDecision: string;
@@ -72,13 +86,44 @@ interface AIState {
 const ROOM_WIDTH = 15;
 const ROOM_HEIGHT = 15;
 const VISION_RANGE = 5;
+const PORTAL_ACTIVATION_THRESHOLD = 10; // Added threshold
 
 const ENEMY_TYPES = {
-  slime: { health: 20, damage: 5, moveRange: 1, attackRange: 1, turnsToMove: 2 },
-  skeleton: { health: 30, damage: 8, moveRange: 2, attackRange: 3, turnsToMove: 1 },
-  ghost: { health: 25, damage: 6, moveRange: 3, attackRange: 2, turnsToMove: 1 },
-  mage: { health: 20, damage: 12, moveRange: 1, attackRange: 4, turnsToMove: 2 },
-  boss: { health: 100, damage: 15, moveRange: 2, attackRange: 3, turnsToMove: 1 }
+  slime: {
+    health: 20,
+    damage: 5,
+    moveRange: 1,
+    attackRange: 1,
+    turnsToMove: 2,
+  },
+  skeleton: {
+    health: 30,
+    damage: 8,
+    moveRange: 2,
+    attackRange: 3,
+    turnsToMove: 1,
+  },
+  ghost: {
+    health: 25,
+    damage: 6,
+    moveRange: 3,
+    attackRange: 2,
+    turnsToMove: 1,
+  },
+  mage: {
+    health: 20,
+    damage: 12,
+    moveRange: 1,
+    attackRange: 4,
+    turnsToMove: 2,
+  },
+  boss: {
+    health: 100,
+    damage: 15,
+    moveRange: 2,
+    attackRange: 3,
+    turnsToMove: 1,
+  },
 };
 
 const createEmptyRoom = (): Cell[][] => {
@@ -89,31 +134,36 @@ const createEmptyRoom = (): Cell[][] => {
       row.push({
         x,
         y,
-        type: Math.random() < 0.2 ? 'wall' : 'floor',
-        terrain: Math.random() < 0.7 ? 'normal' :
-                Math.random() < 0.5 ? 'water' :
-                Math.random() < 0.5 ? 'lava' : 'grass',
+        type: Math.random() < 0.2 ? "wall" : "floor",
+        terrain:
+          Math.random() < 0.7
+            ? "normal"
+            : Math.random() < 0.5
+              ? "water"
+              : Math.random() < 0.5
+                ? "lava"
+                : "grass",
         isVisible: false,
-        wasVisible: false
+        wasVisible: false,
       });
     }
     room.push(row);
   }
 
   // Ensure starting position is clear
-  room[1][1].type = 'floor';
-  room[1][1].terrain = 'normal';
+  room[1][1].type = "floor";
+  room[1][1].terrain = "normal";
 
   // Add portal
   const portalX = ROOM_WIDTH - 2;
   const portalY = ROOM_HEIGHT - 2;
-  room[portalY][portalX].type = 'portal';
-  room[portalY][portalX].terrain = 'normal';
+  room[portalY][portalX].type = "portal";
+  room[portalY][portalX].terrain = "normal";
 
   return room;
 };
 
-const findValidPosition = (room: Cell[][]): {x: number, y: number} => {
+const findValidPosition = (room: Cell[][]): { x: number; y: number } => {
   let attempts = 0;
   let x, y;
 
@@ -121,15 +171,15 @@ const findValidPosition = (room: Cell[][]): {x: number, y: number} => {
     x = 2 + Math.floor(Math.random() * (ROOM_WIDTH - 4));
     y = 2 + Math.floor(Math.random() * (ROOM_HEIGHT - 4));
     attempts++;
-  } while (room[y][x].type === 'wall' && attempts < 50);
+  } while (room[y][x].type === "wall" && attempts < 50);
 
   // If no valid position found, force clear a position
   if (attempts >= 50) {
-    room[y][x].type = 'floor';
-    room[y][x].terrain = 'normal';
+    room[y][x].type = "floor";
+    room[y][x].terrain = "normal";
   }
 
-  return {x, y};
+  return { x, y };
 };
 
 const generateEnemies = (currentRoom: Cell[][], level: number): Enemy[] => {
@@ -137,7 +187,7 @@ const generateEnemies = (currentRoom: Cell[][], level: number): Enemy[] => {
   const enemyCount = Math.min(3 + Math.floor(level / 2), 8);
 
   for (let i = 0; i < enemyCount; i++) {
-    const types = ['slime', 'skeleton', 'ghost', 'mage'] as const;
+    const types = ["slime", "skeleton", "ghost", "mage"] as const;
     const type = types[Math.floor(Math.random() * types.length)];
     const baseStats = ENEMY_TYPES[type];
     const position = findValidPosition(currentRoom);
@@ -152,7 +202,7 @@ const generateEnemies = (currentRoom: Cell[][], level: number): Enemy[] => {
       damage: baseStats.damage + level * 2,
       moveRange: baseStats.moveRange,
       attackRange: baseStats.attackRange,
-      turnsToMove: baseStats.turnsToMove
+      turnsToMove: baseStats.turnsToMove,
     });
   }
 
@@ -161,13 +211,13 @@ const generateEnemies = (currentRoom: Cell[][], level: number): Enemy[] => {
       id: Date.now() + enemyCount,
       x: Math.floor(ROOM_WIDTH / 2),
       y: Math.floor(ROOM_HEIGHT / 2),
-      type: 'boss',
+      type: "boss",
       health: ENEMY_TYPES.boss.health + level * 10,
       maxHealth: ENEMY_TYPES.boss.health + level * 10,
       damage: ENEMY_TYPES.boss.damage + level * 3,
       moveRange: ENEMY_TYPES.boss.moveRange,
       attackRange: ENEMY_TYPES.boss.attackRange,
-      turnsToMove: ENEMY_TYPES.boss.turnsToMove
+      turnsToMove: ENEMY_TYPES.boss.turnsToMove,
     });
   }
 
@@ -178,20 +228,26 @@ const generateItems = (currentRoom: Cell[][]): Item[] => {
   const items: Item[] = [];
   const itemCount = Math.min(3 + Math.floor(Math.random() * 3), 8);
 
-  const types = ['health', 'ammo', 'shield', 'damage', 'range'] as const;
+  const types = ["health", "ammo", "shield", "damage", "range"] as const;
 
   for (let i = 0; i < itemCount; i++) {
     const type = types[Math.floor(Math.random() * types.length)];
-    const position = findValidPosition(room);
+    const position = findValidPosition(currentRoom);
     items.push({
       id: Date.now() + i,
       x: position.x,
       y: position.y,
       type,
-      value: type === 'health' ? 30 :
-             type === 'ammo' ? 15 :
-             type === 'shield' ? 5 :
-             type === 'damage' ? 5 : 1
+      value:
+        type === "health"
+          ? 30
+          : type === "ammo"
+            ? 15
+            : type === "shield"
+              ? 5
+              : type === "damage"
+                ? 5
+                : 1,
     });
   }
 
@@ -209,7 +265,7 @@ const RogueLikeGame: React.FC = () => {
     maxAmmo: 30,
     damage: 10,
     defense: 5,
-    attackRange: 3
+    attackRange: 3,
   });
   const [enemies, setEnemies] = useState<Enemy[]>([]);
   const [items, setItems] = useState<Item[]>([]);
@@ -217,7 +273,7 @@ const RogueLikeGame: React.FC = () => {
     level: 1,
     turn: 0,
     kills: 0,
-    itemsCollected: 0
+    itemsCollected: 0,
   });
   const [isAnimating, setIsAnimating] = useState(false);
   const [moveSpeed, setMoveSpeed] = useState(1.0);
@@ -225,34 +281,79 @@ const RogueLikeGame: React.FC = () => {
   const [combatLog, setCombatLog] = useState<CombatLog[]>([]);
   const [selectedTarget, setSelectedTarget] = useState<Enemy | null>(null);
   const [aiState, setAIState] = useState<AIState>({
-    mode: 'explore',
+    mode: "explore",
     path: [],
-    lastDecision: 'Initializing...',
-    confidence: 1.0
+    lastDecision: "Initializing...",
+    confidence: 1.0,
   });
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isPortalActive, setIsPortalActive] = useState(false); // Added portal activation state
 
-  const addLog = (message: string, type: CombatLog['type']) => {
-    setCombatLog(prev => [...prev.slice(-9), { message, timestamp: Date.now(), type }]);
+  const addLog = (message: string, type: CombatLog["type"]) => {
+    setCombatLog((prev) => [
+      ...prev.slice(-9),
+      { message, timestamp: Date.now(), type },
+    ]);
   };
 
   const [portalPulse, setPortalPulse] = useState(0);
 
+  const hasLineOfSight = (
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    room: Cell[][],
+  ): boolean => {
+    const dx = Math.abs(x2 - x1);
+    const dy = Math.abs(y2 - y1);
+    const sx = x1 < x2 ? 1 : -1;
+    const sy = y1 < y2 ? 1 : -1;
+    let err = dx - dy;
+
+    let x = x1;
+    let y = y1;
+
+    while (true) {
+      if (x === x2 && y === y2) return true;
+      if (room[y][x].type === "wall" && !(x === x1 && y === y1)) return false;
+
+      const e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        x += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        y += sy;
+      }
+    }
+  };
+
   const updateVisibility = useCallback(() => {
-    setRoom(prev => {
-      const newRoom = JSON.parse(JSON.stringify(prev)); // Deep clone to avoid reference issues
-      const portalCell = newRoom.flat().find(cell => cell.type === 'portal');
-      const pulseRange = 3 + Math.sin(portalPulse * 0.5) * 1.5; // Pulsating range between 1.5 and 4.5
+    setRoom((prev) => {
+      const newRoom = JSON.parse(JSON.stringify(prev));
+      const portalCell = newRoom.flat().find((cell) => cell.type === "portal");
+      const pulseRange = 3 + Math.sin(portalPulse * 0.5) * 1.5;
 
       for (let y = 0; y < ROOM_HEIGHT; y++) {
         for (let x = 0; x < ROOM_WIDTH; x++) {
-          const distanceToRobot = Math.sqrt(Math.pow(x - robot.x, 2) + Math.pow(y - robot.y, 2));
-          let isVisible = distanceToRobot <= VISION_RANGE;
+          const distanceToRobot = Math.sqrt(
+            Math.pow(x - robot.x, 2) + Math.pow(y - robot.y, 2),
+          );
+          let isVisible =
+            distanceToRobot <= VISION_RANGE &&
+            hasLineOfSight(robot.x, robot.y, x, y, newRoom);
 
-          // Add portal visibility
-          if (portalCell) {
-            const distanceToPortal = Math.sqrt(Math.pow(x - portalCell.x, 2) + Math.pow(y - portalCell.y, 2));
-            if (distanceToPortal <= pulseRange) {
+          if (portalCell && isPortalActive) {
+            // Modified condition for portal visibility
+            const distanceToPortal = Math.sqrt(
+              Math.pow(x - portalCell.x, 2) + Math.pow(y - portalCell.y, 2),
+            );
+            if (
+              distanceToPortal <= pulseRange &&
+              hasLineOfSight(portalCell.x, portalCell.y, x, y, newRoom)
+            ) {
               isVisible = true;
             }
           }
@@ -265,49 +366,71 @@ const RogueLikeGame: React.FC = () => {
       }
       return newRoom;
     });
-  }, [robot.x, robot.y, portalPulse]);
+  }, [robot.x, robot.y, portalPulse, isPortalActive]);
 
   const moveRobot = (dx: number, dy: number) => {
     const newX = robot.x + dx;
     const newY = robot.y + dy;
 
-    if (newX < 0 || newX >= ROOM_WIDTH || newY < 0 || newY >= ROOM_HEIGHT) return false;
-    if (room[newY][newX].type === 'wall') return false;
+    if (newX < 0 || newX >= ROOM_WIDTH || newY < 0 || newY >= ROOM_HEIGHT)
+      return false;
+    if (room[newY][newX].type === "wall") return false;
 
-    setRobot(prev => ({ ...prev, x: newX, y: newY }));
+    setRobot((prev) => ({ ...prev, x: newX, y: newY }));
     return true;
   };
 
-  const [attackLine, setAttackLine] = useState<{x1: number, y1: number, x2: number, y2: number} | null>(null);
+  const [attackLine, setAttackLine] = useState<{
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+  } | null>(null);
 
   const attackEnemy = (enemy: Enemy) => {
     if (robot.ammo <= 0) return false;
 
-    const distance = Math.sqrt(Math.pow(enemy.x - robot.x, 2) + Math.pow(enemy.y - robot.y, 2));
+    const distance = Math.sqrt(
+      Math.pow(enemy.x - robot.x, 2) + Math.pow(enemy.y - robot.y, 2),
+    );
     if (distance > robot.attackRange) return false;
 
     setAttackLine({
       x1: robot.x,
       y1: robot.y,
       x2: enemy.x,
-      y2: enemy.y
+      y2: enemy.y,
     });
 
     setTimeout(() => setAttackLine(null), 500);
-    setRobot(prev => ({ ...prev, ammo: prev.ammo - 1 }));
-    setEnemies(prev => prev.map(e => {
-      if (e.id === enemy.id) {
-        const newHealth = e.health - robot.damage;
-        if (newHealth <= 0) {
-          addLog(`Defeated ${e.type}!`, 'attack');
-          setGameState(prev => ({ ...prev, kills: prev.kills + 1 }));
-          return null as unknown as Enemy;
-        }
-        addLog(`Hit ${e.type} for ${robot.damage} damage!`, 'attack');
-        return { ...e, health: newHealth };
-      }
-      return e;
-    }).filter(Boolean));
+    setRobot((prev) => ({ ...prev, ammo: prev.ammo - 1 }));
+    setEnemies((prev) =>
+      prev
+        .map((e) => {
+          if (e.id === enemy.id) {
+            const newHealth = e.health - robot.damage;
+            if (newHealth <= 0) {
+              addLog(`Defeated ${e.type}!`, "attack");
+              setGameState((prev) => {
+                const newKills = prev.kills + 1;
+                if (
+                  newKills >= PORTAL_ACTIVATION_THRESHOLD &&
+                  !isPortalActive
+                ) {
+                  setIsPortalActive(true);
+                  addLog("Portal has been activated!", "portal");
+                }
+                return { ...prev, kills: newKills };
+              });
+              return null as unknown as Enemy;
+            }
+            addLog(`Hit ${e.type} for ${robot.damage} damage!`, "attack");
+            return { ...e, health: newHealth };
+          }
+          return e;
+        })
+        .filter(Boolean),
+    );
 
     return true;
   };
@@ -315,50 +438,58 @@ const RogueLikeGame: React.FC = () => {
   const collectItem = (item: Item) => {
     if (robot.x === item.x && robot.y === item.y) {
       switch (item.type) {
-        case 'health':
-          setRobot(prev => ({
+        case "health":
+          setRobot((prev) => ({
             ...prev,
-            health: Math.min(prev.maxHealth, prev.health + item.value)
+            health: Math.min(prev.maxHealth, prev.health + item.value),
           }));
-          addLog(`Collected health +${item.value}`, 'heal');
+          addLog(`Collected health +${item.value}`, "heal");
           break;
-        case 'ammo':
-          setRobot(prev => ({
+        case "ammo":
+          setRobot((prev) => ({
             ...prev,
-            ammo: Math.min(prev.maxAmmo, prev.ammo + item.value)
+            ammo: Math.min(prev.maxAmmo, prev.ammo + item.value),
           }));
-          addLog(`Collected ammo +${item.value}`, 'item');
+          addLog(`Collected ammo +${item.value}`, "item");
           break;
-        case 'shield':
-          setRobot(prev => ({
+        case "shield":
+          setRobot((prev) => ({
             ...prev,
-            defense: prev.defense + item.value
+            defense: prev.defense + item.value,
           }));
-          addLog(`Collected shield +${item.value}`, 'item');
+          addLog(`Collected shield +${item.value}`, "item");
           break;
-        case 'damage':
-          setRobot(prev => ({
+        case "damage":
+          setRobot((prev) => ({
             ...prev,
-            damage: prev.damage + item.value
+            damage: prev.damage + item.value,
+            ammo: Math.min(prev.maxAmmo, prev.ammo + 5), // Add 5 ammo with damage pickup
           }));
-          addLog(`Collected damage +${item.value}`, 'item');
+          addLog(`Collected damage +${item.value} and ammo +5`, "item");
           break;
-        case 'range':
-          setRobot(prev => ({
+        case "range":
+          setRobot((prev) => ({
             ...prev,
-            attackRange: prev.attackRange + item.value
+            attackRange: prev.attackRange + item.value,
+            ammo: Math.min(prev.maxAmmo, prev.ammo + 5), // Add 5 ammo with range pickup
           }));
-          addLog(`Collected range +${item.value}`, 'item');
+          addLog(`Collected range +${item.value} and ammo +5`, "item");
           break;
       }
-      setItems(prev => prev.filter(i => i.id !== item.id));
-      setGameState(prev => ({ ...prev, itemsCollected: prev.itemsCollected + 1 }));
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+      setGameState((prev) => ({
+        ...prev,
+        itemsCollected: prev.itemsCollected + 1,
+      }));
       return true;
     }
     return false;
   };
 
-  const findPathToTarget = (start: { x: number; y: number }, goal: { x: number; y: number }): Cell[] => {
+  const findPathToTarget = (
+    start: { x: number; y: number },
+    goal: { x: number; y: number },
+  ): Cell[] => {
     const openSet: Cell[] = [];
     const closedSet: Set<string> = new Set();
 
@@ -397,17 +528,24 @@ const RogueLikeGame: React.FC = () => {
       closedSet.add(`${current.x},${current.y}`);
 
       // Check all adjacent squares
-      const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+      const directions = [
+        [-1, 0],
+        [1, 0],
+        [0, -1],
+        [0, 1],
+      ];
       for (const [dx, dy] of directions) {
         const newX = current.x + dx;
         const newY = current.y + dy;
 
         // Skip if out of bounds
-        if (newX < 0 || newX >= ROOM_WIDTH || newY < 0 || newY >= ROOM_HEIGHT) continue;
+        if (newX < 0 || newX >= ROOM_WIDTH || newY < 0 || newY >= ROOM_HEIGHT)
+          continue;
 
         // Skip if wall or already in closed set
         const neighbor = room[newY][newX];
-        if (neighbor.type === 'wall' || closedSet.has(`${newX},${newY}`)) continue;
+        if (neighbor.type === "wall" || closedSet.has(`${newX},${newY}`))
+          continue;
 
         const tentativeG = current.g + 1;
 
@@ -431,70 +569,129 @@ const RogueLikeGame: React.FC = () => {
     if (!isAutoPlaying) return;
 
     // Update AI state based on current situation
-    const nearestEnemy = enemies.reduce((nearest, enemy) => {
-      const distance = Math.sqrt(Math.pow(enemy.x - robot.x, 2) + Math.pow(enemy.y - robot.y, 2));
-      if (!nearest || distance < Math.sqrt(Math.pow(nearest.x - robot.x, 2) + Math.pow(nearest.y - robot.y, 2))) {
-        return enemy;
-      }
-      return nearest;
-    }, null as Enemy | null);
+    const nearestEnemy = enemies.reduce(
+      (nearest, enemy) => {
+        const distance = Math.sqrt(
+          Math.pow(enemy.x - robot.x, 2) + Math.pow(enemy.y - robot.y, 2),
+        );
+        if (
+          !nearest ||
+          distance <
+            Math.sqrt(
+              Math.pow(nearest.x - robot.x, 2) +
+                Math.pow(nearest.y - robot.y, 2),
+            )
+        ) {
+          return enemy;
+        }
+        return nearest;
+      },
+      null as Enemy | null,
+    );
 
-    const nearestItem = items.reduce((nearest, item) => {
-      const distance = Math.sqrt(Math.pow(item.x - robot.x, 2) + Math.pow(item.y - robot.y, 2));
-      if (!nearest || distance < Math.sqrt(Math.pow(nearest.x - robot.x, 2) + Math.pow(nearest.y - robot.y, 2))) {
-        return item;
-      }
-      return nearest;
-    }, null as Item | null);
+    const nearestItem = items.reduce(
+      (nearest, item) => {
+        const distance = Math.sqrt(
+          Math.pow(item.x - robot.x, 2) + Math.pow(item.y - robot.y, 2),
+        );
+        if (
+          !nearest ||
+          distance <
+            Math.sqrt(
+              Math.pow(nearest.x - robot.x, 2) +
+                Math.pow(nearest.y - robot.y, 2),
+            )
+        ) {
+          return item;
+        }
+        return nearest;
+      },
+      null as Item | null,
+    );
 
     // Decision making
     let newMode = aiState.mode;
     let target = undefined;
-    let decision = '';
+    let decision = "";
 
     if (robot.health < robot.maxHealth * 0.3) {
-      newMode = 'heal';
-      const healthItem = items.find(i => i.type === 'health');
+      newMode = "heal";
+      const healthItem = items.find((i) => i.type === "health");
       if (healthItem) {
         target = { x: healthItem.x, y: healthItem.y };
-        decision = 'Low health, seeking healing item';
+        decision = "Low health, seeking healing item";
       }
-    } else if (robot.ammo < 5 && items.some(i => i.type === 'ammo')) {
-      newMode = 'explore';
-      const ammoItem = items.find(i => i.type === 'ammo');
+    } else if (robot.ammo < 5 && items.some((i) => i.type === "ammo")) {
+      newMode = "explore";
+      const ammoItem = items.find((i) => i.type === "ammo");
       if (ammoItem) {
         target = { x: ammoItem.x, y: ammoItem.y };
-        decision = 'Low ammo, seeking ammo item';
+        decision = "Low ammo, seeking ammo item";
       }
     } else if (nearestEnemy && robot.ammo > 0) {
-      newMode = 'combat';
+      newMode = "combat";
       target = { x: nearestEnemy.x, y: nearestEnemy.y };
       decision = `Engaging ${nearestEnemy.type}`;
     } else if (nearestItem) {
-      newMode = 'explore';
+      newMode = "explore";
       target = { x: nearestItem.x, y: nearestItem.y };
       decision = `Moving to collect ${nearestItem.type}`;
-    } else {
-      newMode = 'portal';
-      const portalCell = room.flat().find(cell => cell.type === 'portal');
+    } else if (
+      isPortalActive &&
+      robot.health >= robot.maxHealth * 0.5 &&
+      robot.ammo >= robot.maxAmmo * 0.3
+    ) {
+      // Only go to portal if health and ammo are sufficient
+      newMode = "portal";
+      const portalCell = room.flat().find((cell) => cell.type === "portal");
       if (portalCell) {
         target = { x: portalCell.x, y: portalCell.y };
-        decision = 'Seeking portal to next level';
+        decision = "Portal is active, proceeding to next level";
+      }
+    } else if (isPortalActive) {
+      // If portal is active but resources are low, still collect items
+      if (nearestItem) {
+        target = { x: nearestItem.x, y: nearestItem.y };
+        decision = `Getting more resources before portal: ${nearestItem.type}`;
+      }
+    } else {
+      // Evaluate if it's a good time to progress to next level (only if portal is not yet active)
+      const shouldProgress =
+        // Cleared most enemies (>80%)
+        enemies.length <= Math.ceil(gameState.level * 0.2) &&
+        // Has good health (>50%)
+        robot.health >= robot.maxHealth * 0.5 &&
+        // Has sufficient ammo (>30%)
+        robot.ammo >= robot.maxAmmo * 0.3 &&
+        // Collected majority of beneficial items
+        items.filter(
+          (i) => !i.collected && (i.type === "damage" || i.type === "shield"),
+        ).length <= 2;
+
+      if (shouldProgress) {
+        newMode = "explore"; // explore to find the portal
+        decision = "Room cleared, searching for portal";
+      } else {
+        newMode = "explore";
+        decision = "Continuing to clear current level";
       }
     }
 
-    setAIState(prev => ({
+    setAIState((prev) => ({
       ...prev,
       mode: newMode,
       target,
       lastDecision: decision,
-      confidence: Math.random() * 0.3 + 0.7
+      confidence: Math.random() * 0.3 + 0.7,
     }));
 
     // Execute action based on state
     if (target) {
-      if (newMode === 'combat' && nearestEnemy) {
-        const distance = Math.sqrt(Math.pow(nearestEnemy.x - robot.x, 2) + Math.pow(nearestEnemy.y - robot.y, 2));
+      if (newMode === "combat" && nearestEnemy) {
+        const distance = Math.sqrt(
+          Math.pow(nearestEnemy.x - robot.x, 2) +
+            Math.pow(nearestEnemy.y - robot.y, 2),
+        );
         if (distance <= robot.attackRange) {
           attackEnemy(nearestEnemy);
         } else {
@@ -516,59 +713,104 @@ const RogueLikeGame: React.FC = () => {
     }
 
     // Process enemy turns
-    setEnemies(prev => prev.map(enemy => {
-      if (enemy.turnsToMove > 1) {
-        return { ...enemy, turnsToMove: enemy.turnsToMove - 1 };
-      }
-
-      const distance = Math.sqrt(Math.pow(enemy.x - robot.x, 2) + Math.pow(enemy.y - robot.y, 2));
-      if (distance <= enemy.attackRange) {
-        const damage = Math.max(0, enemy.damage - robot.defense);
-        setRobot(prev => ({
-          ...prev,
-          health: prev.health - damage
-        }));
-        addLog(`${enemy.type} hits for ${damage} damage!`, 'damage');
-      } else if (distance <= enemy.moveRange) {
-        const dx = Math.sign(robot.x - enemy.x);
-        const dy = Math.sign(robot.y - enemy.y);
-        const newX = enemy.x + dx;
-        const newY = enemy.y + dy;
-        
-        // Check if new position is valid (not a wall and not occupied by another enemy)
-        if (newX >= 0 && newX < ROOM_WIDTH && newY >= 0 && newY < ROOM_HEIGHT &&
-            room[newY][newX].type !== 'wall' &&
-            !enemies.some(e => e.id !== enemy.id && e.x === newX && e.y === newY)) {
-          return {
-            ...enemy,
-            x: newX,
-            y: newY,
-            turnsToMove: ENEMY_TYPES[enemy.type].turnsToMove
-          };
+    setEnemies((prev) =>
+      prev.map((enemy) => {
+        if (enemy.turnsToMove > 1) {
+          return { ...enemy, turnsToMove: enemy.turnsToMove - 1 };
         }
-      }
 
-      return { ...enemy, turnsToMove: ENEMY_TYPES[enemy.type].turnsToMove };
-    }));
+        const distance = Math.sqrt(
+          Math.pow(enemy.x - robot.x, 2) + Math.pow(enemy.y - robot.y, 2),
+        );
+        if (distance <= enemy.attackRange) {
+          const damage = Math.max(0, enemy.damage - robot.defense);
+          setRobot((prev) => ({
+            ...prev,
+            health: prev.health - damage,
+          }));
+          addLog(`${enemy.type} hits for ${damage} damage!`, "damage");
+        } else if (distance <= enemy.moveRange) {
+          const dx = Math.sign(robot.x - enemy.x);
+          const dy = Math.sign(robot.y - enemy.y);
+          const newX = enemy.x + dx;
+          const newY = enemy.y + dy;
+
+          // Check if new position is valid (not a wall and not occupied by another enemy)
+          if (
+            newX >= 0 &&
+            newX < ROOM_WIDTH &&
+            newY >= 0 &&
+            newY < ROOM_HEIGHT &&
+            room[newY][newX].type !== "wall" &&
+            !enemies.some(
+              (e) => e.id !== enemy.id && e.x === newX && e.y === newY,
+            )
+          ) {
+            return {
+              ...enemy,
+              x: newX,
+              y: newY,
+              turnsToMove: ENEMY_TYPES[enemy.type].turnsToMove,
+            };
+          }
+        }
+
+        return { ...enemy, turnsToMove: ENEMY_TYPES[enemy.type].turnsToMove };
+      }),
+    );
 
     // Check for items
-    items.forEach(item => collectItem(item));
+    items.forEach((item) => collectItem(item));
 
-    // Check for portal
-    if (room[robot.y][robot.x].type === 'portal') {
-      addLog('Entering portal to next level!', 'portal');
-      const newRoom = createEmptyRoom();
-      setGameState(prev => ({ ...prev, level: prev.level + 1 }));
-      setRoom(newRoom);
-      setEnemies(generateEnemies(newRoom, gameState.level + 1));
-      setItems(generateItems(newRoom)); // Updated item generation
-      setRobot(prev => ({ ...prev, x: 1, y: 1 }));
+    // Check for portal range and portal entry
+    const portalCell = room.flat().find((cell) => cell.type === "portal");
+    if (portalCell) {
+      const distanceToPortal = Math.sqrt(
+        Math.pow(portalCell.x - robot.x, 2) +
+          Math.pow(portalCell.y - robot.y, 2),
+      );
+      const pulseRange = 3 + Math.sin(portalPulse * 0.5) * 1.5;
+
+      if (room[robot.y][robot.x].type === "portal") {
+        // Portal entry - heal and restore ammo
+        addLog(
+          "Entering portal to next level! Health and ammo restored!",
+          "portal",
+        );
+        const newRoom = createEmptyRoom();
+        setGameState((prev) => ({ ...prev, level: prev.level + 1 }));
+        setRoom(newRoom);
+        setEnemies(generateEnemies(newRoom, gameState.level + 1));
+        setItems(generateItems(newRoom));
+        setRobot((prev) => ({
+          ...prev,
+          x: 1,
+          y: 1,
+          health: prev.maxHealth,
+          ammo: prev.maxAmmo,
+        }));
+        setIsPortalActive(false);
+      } else if (isPortalActive && distanceToPortal <= pulseRange) {
+        // Within portal pulse range - override other behaviors
+        newMode = "portal";
+        target = { x: portalCell.x, y: portalCell.y };
+        decision = "Within portal range - proceeding to portal";
+      }
     }
 
     // Update game state and portal pulse
-    setGameState(prev => ({ ...prev, turn: prev.turn + 1 }));
-    setPortalPulse(prev => prev + 1);
-  }, [robot, enemies, items, room, aiState, isAutoPlaying, gameState.level]);
+    setGameState((prev) => ({ ...prev, turn: prev.turn + 1 }));
+    setPortalPulse((prev) => prev + 1);
+  }, [
+    robot,
+    enemies,
+    items,
+    room,
+    aiState,
+    isAutoPlaying,
+    gameState.level,
+    isPortalActive,
+  ]);
 
   useEffect(() => {
     updateVisibility();
@@ -577,7 +819,7 @@ const RogueLikeGame: React.FC = () => {
   useEffect(() => {
     if (robot.health <= 0) {
       setIsAutoPlaying(false);
-      addLog('Game Over!', 'damage');
+      addLog("Game Over!", "damage");
       return;
     }
 
@@ -607,8 +849,12 @@ const RogueLikeGame: React.FC = () => {
             onClick={() => setIsAutoPlaying(!isAutoPlaying)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           >
-            {isAutoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            {isAutoPlaying ? 'Pause' : 'Resume'}
+            {isAutoPlaying ? (
+              <Pause className="w-4 h-4" />
+            ) : (
+              <Play className="w-4 h-4" />
+            )}
+            {isAutoPlaying ? "Pause" : "Resume"}
           </button>
           <div className="flex items-center gap-2">
             <Timer className="w-4 h-4" />
@@ -621,7 +867,9 @@ const RogueLikeGame: React.FC = () => {
               onChange={(e) => setMoveSpeed(parseFloat(e.target.value))}
               className="w-24"
             />
-            <span className="text-sm text-gray-600">{moveSpeed.toFixed(1)}x</span>
+            <span className="text-sm text-gray-600">
+              {moveSpeed.toFixed(1)}x
+            </span>
           </div>
         </div>
         <button
@@ -631,135 +879,140 @@ const RogueLikeGame: React.FC = () => {
           <HelpCircle className="w-5 h-5" />
         </button>
         <button
-            onClick={() => {
-              setGameState({ level: 1, turn: 0, kills: 0, itemsCollected: 0 });
-              setRobot(prev => ({
-                ...prev,
-                x: 1,
-                y: 1,
-                health: 110,
-                maxHealth: 110,
-                ammo: 30,
-                maxAmmo: 30,
-                damage: 10,
-                defense: 5,
-                attackRange: 3
-              }));
-              setRoom(createEmptyRoom());
-              setEnemies([]);
-              setItems([]);
-              setCombatLog([]);
-            }}
-            className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
-          >
-            But it refused
-          </button>
+          onClick={() => {
+            setGameState({ level: 1, turn: 0, kills: 0, itemsCollected: 0 });
+            setRobot((prev) => ({
+              ...prev,
+              x: 1,
+              y: 1,
+              health: 110,
+              maxHealth: 110,
+              ammo: 30,
+              maxAmmo: 30,
+              damage: 10,
+              defense: 5,
+              attackRange: 3,
+            }));
+            setRoom(createEmptyRoom());
+            setEnemies([]);
+            setItems([]);
+            setCombatLog([]);
+            setIsPortalActive(false); // Reset portal activation on game restart
+          }}
+          className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+        >
+          But it refused
+        </button>
       </div>
 
       <div className="grid grid-cols-[2fr,1fr] gap-4">
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <div className="grid grid-cols-[repeat(15,2rem)] grid-rows-[repeat(15,2rem)] gap-px bg-gray-200">
-            {room.map((row, y) =>
-              row.map((cell, x) => (
-                <div
-                  key={`${x}-${y}`}
-                  style={{
-                    position: 'relative',
-                    ...(attackLine && ((x === robot.x && y === robot.y) || (x === attackLine.x2 && y === attackLine.y2)) && {
-                      '&::after': {
-                        content: '""',
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        width: '2px',
-                        height: '2rem',
-                        background: 'red',
-                        transform: `rotate(${Math.atan2(attackLine.y2 - attackLine.y1, attackLine.x2 - attackLine.x1) * (180 / Math.PI)}deg)`,
-                        transformOrigin: 'top left',
-                        pointerEvents: 'none',
-                        zIndex: 10
+        <div className="space-y-4">
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="grid grid-cols-[repeat(15,2rem)] grid-rows-[repeat(15,2rem)] gap-px bg-gray-200">
+              {room.map((row, y) =>
+                row.map((cell, x) => (
+                  <div
+                    key={`${x}-${y}`}
+                    style={{
+                      position: "relative",
+                      ...(attackLine &&
+                        ((x === robot.x && y === robot.y) ||
+                          (x === attackLine.x2 && y === attackLine.y2)) && {
+                          "&::after": {
+                            content: '""',
+                            position: "absolute",
+                            top: "50%",
+                            left: "50%",
+                            width: "2px",
+                            height: "2rem",
+                            background: "red",
+                            transform: `rotate(${Math.atan2(attackLine.y2 - attackLine.y1, attackLine.x2 - attackLine.x1) * (180 / Math.PI)}deg)`,
+                            transformOrigin: "top left",
+                            pointerEvents: "none",
+                            zIndex: 30,
+                          },
+                        }),
+                    }}
+                    className={`relative z-20 ${
+                      cell.isVisible
+                        ? "opacity-100"
+                        : cell.wasVisible
+                          ? "opacity-50"
+                          : "opacity-0"
+                    } ${
+                      cell.type === "wall"
+                        ? "bg-gray-800"
+                        : cell.type === "portal"
+                          ? "bg-purple-500"
+                          : cell.terrain === "water"
+                            ? "bg-blue-200"
+                            : cell.terrain === "lava"
+                              ? "bg-red-200"
+                              : cell.terrain === "grass"
+                                ? "bg-green-200"
+                                : "bg-white"
+                    }`}
+                  >
+                    {robot.x === x && robot.y === y && (
+                      <>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Bot className="w-6 h-6 text-blue-500" />
+                        </div>
+                        <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 whitespace-nowrap">
+                          [{robot.ammo}/{robot.maxAmmo}]
+                        </div>
+                      </>
+                    )}
+                    {enemies.map((enemy) => {
+                      if (enemy.x === x && enemy.y === y && cell.isVisible) {
+                        return (
+                          <div
+                            key={enemy.id}
+                            className="absolute inset-0 flex items-center justify-center"
+                          >
+                            {enemy.type === "slime" ? (
+                              <div className="w-6 h-6 rounded-full bg-green-500" />
+                            ) : enemy.type === "skeleton" ? (
+                              <Skull className="w-6 h-6 text-gray-700" />
+                            ) : enemy.type === "ghost" ? (
+                              <div className="w-6 h-6 rounded-full bg-white border-2 border-gray-400" />
+                            ) : enemy.type === "mage" ? (
+                              <Zap className="w-6 h-6 text-purple-500" />
+                            ) : (
+                              <Swords className="w-6 h-6 text-red-500" />
+                            )}
+                          </div>
+                        );
                       }
-                    })
-                  }}
-                  className={`relative ${
-                    cell.isVisible
-                      ? 'opacity-100'
-                      : cell.wasVisible
-                      ? 'opacity-50'
-                      : 'opacity-0'
-                  } ${
-                    cell.type === 'wall'
-                      ? 'bg-gray-800'
-                      : cell.type === 'portal'
-                      ? 'bg-purple-500'
-                      : cell.terrain === 'water'
-                      ? 'bg-blue-200'
-                      : cell.terrain === 'lava'
-                      ? 'bg-red-200'
-                      : cell.terrain === 'grass'
-                      ? 'bg-green-200'
-                      : 'bg-white'
-                  }`}
-                >
-                  {robot.x === x && robot.y === y && (
-                    <>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Bot className="w-6 h-6 text-blue-500" />
-                      </div>
-                      <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 whitespace-nowrap">
-                        [{robot.ammo}/{robot.maxAmmo}]
-                      </div>
-                    </>
-                  )}
-                  {enemies.map(enemy => {
-                    if (enemy.x === x && enemy.y === y && cell.isVisible) {
-                      return (
-                        <div
-                          key={enemy.id}
-                          className="absolute inset-0 flex items-center justify-center"
-                        >
-                          {enemy.type === 'slime' ? (
-                            <div className="w-6 h-6 rounded-full bg-green-500" />
-                          ) : enemy.type === 'skeleton' ? (
-                            <Skull className="w-6 h-6 text-gray-700" />
-                          ) : enemy.type === 'ghost' ? (
-                            <div className="w-6 h-6 rounded-full bg-white border-2 border-gray-400" />
-                          ) : enemy.type === 'mage' ? (
-                            <Zap className="w-6 h-6 text-purple-500" />
-                          ) : (
-                            <Swords className="w-6 h-6 text-red-500" />
-                          )}
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
-                  {items.map(item => {
-                    if (item.x === x && item.y === y && cell.isVisible) {
-                      return (
-                        <div
-                          key={item.id}
-                          className="absolute inset-0 flex items-center justify-center"
-                        >
-                          {item.type === 'health' ? (
-                            <Heart className="w-6 h-6 text-red-500" />
-                          ) : item.type === 'ammo' ? (
-                            <Package className="w-6 h-6 text-yellow-500" />
-                          ) : item.type === 'shield' ? (
-                            <Shield className="w-6 h-6 text-blue-500" />
-                          ) : item.type === 'damage' ? (
-                            <Swords className="w-6 h-6 text-orange-500" />
-                          ) : (
-                            <Crosshair className="w-6 h-6 text-purple-500" />
-                          )}
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
-                </div>
-              ))
-            )}
+                      return null;
+                    })}
+                    {items.map((item) => {
+                      if (item.x === x && item.y === y && cell.isVisible) {
+                        return (
+                          <div
+                            key={item.id}
+                            className="absolute inset-0 flex items-center justify-center"
+                          >
+                            {item.type === "health" ? (
+                              <Heart className="w-6 h-6 text-red-500" />
+                            ) : item.type === "ammo" ? (
+                              <Package className="w-6 h-6 text-yellow-500" />
+                            ) : item.type === "shield" ? (
+                              <Shield className="w-6 h-6 text-blue-500" />
+                            ) : item.type === "damage" ? (
+                              <Swords className="w-6 h-6 text-orange-500" />
+                            ) : (
+                              <Crosshair className="w-6 h-6 text-purple-500" />
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+                )),
+              )}
+            </div>
           </div>
         </div>
 
@@ -783,6 +1036,30 @@ const RogueLikeGame: React.FC = () => {
                 <span>Items</span>
                 <span>{gameState.itemsCollected}</span>
               </div>
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Damage</span>
+                  <span>{robot.damage}</span>
+                </div>
+                <div className="h-2 bg-gray-200 rounded-full">
+                  <div
+                    className="h-full bg-orange-500 rounded-full"
+                    style={{ width: `${(robot.damage / 30) * 100}%` }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Range</span>
+                  <span>{robot.attackRange}</span>
+                </div>
+                <div className="h-2 bg-gray-200 rounded-full">
+                  <div
+                    className="h-full bg-blue-500 rounded-full"
+                    style={{ width: `${(robot.attackRange / 6) * 100}%` }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -792,19 +1069,25 @@ const RogueLikeGame: React.FC = () => {
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Health</span>
-                  <span>{robot.health}/{robot.maxHealth}</span>
+                  <span>
+                    {robot.health}/{robot.maxHealth}
+                  </span>
                 </div>
                 <div className="h-2 bg-gray-200 rounded-full">
                   <div
                     className="h-full bg-red-500 rounded-full"
-                    style={{ width: `${(robot.health / robot.maxHealth) * 100}%` }}
+                    style={{
+                      width: `${(robot.health / robot.maxHealth) * 100}%`,
+                    }}
                   />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Ammo</span>
-                  <span>{robot.ammo}/{robot.maxAmmo}</span>
+                  <span>
+                    {robot.ammo}/{robot.maxAmmo}
+                  </span>
                 </div>
                 <div className="h-2 bg-gray-200 rounded-full">
                   <div
@@ -861,15 +1144,15 @@ const RogueLikeGame: React.FC = () => {
                 <div
                   key={i}
                   className={`text-sm ${
-                    log.type === 'attack'
-                      ? 'text-blue-600'
-                      : log.type === 'damage'
-                      ? 'text-red-600'
-                      : log.type === 'heal'
-                      ? 'text-green-600'
-                      : log.type === 'portal'
-                      ? 'text-purple-600'
-                      : 'text-gray-600'
+                    log.type === "attack"
+                      ? "text-blue-600"
+                      : log.type === "damage"
+                        ? "text-red-600"
+                        : log.type === "heal"
+                          ? "text-green-600"
+                          : log.type === "portal"
+                            ? "text-purple-600"
+                            : "text-gray-600"
                   }`}
                 >
                   {log.message}
