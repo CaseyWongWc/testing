@@ -500,11 +500,57 @@ function App() {
                 Replit
               </button>
               
+              {/* Toggle button for WebSocket buttons visibility */}
+              <button
+                onClick={() => setShowWebSocketButtons(!showWebSocketButtons)}
+                className={`px-6 py-3 ${showWebSocketButtons ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-800'} rounded-lg hover:opacity-90 transition-colors text-lg font-medium flex items-center justify-center col-span-2`}
+              >
+                <ArrowIcon 
+                  size={18} 
+                  color={showWebSocketButtons ? '#4f46e5' : '#4b5563'} 
+                  className={showWebSocketButtons ? 'rotate-90 transition-transform mr-2' : 'rotate-0 transition-transform mr-2'} 
+                  isActive={showWebSocketButtons}
+                  isButton={false}
+                />
+                <span>{showWebSocketButtons ? 'Hide WebSocket Buttons' : 'Show WebSocket Buttons'}</span>
+              </button>
               
+              {/* WebSocket buttons visible only when showWebSocketButtons is true and showWebSocketComponents is false */}
+              {showWebSocketButtons && !showWebSocketComponents && (
+                <>
+                  <button
+                    onClick={() => setActiveGame("wss-chat")}
+                    className="px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors text-lg font-medium flex items-center justify-center"
+                  >
+                    <span>WebSocket Chat</span>
+                    <span className="ml-2 inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                  </button>
+                  <button
+                    onClick={() => setActiveGame("wss-drawing")}
+                    className="px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors text-lg font-medium flex items-center justify-center"
+                  >
+                    <span>Collaborative Drawing</span>
+                    <span className="ml-2 inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                  </button>
+                </>
+              )}
               
-              
-              
-              
+              {/* Toggle WebSocket panel button (shown when showWebSocketButtons is true) */}
+              {showWebSocketButtons && showWebSocketComponents && (
+                <button
+                  onClick={() => setShowWebSocketComponents(false)}
+                  className="px-6 py-3 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors text-lg font-medium flex items-center justify-center col-span-2"
+                >
+                  <ArrowIcon 
+                    size={18} 
+                    color="#1d4ed8" 
+                    className="rotate-90 transition-transform mr-2" 
+                    isActive={true}
+                    isButton={false}
+                  />
+                  <span>Hide WebSocket Panel</span>
+                </button>
+              )}
             </div>
           </div>
         )}
