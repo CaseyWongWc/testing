@@ -106,7 +106,7 @@ interface Player {
 type VisionType = "cautious" | "eagle" | "strategic";
 
 // Types of brain (decision-making)
-type BrainType = "balanced" | "explorer" | "collector" | "trader";
+type BrainType = "balanced" | "explorer" | "collector" | "trader" | "adaptive" | "strategic";
 
 // Path returned by vision
 interface Path {
@@ -1200,6 +1200,147 @@ const WSSTwo: React.FC = () => {
     }
   };
   
+  // A* pathfinding function to find optimal path
+  const findPathAStar = (startX: number, startY: number, goalX: number, goalY: number): Direction | null => {
+    // If already at goal, return null
+    if (startX === goalX && startY === goalY) return null;
+    
+    // Initialize openSet, closedSet, and cameFrom
+    const openSet: { x: number; y: number; f: number; g: number; h: number }[] = [];
+    const closedSet: Set<string> = new Set();
+    const cameFrom: Map<string, { x: number; y: number }> = new Map();
+    
+    // Add start position to openSet
+    openSet.push({
+      x: startX,
+      y: startY,
+      g: 0,
+      h: Math.abs(goalX - startX) + Math.abs(goalY - startY),
+      f: Math.abs(goalX - startX) + Math.abs(goalY - startY)
+    });
+    
+    while (openSet.length > 0) {
+      // Find node with lowest f score
+      let lowestIndex = 0;
+      for (let i = 1; i < openSet.length; i++) {
+        if (openSet[i].f < openSet[lowestIndex].f) {
+          lowestIndex = i;
+        }
+      }
+      
+      const current = openSet[lowestIndex];
+      
+      // If we've reached the goal, reconstruct and return first step
+      if (current.x === goalX && current.y === goalY) {
+        // Reconstruct path
+        let currentPos = { x: current.x, y: current.y };
+        const path: { x: number; y: number }[] = [currentPos];
+        
+        while (cameFrom.has(`${currentPos.x},${currentPos.y}`)) {
+          currentPos = cameFrom.get(`${currentPos.x},${currentPos.y}`)!;
+          path.unshift(currentPos);
+        }
+        
+        // If path has at least 2 points, return direction to the first step
+        if (path.length >= 2) {
+          const firstStep = path[1];
+          return getDirectionToCell(startX, startY, firstStep.x, firstStep.y);
+        }
+        
+        return null;
+      }
+      
+      // Remove current from openSet and add to closedSet
+      openSet.splice(lowestIndex, 1);
+      closedSet.add(`${current.x},${current.y}`);
+      
+      // Check all neighbor directions
+      const directions: Direction[] = [
+        "north", "south", "east", "west", 
+        "northeast", "northwest", "southeast", "southwest"
+      ];
+      
+      for (const direction of directions) {
+        let neighborX = current.x;
+        let neighborY = current.y;
+        
+        // Calculate new position based on direction
+        switch (direction) {
+          case "north": neighborY--; break;
+          case "south": neighborY++; break;
+          case "east": neighborX++; break;
+          case "west": neighborX--; break;
+          case "northeast": neighborX++; neighborY--; break;
+          case "northwest": neighborX--; neighborY--; break;
+          case "southeast": neighborX++; neighborY++; break;
+          case "southwest": neighborX--; neighborY++; break;
+        }
+        
+        // Skip if out of bounds
+        if (
+          neighborX < 0 || 
+          neighborX >= gameState.mapWidth || 
+          neighborY < 0 || 
+          neighborY >= gameState.mapHeight
+        ) {
+          continue;
+        }
+        
+        // Skip if in closedSet
+        if (closedSet.has(`${neighborX},${neighborY}`)) {
+          continue;
+        }
+        
+        // Skip if not visible (can't pathfind through fog of war)
+        if (!map[neighborY][neighborX].isVisible && !map[neighborY][neighborX].wasVisible) {
+          continue;
+        }
+        
+        // Calculate movement cost to this neighbor
+        const terrainData = TERRAIN_COSTS[map[neighborY][neighborX].terrain];
+        const moveCost = terrainData.movementCost;
+        
+        // Skip if player doesn't have enough resources to enter this cell
+        if (
+          player.currentStrength < moveCost ||
+          player.currentWater < terrainData.waterCost ||
+          player.currentFood < terrainData.foodCost
+        ) {
+          continue;
+        }
+        
+        // Calculate tentative g score
+        const tentativeG = current.g + moveCost;
+        
+        // Check if this neighbor is in openSet
+        const existingNodeIndex = openSet.findIndex(
+          node => node.x === neighborX && node.y === neighborY
+        );
+        
+        if (existingNodeIndex === -1) {
+          // Not in openSet, add it
+          const h = Math.abs(goalX - neighborX) + Math.abs(goalY - neighborY);
+          openSet.push({
+            x: neighborX,
+            y: neighborY,
+            g: tentativeG,
+            h,
+            f: tentativeG + h
+          });
+          cameFrom.set(`${neighborX},${neighborY}`, { x: current.x, y: current.y });
+        } else if (tentativeG < openSet[existingNodeIndex].g) {
+          // Already in openSet but this path is better
+          openSet[existingNodeIndex].g = tentativeG;
+          openSet[existingNodeIndex].f = tentativeG + openSet[existingNodeIndex].h;
+          cameFrom.set(`${neighborX},${neighborY}`, { x: current.x, y: current.y });
+        }
+      }
+    }
+    
+    // No path found
+    return null;
+  };
+  
   // Calculate brain's suggested move
   const calculateBrainMove = (): Direction => {
     const { brain, x, y, currentFood, maxFood, currentWater, maxWater, currentStrength, maxStrength } = player;
@@ -1230,6 +1371,45 @@ const WSSTwo: React.FC = () => {
     const cellsWithTraders = visibleCells.filter(cell => 
       cell.items.some(item => item.type === "trader")
     );
+    
+    // Calculate all possible move directions and their costs
+    const possibleMoves: { direction: Direction; terrainCost: number }[] = [];
+    const directions: Direction[] = [
+      "north", "south", "east", "west", 
+      "northeast", "northwest", "southeast", "southwest", "stay"
+    ];
+    
+    for (const direction of directions) {
+      if (direction === "stay") {
+        possibleMoves.push({ direction: "stay", terrainCost: -2 }); // Resting recovers strength
+        continue;
+      }
+      
+      let moveX = x;
+      let moveY = y;
+      
+      switch (direction) {
+        case "north": moveY--; break;
+        case "south": moveY++; break;
+        case "east": moveX++; break;
+        case "west": moveX--; break;
+        case "northeast": moveX++; moveY--; break;
+        case "northwest": moveX--; moveY--; break;
+        case "southeast": moveX++; moveY++; break;
+        case "southwest": moveX--; moveY++; break;
+      }
+      
+      // Skip if out of bounds
+      if (moveX < 0 || moveX >= gameState.mapWidth || moveY < 0 || moveY >= gameState.mapHeight) {
+        continue;
+      }
+      
+      // Get terrain cost
+      const terrain = map[moveY][moveX].terrain;
+      const terrainCost = TERRAIN_COSTS[terrain].movementCost;
+      
+      possibleMoves.push({ direction, terrainCost });
+    }
     
     // Different brain types have different strategies
     if (brain === "balanced") {
@@ -1404,6 +1584,350 @@ const WSSTwo: React.FC = () => {
       else {
         reasoning += "- Moving east to find more traders\n";
         move = "east";
+      }
+    }
+    // New brain type: Strategic - uses A* pathfinding
+    else if (brain === "strategic") {
+      reasoning = "Using strategic brain strategy with A* pathfinding:\n";
+      
+      // Determine target based on priorities
+      let targetX = -1;
+      let targetY = -1;
+      
+      // If critically low on resources, find the closest source
+      if (foodNeed > 0.8 && cellsWithFood.length > 0) {
+        reasoning += "- Critically low on food, calculating optimal path to food\n";
+        const closestFood = cellsWithFood.sort((a, b) => 
+          Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+        )[0];
+        targetX = closestFood.x;
+        targetY = closestFood.y;
+      }
+      else if (waterNeed > 0.8 && cellsWithWater.length > 0) {
+        reasoning += "- Critically low on water, calculating optimal path to water\n";
+        const closestWater = cellsWithWater.sort((a, b) => 
+          Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+        )[0];
+        targetX = closestWater.x;
+        targetY = closestWater.y;
+      }
+      // If there's a trader and we have gold, go to it
+      else if (cellsWithTraders.length > 0 && player.gold > 0) {
+        reasoning += "- Found a trader, calculating optimal path\n";
+        const closestTrader = cellsWithTraders.sort((a, b) => 
+          Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+        )[0];
+        targetX = closestTrader.x;
+        targetY = closestTrader.y;
+      }
+      // If resources are below 50%, find the closest source
+      else if (foodNeed > 0.5 && cellsWithFood.length > 0) {
+        reasoning += "- Food below 50%, calculating optimal path to food\n";
+        const closestFood = cellsWithFood.sort((a, b) => 
+          Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+        )[0];
+        targetX = closestFood.x;
+        targetY = closestFood.y;
+      }
+      else if (waterNeed > 0.5 && cellsWithWater.length > 0) {
+        reasoning += "- Water below 50%, calculating optimal path to water\n";
+        const closestWater = cellsWithWater.sort((a, b) => 
+          Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+        )[0];
+        targetX = closestWater.x;
+        targetY = closestWater.y;
+      }
+      // If strength is low, rest
+      else if (strengthNeed > 0.7) {
+        reasoning += "- Low on strength, staying to rest\n";
+        move = "stay";
+      }
+      // Otherwise, head east
+      else {
+        reasoning += "- Calculating optimal path eastward\n";
+        
+        // Find the most efficient path eastward
+        // Look for the eastmost visible cell with lowest movement cost
+        const eastCells = visibleCells.filter(cell => cell.x > x);
+        if (eastCells.length > 0) {
+          // Sort by x (prioritize furthest east), then by terrain cost (lowest first)
+          eastCells.sort((a, b) => {
+            if (b.x !== a.x) return b.x - a.x;
+            return TERRAIN_COSTS[a.terrain].movementCost - TERRAIN_COSTS[b.terrain].movementCost;
+          });
+          
+          targetX = eastCells[0].x;
+          targetY = eastCells[0].y;
+        } else {
+          // If no visible cells to the east, just try to go east
+          move = "east";
+        }
+      }
+      
+      // Use A* pathfinding to find the best path to the target
+      if (targetX !== -1 && targetY !== -1) {
+        const pathDirection = findPathAStar(x, y, targetX, targetY);
+        if (pathDirection) {
+          reasoning += `- A* pathfinding suggests moving ${pathDirection}\n`;
+          move = pathDirection;
+        } else {
+          reasoning += "- No valid path found, defaulting to move east\n";
+          move = "east";
+        }
+      }
+    }
+    // New brain type: Adaptive - changes strategy based on conditions
+    else if (brain === "adaptive") {
+      reasoning = "Using adaptive brain strategy:\n";
+      
+      // Calculate current condition scores to determine what strategy to use
+      const resourceScore = Math.min(currentFood / maxFood, currentWater / maxWater) * 100;
+      const progressScore = (x / gameState.mapWidth) * 100;
+      const explorationScore = map.flat().filter(cell => cell.wasVisible).length / 
+                              (gameState.mapWidth * gameState.mapHeight) * 100;
+      
+      reasoning += `- Current conditions: Resource level ${resourceScore.toFixed(0)}%, ` +
+                  `Progress ${progressScore.toFixed(0)}%, ` +
+                  `Exploration ${explorationScore.toFixed(0)}%\n`;
+      
+      // Pick a strategy based on the current conditions
+      if (resourceScore < 20) {
+        // Critical resource shortage - act like collector but more desperate
+        reasoning += "- CRITICAL: Resources dangerously low, prioritizing survival\n";
+        
+        // If very low on food or water, find the closest source
+        if (foodNeed > waterNeed && cellsWithFood.length > 0) {
+          reasoning += "- Seeking food as top priority\n";
+          const closestFood = cellsWithFood.sort((a, b) => 
+            Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+          )[0];
+          move = getDirectionToCell(x, y, closestFood.x, closestFood.y);
+        }
+        else if (cellsWithWater.length > 0) {
+          reasoning += "- Seeking water as top priority\n";
+          const closestWater = cellsWithWater.sort((a, b) => 
+            Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+          )[0];
+          move = getDirectionToCell(x, y, closestWater.x, closestWater.y);
+        }
+        // If no resources in sight and critically low, stay to conserve
+        else if (resourceScore < 10) {
+          reasoning += "- No resources in sight and critically low, conserving energy\n";
+          move = "stay";
+        }
+        // Otherwise try to find an unexplored area that might have resources
+        else {
+          reasoning += "- Exploring for resources in unexplored areas\n";
+          
+          // Find unexplored directions
+          const unexploredDirs = possibleMoves.filter(m => {
+            if (m.direction === "stay") return false;
+            
+            let nx = x, ny = y;
+            switch (m.direction) {
+              case "north": ny--; break;
+              case "south": ny++; break;
+              case "east": nx++; break;
+              case "west": nx--; break;
+              case "northeast": nx++; ny--; break;
+              case "northwest": nx--; ny--; break;
+              case "southeast": nx++; ny++; break;
+              case "southwest": nx--; ny++; break;
+            }
+            
+            // Check if out of bounds
+            if (nx < 0 || nx >= gameState.mapWidth || ny < 0 || ny >= gameState.mapHeight) {
+              return false;
+            }
+            
+            return !map[ny][nx].isVisible && !map[ny][nx].wasVisible;
+          });
+          
+          if (unexploredDirs.length > 0) {
+            // Sort by lowest terrain cost
+            unexploredDirs.sort((a, b) => a.terrainCost - b.terrainCost);
+            move = unexploredDirs[0].direction;
+          } else {
+            // If no unexplored directions, try east
+            move = "east";
+          }
+        }
+      }
+      else if (progressScore > 80) {
+        // Near the goal - act like explorer
+        reasoning += "- Near eastern edge, prioritizing completing the journey\n";
+        
+        // Only divert from going east if resources are critical
+        if (resourceScore < 30 && (cellsWithFood.length > 0 || cellsWithWater.length > 0)) {
+          reasoning += "- Resources getting low, need a quick resupply before continuing\n";
+          // Find closest resource
+          const targets = [...cellsWithFood, ...cellsWithWater].sort((a, b) => 
+            Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+          );
+          
+          if (targets.length > 0) {
+            move = getDirectionToCell(x, y, targets[0].x, targets[0].y);
+          } else {
+            move = "east";
+          }
+        } else {
+          move = "east";
+        }
+      }
+      else if (explorationScore < 30) {
+        // Early game, not much explored - balance exploration with resource gathering
+        reasoning += "- Early exploration phase, balancing discovery with survival\n";
+        
+        // If resources are good, explore more aggressive directions
+        if (resourceScore > 70) {
+          reasoning += "- Resources plentiful, exploring aggressively\n";
+          
+          // Prefer eastward exploration
+          const explorationDirs: Direction[] = ["east", "northeast", "southeast", "north", "south"];
+          
+          for (const dir of explorationDirs) {
+            const isValid = validateMove(dir);
+            if (isValid.valid) {
+              move = dir;
+              break;
+            }
+          }
+        } 
+        // If resources are okay, explore but be cautious
+        else if (resourceScore > 40) {
+          reasoning += "- Resources adequate, exploring with some caution\n";
+          
+          // Collect resources if convenient
+          if (cellsWithFood.length > 0 || cellsWithWater.length > 0) {
+            const targets = [...cellsWithFood, ...cellsWithWater].sort((a, b) => 
+              Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+            );
+            
+            // Only divert to resources if they're close (1-2 steps away)
+            if (targets.length > 0 && Math.abs(targets[0].x - x) + Math.abs(targets[0].y - y) <= 2) {
+              reasoning += "- Found nearby resources, collecting before continuing\n";
+              move = getDirectionToCell(x, y, targets[0].x, targets[0].y);
+            } else {
+              // Otherwise keep moving east but through low-cost terrain
+              const eastOptions = possibleMoves.filter(m => 
+                m.direction === "east" || m.direction === "northeast" || m.direction === "southeast"
+              );
+              
+              if (eastOptions.length > 0) {
+                // Choose the lowest cost option
+                eastOptions.sort((a, b) => a.terrainCost - b.terrainCost);
+                move = eastOptions[0].direction;
+              } else {
+                move = "east";
+              }
+            }
+          } else {
+            // No resources in sight, move east through lowest cost terrain
+            const eastOptions = possibleMoves.filter(m => 
+              m.direction === "east" || m.direction === "northeast" || m.direction === "southeast"
+            );
+            
+            if (eastOptions.length > 0) {
+              // Choose the lowest cost option
+              eastOptions.sort((a, b) => a.terrainCost - b.terrainCost);
+              move = eastOptions[0].direction;
+            } else {
+              move = "east";
+            }
+          }
+        }
+        // If resources are low, prioritize finding more
+        else {
+          reasoning += "- Resources running low, need to find supplies\n";
+          
+          if (cellsWithFood.length > 0 || cellsWithWater.length > 0) {
+            const targets = [...cellsWithFood, ...cellsWithWater].sort((a, b) => 
+              Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+            );
+            
+            if (targets.length > 0) {
+              move = getDirectionToCell(x, y, targets[0].x, targets[0].y);
+            } else {
+              // If no resources visible, explore in the general eastward direction
+              const dirs: Direction[] = ["east", "northeast", "southeast"];
+              for (const dir of dirs) {
+                const isValid = validateMove(dir);
+                if (isValid.valid) {
+                  move = dir;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+      // Mid-game balanced strategy
+      else {
+        reasoning += "- Mid-journey phase, optimizing for long-term survival\n";
+        
+        // If trader is visible, consider trading
+        if (cellsWithTraders.length > 0 && player.gold > 0) {
+          // Only divert to trader if we need resources
+          if (resourceScore < 60) {
+            reasoning += "- Found trader and resources below 60%, worth a detour\n";
+            const closestTrader = cellsWithTraders.sort((a, b) => 
+              Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+            )[0];
+            move = getDirectionToCell(x, y, closestTrader.x, closestTrader.y);
+          } else {
+            reasoning += "- Found trader but resources adequate, continuing eastward\n";
+            move = "east";
+          }
+        }
+        // If resources are getting low, restock
+        else if (resourceScore < 50) {
+          reasoning += "- Resources below 50%, need to restock\n";
+          
+          if (cellsWithFood.length > 0 || cellsWithWater.length > 0) {
+            const targets = [...cellsWithFood, ...cellsWithWater].sort((a, b) => 
+              Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+            );
+            
+            if (targets.length > 0) {
+              move = getDirectionToCell(x, y, targets[0].x, targets[0].y);
+            } else {
+              move = "east";
+            }
+          } else {
+            move = "east";
+          }
+        }
+        // Otherwise continue east but prefer paths with resources
+        else {
+          reasoning += "- Resources adequate, prioritizing eastward progress\n";
+          
+          // Check if any eastern cells have resources
+          const eastCellsWithItems = visibleCells.filter(cell => 
+            cell.x > x && cell.items.length > 0
+          );
+          
+          if (eastCellsWithItems.length > 0) {
+            reasoning += "- Found resources in eastern direction, optimal path\n";
+            // Pick the closest one
+            const target = eastCellsWithItems.sort((a, b) => 
+              Math.abs(a.x - x) + Math.abs(a.y - y) - (Math.abs(b.x - x) + Math.abs(b.y - y))
+            )[0];
+            move = getDirectionToCell(x, y, target.x, target.y);
+          } else {
+            // No resources to the east, just go east through lowest cost terrain
+            const eastOptions = possibleMoves.filter(m => 
+              m.direction === "east" || m.direction === "northeast" || m.direction === "southeast"
+            );
+            
+            if (eastOptions.length > 0) {
+              // Choose the lowest cost option
+              eastOptions.sort((a, b) => a.terrainCost - b.terrainCost);
+              move = eastOptions[0].direction;
+            } else {
+              move = "east";
+            }
+          }
+        }
       }
     }
     
@@ -1636,6 +2160,8 @@ const WSSTwo: React.FC = () => {
                 <option value="explorer">Explorer (Prioritizes eastward movement)</option>
                 <option value="collector">Collector (Prioritizes gathering resources)</option>
                 <option value="trader">Trader (Prioritizes trading)</option>
+                <option value="adaptive">Adaptive (Changes strategy based on conditions)</option>
+                <option value="strategic">Strategic (Uses A* pathfinding for optimal routes)</option>
               </select>
             </div>
           </div>
