@@ -9,7 +9,7 @@ import {
   Swords,
   Users,
   Wifi,
-  WifiOff,
+  WifiOff
 } from "lucide-react";
 
 // Types for game entities
@@ -164,8 +164,48 @@ const WSSRogueHDraft: React.FC = () => {
   const gameLoopRef = useRef<number | null>(null);
   const lastActionRef = useRef<number>(0);
 
-  // Initialize WebSocket connection
+  // Initialize game with demo mode for now (WebSockets disabled temporarily)
   useEffect(() => {
+    // Set to demo mode immediately for now
+    console.log('Using demo mode - WebSockets available but temporarily disabled');
+    setDemoMode(true);
+    setConnected(true);
+    
+    // Create a demo client ID
+    const demoClientId = "demo-" + Math.random().toString(36).substring(2, 6);
+    setClientId(demoClientId);
+    
+    // Update the robot with client info
+    setRobot(prev => ({
+      ...prev,
+      clientId: demoClientId,
+      color: getRandomColor(),
+      name: "Player (You)"
+    }));
+    
+    // Add a mock opponent in demo mode
+    setOtherPlayers([{
+      x: 5,
+      y: 5,
+      health: 100,
+      maxHealth: 100,
+      ammo: 30,
+      maxAmmo: 30,
+      damage: 15,
+      defense: 8,
+      attackRange: 4,
+      clientId: "demo-opponent",
+      color: getRandomColor(),
+      name: "AI Opponent"
+    }]);
+    
+    // Create a new room
+    initializeRoom();
+    
+    // Add a note in the log
+    addLog('Game initialized in single-player mode', 'join');
+    
+    /* WebSocket code kept for future use - currently disabled
     const connectWebSocket = () => {
       if (connectionAttempts >= 3) {
         console.log('Switching to demo mode after multiple failed connection attempts');
@@ -271,7 +311,8 @@ const WSSRogueHDraft: React.FC = () => {
     };
     
     // Initialize connection
-    connectWebSocket();
+    // connectWebSocket(); // Commented out for now
+    */
     
     // Cleanup on unmount
     return () => {
@@ -284,7 +325,7 @@ const WSSRogueHDraft: React.FC = () => {
         cancelAnimationFrame(gameLoopRef.current);
       }
     };
-  }, [connectionAttempts]);
+  }, []);
 
   // Handler for WebSocket messages
   const handleWebSocketMessage = (message: WebSocketMessage) => {
@@ -1085,22 +1126,10 @@ const WSSRogueHDraft: React.FC = () => {
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-lg font-semibold">WebSocket Roguelike</h2>
             <div className="text-sm">
-              {demoMode ? (
-                <span className="flex items-center text-yellow-700">
-                  <WifiOff className="w-4 h-4 mr-1" />
-                  Demo Mode (Offline)
-                </span>
-              ) : connected ? (
-                <span className="flex items-center text-green-700">
-                  <Wifi className="w-4 h-4 mr-1" />
-                  Connected
-                </span>
-              ) : (
-                <span className="flex items-center text-red-700">
-                  <WifiOff className="w-4 h-4 mr-1" />
-                  Disconnected - Trying to reconnect...
-                </span>
-              )}
+              <span className="flex items-center text-yellow-700">
+                <WifiOff className="w-4 h-4 mr-1" />
+                Single-player Mode (WebSockets disabled)
+              </span>
             </div>
           </div>
           
