@@ -78,7 +78,7 @@ function App() {
                   isActive={showWebSocketComponents}
                   isButton={false}
                 />
-                {showWebSocketComponents ? 'Hide WebSocket Panel' : 'Show WebSocket Panel'}
+                {showWebSocketComponents ? '' : ''} {/*//Show WebSocket Panel //Hide WebSocket Panel*/}
               </button>
             </div>
           </div>
@@ -512,7 +512,7 @@ function App() {
                   isActive={showWebSocketButtons}
                   isButton={false}
                 />
-                <span>{showWebSocketButtons ? 'Hide WebSocket Buttons' : 'Show WebSocket Buttons'}</span>
+                <span>{showWebSocketButtons ? '' : ''}</span> {/*//Hide WebSocket Buttons //Show WebSocket Buttons*/}
               </button>
               
               {/* WebSocket buttons visible only when showWebSocketButtons is true and showWebSocketComponents is false */}
