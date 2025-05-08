@@ -14,6 +14,8 @@ import ReplitScene from "./replit/ReplitScene";
 import BeeHiveSimulation from "./replit/BeeHiveSimulation";
 import ArrowIcon from "./components/ArrowIcon";
 import { MultiValuedItemCollector } from "./replit/MultiValuedItemCollector";
+import WebSocketChat from "./components/WebSocketChat";
+import CollaborativeDrawing from "./components/CollaborativeDrawing";
 
 type GameType =
   | "maze"
@@ -28,7 +30,13 @@ type GameType =
   | "trading"
   | "other-apps"
   | "combat"
-  | "replit";
+  | "replit"
+  | "wss-chat"
+  | "wss-drawing"
+  | "tag"
+  | "rogue"
+  | "scene7"
+  | "scene8";
 
 function App() {
   const [activeGame, setActiveGame] = useState<GameType>("maze");
@@ -188,7 +196,9 @@ function App() {
             activeGame !== "other-apps" &&
             activeGame !== "combat" &&
             activeGame !== "scene7" &&
-            activeGame !== "scene8" && (
+            activeGame !== "scene8" &&
+            activeGame !== "wss-chat" &&
+            activeGame !== "wss-drawing" && (
               <div className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap gap-4">
                 <div>
                   <label
@@ -432,22 +442,40 @@ function App() {
         {activeGame === "rogue" && <MonsterCards />}
         {activeGame === "other-apps" && (
           <div className="flex flex-col items-center gap-4">
-            <button
-              onClick={() => setActiveGame("combat")}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium"
-            >
-              Combat
-            </button>
-            <button
-              onClick={() => setActiveGame("replit")}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium"
-            >
-              Replit
-            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                onClick={() => setActiveGame("combat")}
+                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium"
+              >
+                Combat
+              </button>
+              <button
+                onClick={() => setActiveGame("replit")}
+                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium"
+              >
+                Replit
+              </button>
+              <button
+                onClick={() => setActiveGame("wss-chat")}
+                className="px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors text-lg font-medium flex items-center justify-center"
+              >
+                <span>WebSocket Chat</span>
+                <span className="ml-2 inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+              </button>
+              <button
+                onClick={() => setActiveGame("wss-drawing")}
+                className="px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors text-lg font-medium flex items-center justify-center"
+              >
+                <span>Collaborative Drawing</span>
+                <span className="ml-2 inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+              </button>
+            </div>
           </div>
         )}
         {activeGame === "combat" && <Combat />}
         {activeGame === "replit" && <ReplitScene />}
+        {activeGame === "wss-chat" && <WebSocketChat />}
+        {activeGame === "wss-drawing" && <CollaborativeDrawing />}
         
       </div>
     </div>

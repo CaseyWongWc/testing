@@ -1,0 +1,6 @@
+[WebSocket_Server]
+run = ["node", "server.js"]
+language = "nodejs"
+hidden = false
+persistent = true
+onBoot = false
