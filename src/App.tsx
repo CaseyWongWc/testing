@@ -53,16 +53,24 @@ function App() {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col items-center gap-4 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-3 flex items-center justify-center w-full mb-2">
-            <h1 className="text-2xl font-bold text-blue-600 flex items-center">
-              {activeGame === "other-apps" ? "WSS Components" : "AI Simulation Framework"}{" "}
-              <ArrowIcon 
-                size={24} 
-                color="#2563eb" 
-                className="ml-2 cursor-pointer" 
-                isActive={activeGame === "other-apps"}
-                onClick={() => setActiveGame(activeGame === "other-apps" ? "maze" : "other-apps")}
-              />
-            </h1>
+            <div className="flex items-center justify-between w-full">
+              <h1 className="text-2xl font-bold text-blue-600 flex items-center">
+                AI Simulation Framework{" "}
+                <ArrowIcon 
+                  size={24} 
+                  color="#2563eb" 
+                  className="ml-2 cursor-pointer" 
+                  isActive={activeGame === "other-apps"}
+                  onClick={() => setActiveGame(activeGame === "other-apps" ? "maze" : "other-apps")}
+                />
+              </h1>
+              <button
+                onClick={() => setActiveGame("maze")}
+                className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-medium hover:bg-yellow-200 transition-colors"
+              >
+                Hide WebSocket Components (WIP)
+              </button>
+            </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-1 flex gap-1 flex-wrap">
             <button
