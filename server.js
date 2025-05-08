@@ -1,36 +1,43 @@
 import express from 'express';
+import { createServer } from 'http';
+import { WebSocketServer, WebSocket } from 'ws';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { spawn } from 'child_process';
-import http from 'http';
-import { WebSocketServer, WebSocket } from 'ws';
 
+// Create Express app
 const app = express();
-// Use Replit environment port or fall back to a default
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001; // Changed to 3001 to avoid conflicts
 const VITE_PORT = 5173;
 
-// Create an HTTP server instance from the Express app
-const httpServer = http.createServer(app);
+// Create HTTP server
+const server = createServer(app);
 
 // Start Vite dev server
-const vite = spawn('npx', ['vite', '--host', '0.0.0.0', '--port', VITE_PORT.toString()], {
+console.log(`Starting Vite dev server on port ${VITE_PORT}...`);
+const vite = spawn('npx', ['vite', '--host', '0.0.0.0', '--port', `${VITE_PORT}`], {
   stdio: 'inherit',
   shell: true
 });
 
-// Setup WebSocket server on a distinct path
-const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+// Create WebSocket server
+const wss = new WebSocketServer({ 
+  server, 
+  path: '/ws'
+});
 
 // Store connected clients
-const clients = new Set();
+const clients = new Map();
 
 // WebSocket server event handlers
 wss.on('connection', (ws) => {
   const clientId = Math.random().toString(36).substring(2, 10);
   console.log(`WebSocket client connected: ${clientId}`);
   
-  // Add client to the set with its ID
-  clients.add({ id: clientId, ws });
+  // Add client to the map with its ID
+  clients.set(ws, {
+    id: clientId,
+    color: '#' + Math.floor(Math.random()*16777215).toString(16) // random color
+  });
   
   // Send welcome message with client ID
   ws.send(JSON.stringify({
@@ -50,21 +57,22 @@ wss.on('connection', (ws) => {
   
   // Handle incoming messages
   ws.on('message', (message) => {
-    let parsedMessage;
     try {
-      parsedMessage = JSON.parse(message);
-      console.log(`Received message from ${clientId}:`, parsedMessage);
+      const data = JSON.parse(message.toString());
+      console.log(`Received message from ${clientId}:`, data);
       
-      // Add client ID and timestamp if not present
-      if (!parsedMessage.clientId) {
-        parsedMessage.clientId = clientId;
+      // Add client ID if not present
+      if (!data.clientId) {
+        data.clientId = clientId;
       }
-      if (!parsedMessage.timestamp) {
-        parsedMessage.timestamp = new Date().toISOString();
+      
+      // Add timestamp if not present
+      if (!data.timestamp) {
+        data.timestamp = new Date().toISOString();
       }
       
       // Broadcast message to all clients
-      broadcastMessage(parsedMessage);
+      broadcastMessage(data);
     } catch (error) {
       console.error('Error parsing message:', error);
       ws.send(JSON.stringify({
@@ -79,30 +87,31 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     console.log(`WebSocket client disconnected: ${clientId}`);
     
-    // Remove client from the set
-    for (const client of clients) {
-      if (client.id === clientId) {
-        clients.delete(client);
-        break;
-      }
-    }
+    // Get clientId before removing from map
+    const client = clients.get(ws);
     
-    // Broadcast disconnect message
-    broadcastMessage({
-      type: 'user_left',
-      clientId: clientId,
-      message: `Client ${clientId} left`,
-      timestamp: new Date().toISOString()
-    });
+    // Remove client from the map
+    clients.delete(ws);
+    
+    // Broadcast disconnect message if we have the client info
+    if (client) {
+      broadcastMessage({
+        type: 'user_left',
+        clientId: client.id,
+        message: `Client ${client.id} left`,
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 });
 
 // Function to broadcast messages to all connected clients
 function broadcastMessage(message) {
   const messageStr = JSON.stringify(message);
-  clients.forEach((client) => {
-    if (client.ws.readyState === WebSocket.OPEN) {
-      client.ws.send(messageStr);
+  
+  clients.forEach((client, ws) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(messageStr);
     }
   });
 }
@@ -111,61 +120,49 @@ function broadcastMessage(message) {
 app.get('/api/status', (req, res) => {
   res.json({
     status: 'ok',
-    message: 'Express proxy server is running',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Add a diagnostic endpoint for checking arrow component
-app.get('/api/arrow', (req, res) => {
-  res.json({
-    status: 'ok',
-    message: 'Arrow component is set up',
-    component: 'ArrowIcon',
+    message: 'Express server is running',
     timestamp: new Date().toISOString()
   });
 });
 
 // Add a WebSocket status endpoint
 app.get('/api/ws-status', (req, res) => {
+  const clientList = Array.from(clients.values()).map(client => client.id);
+  
   res.json({
     status: 'ok',
     message: 'WebSocket server is running',
-    clients: Array.from(clients).map(client => client.id),
+    clientCount: clients.size,
+    clients: clientList,
     timestamp: new Date().toISOString()
   });
 });
 
-// Handle WebSocket routes separately - no need to proxy WebSocket to itself
-// since the WebSocketServer is already attached to the same HTTP server
-
 // Proxy all other requests to Vite
-const httpProxy = createProxyMiddleware('/', {
-  target: `http://0.0.0.0:${VITE_PORT}`,
+app.use('/', createProxyMiddleware({
+  target: `http://localhost:${VITE_PORT}`,
   changeOrigin: true,
-  ws: true,
+  ws: false, // Don't proxy WebSockets - we handle those separately
   onProxyReq: (proxyReq, req, res) => {
-    // Don't proxy WebSocket connections that should be handled by our server
-    if (req.url.startsWith('/ws')) {
-      console.log(`Not proxying WebSocket request: ${req.method} ${req.url}`);
-      return;
+    if (!req.url.startsWith('/ws')) {
+      console.log(`Proxying ${req.method} ${req.url}`);
     }
-    console.log(`Proxying ${req.method} ${req.url}`);
   }
+}));
+
+// Start the server
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
+  console.log(`WebSocket server available at ws://0.0.0.0:${PORT}/ws`);
 });
 
-// Use the proxy for all non-API routes
-app.use('/', httpProxy);
-
-// Use the HTTP server to listen instead of the Express app
-httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`Express server running on http://0.0.0.0:${PORT}`);
-  console.log(`WebSocket server running on ws://0.0.0.0:${PORT}/ws`);
-  console.log(`Proxying to Vite server at http://0.0.0.0:${VITE_PORT}`);
-});
-
-// Handle shutdown
+// Handle process termination
 process.on('SIGINT', () => {
-  vite.kill();
+  console.log('Shutting down server...');
+  
+  if (vite) {
+    vite.kill();
+  }
+  
   process.exit(0);
 });

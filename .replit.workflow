@@ -1,6 +1,4 @@
-[WebSocket_Server]
-run = ["node", "server.js"]
-language = "nodejs"
-hidden = false
-persistent = true
-onBoot = false
+{
+  "entrypoint": "websocket.sh",
+  "onBoot": "pnpm install"
+}

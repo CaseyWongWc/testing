@@ -81,10 +81,12 @@ const CollaborativeDrawing: React.FC = () => {
       // Get the protocol (wss for https, ws for http)
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       
-      // In Replit, we need to use the same host and rely on path-based routing
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      // Use port 3001 for WebSocket connection with the current host
+      const hostWithoutPort = window.location.hostname;
       
-      console.log(`Attempting to connect to WebSocket at ${wsUrl}`);
+      // Create WebSocket URL with the ws path
+      const wsUrl = `${protocol}//${hostWithoutPort}:3001/ws`;
+      console.log(`Attempting to connect to WebSocket at: ${wsUrl}`);
       
       try {
         // Create new WebSocket connection
