@@ -47,6 +47,7 @@ function App() {
   const [terrainIntensity, setTerrainIntensity] = useState(0.5);
   const [goalCount, setGoalCount] = useState(5);
   const [robotCount, setRobotCount] = useState(3);
+  const [showWebSocketComponents, setShowWebSocketComponents] = useState(false);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
@@ -62,13 +63,21 @@ function App() {
                   className="ml-2 cursor-pointer" 
                   isActive={activeGame === "other-apps"}
                   onClick={() => setActiveGame(activeGame === "other-apps" ? "maze" : "other-apps")}
+                  isButton={true}
                 />
               </h1>
               <button
-                onClick={() => setActiveGame("maze")}
-                className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-medium hover:bg-yellow-200 transition-colors"
+                onClick={() => setShowWebSocketComponents(!showWebSocketComponents)}
+                className={`px-4 py-2 ${showWebSocketComponents ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'} rounded-lg text-sm font-medium hover:opacity-90 transition-colors flex items-center gap-2`}
               >
-                Hide WebSocket Components (WIP)
+                <ArrowIcon 
+                  size={16} 
+                  color={showWebSocketComponents ? '#1d4ed8' : '#854d0e'} 
+                  className={showWebSocketComponents ? 'rotate-90 transition-transform' : 'rotate-0 transition-transform'} 
+                  isActive={showWebSocketComponents}
+                  isButton={false}
+                />
+                {showWebSocketComponents ? 'Hide WebSocket Panel' : 'Show WebSocket Panel'}
               </button>
             </div>
           </div>
@@ -184,7 +193,8 @@ function App() {
               MonsterCards
             </button>
             
-            {(activeGame === "other-apps" || activeGame === "wss-chat" || activeGame === "wss-drawing") && (
+            {/* WebSocket buttons are controlled by showWebSocketComponents state */}
+            {((activeGame === "other-apps" || activeGame === "wss-chat" || activeGame === "wss-drawing") || showWebSocketComponents) && (
               <>
                 <button
                   onClick={() => setActiveGame("other-apps")}
@@ -504,8 +514,21 @@ function App() {
         )}
         {activeGame === "combat" && <Combat />}
         {activeGame === "replit" && <ReplitScene />}
-        {activeGame === "wss-chat" && <WebSocketChat />}
-        {activeGame === "wss-drawing" && <CollaborativeDrawing />}
+        {/* WebSocket components are rendered based on activeGame and showWebSocketComponents state */}
+        {showWebSocketComponents && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <h3 className="text-xl font-semibold text-gray-800 mb-3">WebSocket Chat</h3>
+              <WebSocketChat />
+            </div>
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <h3 className="text-xl font-semibold text-gray-800 mb-3">Collaborative Drawing</h3>
+              <CollaborativeDrawing />
+            </div>
+          </div>
+        )}
+        {!showWebSocketComponents && activeGame === "wss-chat" && <WebSocketChat />}
+        {!showWebSocketComponents && activeGame === "wss-drawing" && <CollaborativeDrawing />}
         
       </div>
     </div>

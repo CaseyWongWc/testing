@@ -8,6 +8,7 @@ interface ArrowIconProps {
   className?: string;
   onClick?: () => void;
   isActive?: boolean;
+  isButton?: boolean;
 }
 
 const ArrowIcon: React.FC<ArrowIconProps> = ({ 
@@ -15,17 +16,32 @@ const ArrowIcon: React.FC<ArrowIconProps> = ({
   color = 'currentColor',
   className = '',
   onClick,
-  isActive = false
+  isActive = false,
+  isButton = true
 }) => {
+  const commonClasses = `inline-flex items-center justify-center transition-all hover:scale-110 ${
+    isActive ? 'text-red-500 animate-pulse shadow-lg shadow-red-500/50' : ''
+  } ${className}`;
+  
+  if (isButton) {
+    return (
+      <button 
+        onClick={onClick}
+        className={commonClasses}
+        type="button"
+      >
+        <ArrowRight size={size} color={isActive ? '#ef4444' : color} />
+      </button>
+    );
+  }
+  
   return (
-    <button 
+    <span 
       onClick={onClick}
-      className={`inline-flex items-center justify-center transition-all hover:scale-110 ${
-        isActive ? 'text-red-500 animate-pulse shadow-lg shadow-red-500/50' : ''
-      } ${className}`}
+      className={`${commonClasses} cursor-pointer`}
     >
       <ArrowRight size={size} color={isActive ? '#ef4444' : color} />
-    </button>
+    </span>
   );
 };
 
