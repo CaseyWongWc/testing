@@ -40,7 +40,11 @@ const ArrowIcon: React.FC<ArrowIconProps> = ({
       onClick={onClick}
       className={`${commonClasses} cursor-pointer`}
     >
-      <ArrowRight size={size} color={isActive ? '#ef4444' : color} />
+      {isButton ? (
+        <ArrowRight size={size} color={isActive ? '#ef4444' : color} />
+      ) : (
+        <span style={{ fontSize: `${size}px`, color: isActive ? '#ef4444' : color }}>𓂀</span>
+      )}
     </span>
   );
 };
