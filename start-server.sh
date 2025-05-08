@@ -1,3 +1,4 @@
 #!/bin/bash
-echo "Starting WebSocket server..."
+
+# Start the server on port 5173
 node server.js

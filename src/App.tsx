@@ -176,17 +176,39 @@ function App() {
               MonsterCards
             </button>
             
-            {activeGame === "other-apps" && (
-              <button
-                onClick={() => setActiveGame("other-apps")}
-                className={`px-4 py-2 rounded transition-colors ${
-                  activeGame === "other-apps"
-                    ? "bg-blue-500 text-white"
-                    : "hover:bg-gray-100"
-                }`}
-              >
-                Other Apps
-              </button>
+            {(activeGame === "other-apps" || activeGame === "wss-chat" || activeGame === "wss-drawing") && (
+              <>
+                <button
+                  onClick={() => setActiveGame("other-apps")}
+                  className={`px-4 py-2 rounded transition-colors ${
+                    activeGame === "other-apps"
+                      ? "bg-blue-500 text-white"
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  Other Apps
+                </button>
+                <button
+                  onClick={() => setActiveGame("wss-chat")}
+                  className={`px-4 py-2 rounded transition-colors ${
+                    activeGame === "wss-chat"
+                      ? "bg-blue-500 text-white"
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  WebSocket Chat
+                </button>
+                <button
+                  onClick={() => setActiveGame("wss-drawing")}
+                  className={`px-4 py-2 rounded transition-colors ${
+                    activeGame === "wss-drawing"
+                      ? "bg-blue-500 text-white"
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  Collaborative Drawing
+                </button>
+              </>
             )}
           </div>
 

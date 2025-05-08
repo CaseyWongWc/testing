@@ -1,0 +1,15 @@
+run = "node server.js"
+language = "nodejs"
+entrypoint = "server.js"
+onBoot = "echo Starting WebSocket Server on port 5173..."
+modules = ["nodejs-20"]
+
+[debugger]
+support = true
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+build = ["sh", "-c", "npm run build"]
+run = ["sh", "-c", "node server.js"]

@@ -1,31 +1,19 @@
+// ESM WebSocket server
 import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { createProxyMiddleware } from 'http-proxy-middleware';
-import { spawn } from 'child_process';
 
-// Create Express app
+// Create the Express app
 const app = express();
-const PORT = process.env.PORT || 5173; // Use Vite's default port for everything
-const VITE_PORT = 5174; // Use a different port for Vite since our server will occupy 5173
+const PORT = process.env.PORT || 5173; // Use Vite's default port
 
 // Create HTTP server
 const server = createServer(app);
 
-// Only start Vite if we're not in production (in Replit environment, we'll use the main server)
-let vite;
-if (process.env.NODE_ENV !== 'production') {
-  console.log(`Starting Vite dev server on port ${VITE_PORT}...`);
-  vite = spawn('npx', ['vite', '--host', '0.0.0.0', '--port', `${VITE_PORT}`], {
-    stdio: 'inherit',
-    shell: true
-  });
-}
-
-// Create WebSocket server on the same server (no need for a separate port)
+// Create WebSocket server attached to the HTTP server with path /ws
 const wss = new WebSocketServer({ 
-  server, 
-  path: '/ws'
+  server: server, 
+  path: '/ws' 
 });
 
 // Store connected clients
@@ -141,32 +129,8 @@ app.get('/api/ws-status', (req, res) => {
   });
 });
 
-// Proxy all other requests to Vite
-app.use('/', createProxyMiddleware({
-  target: `http://localhost:${VITE_PORT}`,
-  changeOrigin: true,
-  ws: false, // Don't proxy WebSockets - we handle those separately
-  onProxyReq: (proxyReq, req, res) => {
-    if (!req.url.startsWith('/ws')) {
-      console.log(`Proxying ${req.method} ${req.url}`);
-    }
-  }
-}));
-
 // Start the server
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
-  console.log(`WebSocket server available at ws://0.0.0.0:${PORT}/ws`);
-});
-
-// Handle process termination
-process.on('SIGINT', () => {
-  console.log('Shutting down server...');
-  
-  // In non-production, vite might be running
-  if (process.env.NODE_ENV !== 'production' && typeof vite !== 'undefined') {
-    vite.kill();
-  }
-  
-  process.exit(0);
+  console.log(`WebSocket server running on http://0.0.0.0:${PORT}`);
+  console.log(`WebSocket endpoint available at ws://0.0.0.0:${PORT}/ws`);
 });

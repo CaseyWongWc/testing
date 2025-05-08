@@ -52,11 +52,11 @@ const WebSocketChat: React.FC = () => {
       // Get the protocol (wss for https, ws for http)
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       
-      // Use port 3001 for WebSocket connection with the current host
-      const hostWithoutPort = window.location.hostname;
+      // In Replit environment, we need to use the same host
+      const host = window.location.host;
       
       // Create WebSocket URL with the ws path
-      const wsUrl = `${protocol}//${hostWithoutPort}:3001/ws`;
+      const wsUrl = `${protocol}//${host}/ws`;
       console.log(`Attempting to connect to WebSocket at: ${wsUrl}`);
       
       try {

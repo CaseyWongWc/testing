@@ -1,4 +1,5 @@
-{
-  "entrypoint": "websocket.sh",
-  "onBoot": "pnpm install"
-}
+name = "Start Node Server with WebSockets"
+entrypoint = "server.js"
+run = "npm run start"
+language = "nodejs"
+onBoot = "true"
