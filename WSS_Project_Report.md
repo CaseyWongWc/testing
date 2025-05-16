@@ -1,7 +1,7 @@
 # Wilderness Survival System (WSS) Project Report
 
 ## Team Information
-[Your name here] - Implemented the entire Wilderness Survival System, including terrain generation, trader interactions, resource management, and AI decision-making algorithms.
+Casey Wong - Implemented the entire Wilderness Survival System, including terrain generation, trader interactions, resource management, and AI decision-making algorithms.
 
 ## Project Status
 The Wilderness Survival System has been fully implemented as per the requirements. The system includes:
