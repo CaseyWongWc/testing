@@ -1,0 +1,40 @@
+Team Project Checkin
+Due: Thu May 15, 2025 11:59pmDue: Thu May 15, 2025 11:59pm
+Ungraded, 100 Possible Points
+100 Points Possible
+Attempt
+Attempt 1
+
+In Progress
+NEXT UP: Submit Assignment
+
+Unlimited Attempts Allowed
+Available: Apr 22, 2025 12:00am until May 15, 2025 11:59pmAvailable: Apr 22, 2025 12:00am until May 15, 2025 11:59pm
+Hello Class,
+
+Use this link to check in your team project.
+
+Important: For this team project, use zip to collect and compress the files.  Do not use other tools such as 7z or rar, we need a zip file.
+
+in the zip file, include the following:
+
+The source code for your WSS.  I'm looking primarily for the C++, Java, Python (etc) files that implement the main classes of your design.
+If you have a GUI for your project, include a video (a couple of minutes in length) demonstrating your project working.  If you have a command-line/text interface, include a file of the program's output, indicating when the person was moving to a new square, what was there, decisions the program made, actions taken.
+A report containing the following information:
+The team members and a brief (one sentence) description of their contribution to the project.
+Write a brief summary stating what is finished in your project and what is not yet finished (this part won't affect your grade unless you are missing major portions of the functionality). 
+Write how you applied what you learned about Object Oriented Design, and how this helped your design.
+The grading information for your project, answering the following questions:
+How many types of terrain do you have?  If you have 3 or less, you get 5 points.  If you have 4, you get 10 points.  If you have 5 or more you get 15 points.
+How many types of traders did you implement?  If you don't have traders, you get 0 points.  1 gives 10 points, 2 or more gives 20 points.  Briefly describe the differences between the traders and how they decide whether to accept a trade or to offer a counteroffer.
+How many types of vision do you have?  3 or less is 5 points, 4 or more is 10 points.
+How many types of brain do you have?  1 is 5 points, 2 is 10 points, 3 or more is 15 points.  Briefly describe how these work.
+You get 12 points for your video/text output of the program
+List one or two places in your code where you are using hierarchy.  Tell me which code file and what line to look at to see this in action in your design.  8 points for this.
+Similarly, list one or two places demonstrating inheritance, 8 points.
+Again, one or two places showing polymorphism, 8 points.
+one or two places with encapsulation, 8 points
+one or two places with abstraction, 8 points
+one or two places where you have really good comments in your code, 8 points.
+If your WSS has something that really impresses me, you get bonus points.
+This is a team submission, so I only need one submission for each team.
