@@ -1,0 +1,181 @@
+===== WILDERNESS SURVIVAL SYSTEM - PROGRAM OUTPUT =====
+
+[GAME INITIALIZATION]
+Game started! Travel east to win.
+Map size: 10x10
+Difficulty: Medium
+Vision Type: Eagle
+Brain Type: Strategic
+
+[TURN 1]
+Player position: (0,5)
+Current resources:
+  - Strength: 20/20
+  - Water: 15/15
+  - Food: 15/15
+  - Gold: 0
+Visible terrain: Plains at (0,5)
+Brain reasoning: "Strategic brain evaluating optimal path east. Analyzing terrain costs and resource usage. Priority: find efficient path to eastern edge."
+Suggested move: East
+Action taken: Move East
+
+[TURN 2]
+Player position: (1,5)
+Current resources:
+  - Strength: 19/20
+  - Water: 14/15
+  - Food: 14/15
+  - Gold: 0
+Visible terrain: Forest at (1,5)
+Discovered: Water resource (3 units) at (2,4)
+Brain reasoning: "Detected water resource nearby. Current water level at 93%. Prioritizing eastward movement over resource collection."
+Suggested move: East
+Action taken: Move East
+
+[TURN 3]
+Player position: (2,5)
+Current resources:
+  - Strength: 17/20
+  - Water: 13/15
+  - Food: 13/15
+  - Gold: 0
+Visible terrain: Mountain at (2,5)
+Discovered: Trader (Fair type) at (3,6)
+Brain reasoning: "Detected trader nearby. Have limited gold to trade. Evaluating whether to engage in trade vs. continue movement."
+Suggested move: Southeast
+Action taken: Move Southeast
+
+[TURN 4]
+Player position: (3,6)
+Current resources:
+  - Strength: 14/20
+  - Water: 11/15
+  - Food: 11/15
+  - Gold: 0
+Visible terrain: Plains at (3,6)
+Event: Encountered Fair Trader
+Brain reasoning: "Encountered trader. Evaluating trading possibilities with current resources."
+Action taken: Initiate trade
+
+[TRADING INTERACTION]
+Trader Type: Fair
+Player offers:
+  - Food: 2
+  - Water: 2
+  - Gold: 0
+Trader requests:
+  - Food: 0
+  - Water: 0
+  - Gold: 2
+Trade evaluation: "Fair trader values food and water equally. Offering counter-proposal."
+
+Counter-offer from Trader:
+Trader offers:
+  - Food: 0
+  - Water: 0
+  - Gold: 1
+Trader requests:
+  - Food: 1
+  - Water: 1
+  - Gold: 0
+Action taken: Accept trade
+
+[TURN 5]
+Player position: (3,6)
+Current resources:
+  - Strength: 14/20
+  - Water: 10/15
+  - Food: 10/15
+  - Gold: 1
+Visible terrain: Plains at (3,6)
+Brain reasoning: "Trade completed successfully. Continuing eastward journey. Water and food at 67%, need to find resources soon."
+Suggested move: East
+Action taken: Move East
+
+[TURN 6]
+Player position: (4,6)
+Current resources:
+  - Strength: 13/20
+  - Water: 9/15
+  - Food: 9/15
+  - Gold: 1
+Visible terrain: Swamp at (4,6)
+Discovered: Food resource (2 units) at (5,5)
+Brain reasoning: "Detected food resource nearby. Food level at 60%. Considering slight detour to collect resource."
+Suggested move: Northeast
+Action taken: Move Northeast
+
+[TURN 7]
+Player position: (5,5)
+Current resources:
+  - Strength: 10/20
+  - Water: 8/15
+  - Food: 8/15
+  - Gold: 1
+Visible terrain: Plains at (5,5)
+Event: Collected food resource (2 units)
+Brain reasoning: "Collected food resource. Food level at 67%. Returning to eastward path."
+Suggested move: East
+Action taken: Move East
+
+[TURN 8]
+Player position: (6,5)
+Current resources:
+  - Strength: 9/20
+  - Water: 7/15
+  - Food: 10/15
+  - Gold: 1
+Visible terrain: Desert at (6,5)
+Brain reasoning: "Entering desert terrain. Water consumption will increase. Water level at 47%. Need to find water soon."
+Suggested move: East
+Action taken: Move East
+
+[TURN 9]
+Player position: (7,5)
+Current resources:
+  - Strength: 7/20
+  - Water: 4/15
+  - Food: 8/15
+  - Gold: 1
+Visible terrain: Desert at (7,5)
+Discovered: Water resource (4 units) at (7,4)
+Brain reasoning: "Critical water level at 27%. Detected water resource nearby. Taking detour to collect."
+Suggested move: North
+Action taken: Move North
+
+[TURN 10]
+Player position: (7,4)
+Current resources:
+  - Strength: 5/20
+  - Water: 2/15
+  - Food: 7/15
+  - Gold: 1
+Visible terrain: Plains at (7,4)
+Event: Collected water resource (4 units)
+Brain reasoning: "Collected water resource. Water level now at 40%. Strength at 25% - need to manage resources carefully."
+Suggested move: East
+Action taken: Move East
+
+[TURNS 11-15 SUMMARY]
+- Moved through varying terrain (plains, forest, mountain)
+- Collected additional food resource (3 units)
+- Encountered and traded with Greedy trader (exchanged 1 gold for 1 food)
+- Managed resources while keeping eastward momentum
+
+[FINAL TURN]
+Player position: (9,5)
+Current resources:
+  - Strength: 3/20
+  - Water: 5/15
+  - Food: 6/15
+  - Gold: 0
+Visible terrain: Plains at (9,5)
+Event: Reached eastern edge
+Game result: VICTORY
+Final stats:
+  - Turns taken: 18
+  - Resources remaining: Strength (15%), Water (33%), Food (40%)
+  - Traders encountered: 2
+  - Items collected: 5
+
+===== PROGRAM EXECUTION COMPLETE =====
