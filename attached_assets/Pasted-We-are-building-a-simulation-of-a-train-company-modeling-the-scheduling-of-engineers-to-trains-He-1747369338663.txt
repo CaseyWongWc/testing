@@ -1,0 +1,108 @@
+We are building a simulation of a train company, modeling the scheduling of engineers to trains.  Here are the project requirements:
+
+All of the stations for this company lie along one line, from east to west.  The stations alternate between home stations and away stations. Each station has a queue of engineers waiting to take a train, and a queue of trains waiting to be taken.  Whenever a station has at least one train in the train queue and at least two engineers in the engineer queue, it assigns the two engineers to the train, and the train then departs to the next station.
+The engineers live near the home stations, but just sleep when they are at an away station.  When an engineer arrives at an away station, the engineer sleeps for 8 hours, then joins the away station queue waiting for the next train.  When an engineer arrives at a home station, the engineer sleeps for 8 hours, has a day off, then joins the home station queue waiting for the next train.
+A train runs from station to station, first going from east to west, then when the last station is reached the train turns around and goes from west to east, and so on.
+For a train to be driven, it requires two engineers.
+When a train arrives at a station, it dismisses its two engineers.   The train then enters the station's train queue.
+There is a timer object that controls the simulation.  It has a queue of activation records for both trains and engineers.
+When a train leaves a station, it adds an activation record in the timer's list, indicating that the train will be running for 10 hours.  At the end of that time, the Timer will reactivate the train (which will then 'arrive' at the next station).
+When an engineer is dismissed from a train, if it is at an away station, it adds an activation record in the timer's list, indicating that the engineer will be sleeping for 8 hours.  At the end of that time, the Timer will reactivate the engineer, who will then join the station's engineer queue.  However, if the engineer was dismissed at the home station, the delay will be for 32 hours (8 hours sleeping and one day off).
+One additional consideration: There are three classes of engineer: Senior Engineer, Junior Engineer, and Trainee Engineer (distinguiehed by an enumeration on the engineer).  The Home station actually has a separate engineer queue for each type of engineer.  When selecting engineers for a train, one of the two must be a Senior Engineer.  The other may be of any type, but Senior Engineers have priority, then Junior Engineers, and last the station would pick a Trainee.  For the away station, there is only a single queue, and engineers are chosen by the order they arrived, not by seniority.
+Here is a Class Model for this scenario:
+
+TrainClassModel
+
+The question is: For some of these relationships, what are the multiplicities?  The left column will list two classes, the right column will list the multiplicities for the two ends.  For example, the Train--Engineer relationship, the multiplicity will first list the multiplicity on the Train end, then the multiplicity on the Engineer end.
+
+Group of answer choices
+Train -- Engineer
+
+[ Choose ]
+Engineer Queue -- Engineer
+
+[ Choose ]
+Home Station -- Engineer Queue
+
+[ Choose ]
+Station -- Train Queue
+
+[ Choose ]
+Activation Time -- Timer
+
+[ Choose ]
+ 
+Flag question: Question 2
+Question 210 pts
+For the train simulation, we would like to determine the expected directionality of the relationships.  For example, if we have a train object, would we want to see which two engineers are currently driving it?  Possibly, we really don't know because we haven't seen the use cases.  Similarly, if we have an engineer object, we may or may not want to see what train it is currently driving (if any).  We don't know, so we might plan on using bidirectional relationships. Having use cases would help us decide.
+
+However, for other cases we should be able to determine expected directionality just with what we know and from experience.  We repeat the diagram here since I'm not sure how this works in Blackboard.
+
+TrainClassModel
+
+For the relationship between Train and ActivateTrain, what would we expect for the directionality?
+
+Group of answer choices
+
+One-Way, from ActivateTrain to Train.
+
+One-Way, from Train to ActivateTrain.
+
+Bidirectional.
+ 
+Flag question: Question 3
+Question 310 pts
+Again we are looking at the Train simulation.  We want to make sure that we are accurately modeling the behavior of an Engineer.  When the engineer is dismissed from a train, does the engineer have a day off or not?  When the engineer returns to work, which queue should be used?  What would be the best model for capturing this behavior?
+Group of answer choices
+
+State Diagram
+
+Class Diagram
+
+Use Case Diagram
+
+Sequence Model
+
+Activity Model
+ 
+Flag question: Question 4
+Question 410 pts
+For this question, we will be designing the Use Case for when the train enters a station.
+
+Note: Since Blackboard is very literal with the answers, you have to give exactly the correct answer, spelled exactly correct.  These are the possible answers, not all of these answers will be used, and some may be used more than once!
+
+   ActivateTrain  Engineers  EngineerQueue  Station  Timer  Train TrainQueue
+
+Use Case: Train entering a Station
+
+A Train enters a Station and releases 
+ .  It then asks the 
+ for new 
+ .  If available, the Train departs, asking the 
+ to wait 10 hours, then send a notification to the Train.
+
+Exception:
+
+If the 
+ not available, the 
+ asks the 
+ to place the 
+ in the 
+ .
+
+
+
+ 
+Flag question: Question 5
+Question 510 pts
+Some of the key relationships in the Train Simulation are the links between the Timer and ActivationTimes, EngineerQueues and Engineers, and Trains and Engineers.  For each of these relationships, pick the implementation that would be most suitable, considering the types of operations that need to be done with these relationships.
+Group of answer choices
+EngineerQueue -- Engineer
+
+[ Choose ]
+Timer -- ActivationTime
+
+[ Choose ]
+Train -- Engineer
+
+[ Choose ]

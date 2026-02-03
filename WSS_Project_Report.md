@@ -16,7 +16,7 @@ The Wilderness Survival System has been fully implemented as per the requirement
 
 ## Object-Oriented Design Application
 
-Object-oriented design principles were fundamental to the organization of this project. We created a system of interfaces and types to represent the different components of the WSS, ensuring each component has well-defined responsibilities and behaviors.
+Object-oriented design principles were fundamental to the organization of this project. I have created a system of interfaces and types to represent the different components of the WSS, ensuring each component has well-defined responsibilities and behaviors.
 
 The use of TypeScript interfaces allowed us to create a clear hierarchy of objects with specific properties and behaviors, promoting code reusability and maintainability. This approach helped us isolate concerns and implement complex behaviors in a modular way.
 
@@ -33,7 +33,7 @@ Our implementation includes **5 types of terrain**:
 Each terrain type affects gameplay differently, with varied movement costs, water costs, and food costs.
 
 ### Trader Types (20 points)
-We implemented **4 types of traders**:
+I have implemented **4 types of traders**:
 1. Generous - Offers better rates for the player and accepts trades more readily
 2. Fair - Offers balanced trades with reasonable valuations of resources
 3. Greedy - Values resources highly and offers less favorable trades
@@ -53,7 +53,7 @@ Our implementation includes **3 types of vision**:
 Vision affects how much of the map the player can see at any given time, influencing decision-making and planning.
 
 ### Brain Types (15 points)
-We implemented **6 types of brain** (decision-making algorithms):
+I have implemented **6 types of brain** (decision-making algorithms):
 1. Balanced - Makes decisions taking all factors into account equally
 2. Explorer - Prioritizes discovering new areas of the map
 3. Collector - Prioritizes collecting resources
@@ -162,4 +162,4 @@ This project demonstrates a comprehensive implementation of the Wilderness Survi
 
 The simulation successfully implements all required terrain types, trader types, vision types, and brain types, with each component demonstrating distinctive behaviors and characteristics. The trading system in particular demonstrates complex interaction patterns between different object types, with trader personalities affecting the negotiation process.
 
-Through this project, we've applied object-oriented principles to create a realistic simulation that models complex decision-making in a resource-constrained environment.
+Through this project, I have applied object-oriented principles to create a realistic simulation that models complex decision-making in a resource-constrained environment.
