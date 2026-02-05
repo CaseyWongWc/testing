@@ -6,7 +6,7 @@ import { spawn } from 'child_process';
 
 // Create Express app
 const app = express();
-const PORT = process.env.PORT || 5173; // Use Vite's default port for everything
+const PORT = process.env.PORT || 5000; // Use port 5000 for Replit
 const VITE_PORT = 5174; // Use a different port for Vite since our server will occupy 5173
 
 // Create HTTP server
