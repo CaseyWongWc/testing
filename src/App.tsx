@@ -16,6 +16,7 @@ import ArrowIcon from "./components/ArrowIcon";
 import { MultiValuedItemCollector } from "./replit/MultiValuedItemCollector";
 import WebSocketChat from "./components/WebSocketChat";
 import CollaborativeDrawing from "./components/CollaborativeDrawing";
+import WSSPrototype from "./components/WSSPrototype";
 
 type GameType =
   | "maze"
@@ -36,10 +37,11 @@ type GameType =
   | "tag"
   | "rogue"
   | "scene7"
-  | "scene8";
+  | "scene8"
+  | "wss-prototype";
 
 function App() {
-  const [activeGame, setActiveGame] = useState<GameType>("maze");
+  const [activeGame, setActiveGame] = useState<GameType>("wss-prototype");
   const [width, setWidth] = useState(20);
   const [height, setHeight] = useState(15);
   const [wallDensity, setWallDensity] = useState(0.3);
@@ -49,6 +51,19 @@ function App() {
   const [robotCount, setRobotCount] = useState(3);
   const [showWebSocketComponents, setShowWebSocketComponents] = useState(false);
   const [showWebSocketButtons, setShowWebSocketButtons] = useState(false);
+
+  if (activeGame === "wss-prototype") {
+    return (
+      <div>
+        <WSSPrototype />
+        <div className="fixed bottom-4 right-4 z-50">
+          <button onClick={() => setActiveGame("maze")} className="px-3 py-2 bg-gray-800/80 hover:bg-gray-700 text-white text-xs rounded-lg backdrop-blur shadow-lg transition-all">
+            Other Components
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
@@ -487,6 +502,12 @@ function App() {
         {activeGame === "other-apps" && (
           <div className="flex flex-col items-center gap-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                onClick={() => setActiveGame("wss-prototype")}
+                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-medium col-span-2"
+              >
+                WSS Prototype (Assignment 1)
+              </button>
               <button
                 onClick={() => setActiveGame("combat")}
                 className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium"
