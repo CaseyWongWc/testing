@@ -1,20 +1,23 @@
 import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Create Express app
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const PORT = process.env.PORT || 5000; // Use port 5000 for Replit
-const VITE_PORT = 5174; // Use a different port for Vite since our server will occupy 5173
+const PORT = process.env.PORT || 5000;
+const VITE_PORT = 5174;
+const isProduction = process.env.NODE_ENV === 'production';
 
-// Create HTTP server
 const server = createServer(app);
 
-// Only start Vite if we're not in production (in Replit environment, we'll use the main server)
 let vite;
-if (process.env.NODE_ENV !== 'production') {
+if (!isProduction) {
+  const { createProxyMiddleware } = await import('http-proxy-middleware');
   console.log(`Starting Vite dev server on port ${VITE_PORT}...`);
   vite = spawn('npx', ['vite', '--host', '0.0.0.0', '--port', `${VITE_PORT}`], {
     stdio: 'inherit',
@@ -141,17 +144,24 @@ app.get('/api/ws-status', (req, res) => {
   });
 });
 
-// Proxy all other requests to Vite
-app.use('/', createProxyMiddleware({
-  target: `http://localhost:${VITE_PORT}`,
-  changeOrigin: true,
-  ws: false, // Don't proxy WebSockets - we handle those separately
-  onProxyReq: (proxyReq, req, res) => {
-    if (!req.url.startsWith('/ws')) {
-      console.log(`Proxying ${req.method} ${req.url}`);
+if (isProduction) {
+  app.use(express.static(path.join(__dirname, 'dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
+} else {
+  const { createProxyMiddleware } = await import('http-proxy-middleware');
+  app.use('/', createProxyMiddleware({
+    target: `http://localhost:${VITE_PORT}`,
+    changeOrigin: true,
+    ws: false,
+    onProxyReq: (proxyReq, req, res) => {
+      if (!req.url.startsWith('/ws')) {
+        console.log(`Proxying ${req.method} ${req.url}`);
+      }
     }
-  }
-}));
+  }));
+}
 
 // Start the server
 server.listen(PORT, '0.0.0.0', () => {
