@@ -8,6 +8,7 @@ packages = ["zip"]
 [deployment]
 build = ["sh", "-c", "npm run build"]
 run = ["sh", "-c", "NODE_ENV=production npm start"]
+deploymentTarget = "cloudrun"
 
 [[ports]]
 localPort = 3000
