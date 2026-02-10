@@ -6,7 +6,8 @@ channel = "stable-24_05"
 packages = ["zip"]
 
 [deployment]
-run = ["sh", "-c", "npm run dev"]
+build = ["sh", "-c", "npm run build"]
+run = ["sh", "-c", "NODE_ENV=production npm start"]
 
 [[ports]]
 localPort = 3000
