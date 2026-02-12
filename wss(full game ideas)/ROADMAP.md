@@ -1,7 +1,16 @@
 # "A Forgotten Place" — Development Roadmap
 
-> Skeleton roadmap for WSS2 full game. Phases are outlined but not filled in yet.
-> This will be fleshed out as design decisions are finalized.
+> Imported skeleton roadmap for WSS2. Updated to match locked design decisions.
+
+### Locked decisions (override older notes)
+
+- Combat is **real-time** (60 ticks/sec).
+- Win condition is **portal evacuation** (all living survivors).
+- Fog is **shared team fog** with **remembered** fog.
+
+---
+
+*Notes:* Later phases are optional and can stay rough until v0.1 is complete.
 
 ---
 
@@ -22,8 +31,8 @@
 - [ ] PlayerAI agents on the grid (movement, stats: health/stamina/ammo)
 - [ ] Basic zombie spawner (reuse beehive spawner concept)
 - [ ] Simple enemy type (basic zombie — move toward nearest agent)
-- [ ] Turn-based combat (melee + ranged, damage/defense calc from RogueLike)
-- [ ] Per-agent fog of war (each agent sees only their vision range)
+- [ ] Real-time combat loop (60 ticks/sec) + damage/defense (reuse RogueLike combat math)
+- [ ] Shared team fog-of-war + remembered fog (two-step: visible vs explored)
 - [ ] Basic AI brain: fight / flee / scavenge decision tree
 - [ ] Death & permadeath for agents
 - [ ] Lose condition: all agents dead
@@ -38,7 +47,7 @@
   - [ ] Score from kills, portals destroyed, rounds survived
   - [ ] Underdog multiplier (fewer survivors = higher bonus)
   - [ ] Probability-based extraction event trigger
-- [ ] Win condition: extraction event (helicopter rescue)
+- [ ] Win condition: portal evacuation (portal unlock after objectives; evac requires all living survivors)
 - [ ] Basic HUD: round counter, score, extraction probability meter
 - [ ] Resource pickups on map (health, ammo, basic items)
 
@@ -141,7 +150,7 @@
 - Friendly fire — on or off?
 - Reinforcements — can new agents arrive mid-game?
 - Rescued civilians (S8) — do they join the squad or just add score?
-- Turn-based vs real-time final decision
+- Confirm remaining combat details (cooldowns, attack windup, hit timing) for real-time loop
 - Communication system details (radio range, cooldowns, etc.)
 
 ---

@@ -1,0 +1,171 @@
+# roadmap.md
+
+# "A Forgotten Place" — Development Roadmap
+
+> Imported skeleton roadmap for WSS2. Updated to match locked design decisions.
+> 
+
+### Locked decisions (override older notes)
+
+- Combat is **real-time** (60 ticks/sec).
+- Win condition is **portal evacuation** (all living survivors).
+- Fog is **shared team fog** with **remembered** fog.
+
+---
+
+*Notes:* Later phases are optional and can stay rough until v0.1 is complete.
+
+---
+
+## Phase 0: Foundation & Setup
+
+> Separate the full game from the existing WSS prototype so assignments stay safe.
+> 
+- [ ]  New main menu / entry point for "A Forgotten Place"
+- [ ]  Shared core types & interfaces (separate from prototype)
+- [ ]  Base game loop architecture (tick/turn system)
+- [ ]  Basic grid rendering engine (reusable across biomes)
+
+---
+
+## Phase 1: Core Simulation
+
+> One biome, basic enemies, AI squad with simple combat. The "proof of life" build.
+> 
+- [ ]  Single biome map generation (pick one to start — Forest or Hills)
+- [ ]  PlayerAI agents on the grid (movement, stats: health/stamina/ammo)
+- [ ]  Basic zombie spawner (reuse beehive spawner concept)
+- [ ]  Simple enemy type (basic zombie — move toward nearest agent)
+- [ ]  Real-time combat loop (60 ticks/sec) + damage/defense (reuse RogueLike combat math)
+- [ ]  Shared team fog-of-war + remembered fog (two-step: visible vs explored)
+- [ ]  Basic AI brain: fight / flee / scavenge decision tree
+- [ ]  Death & permadeath for agents
+- [ ]  Lose condition: all agents dead
+
+---
+
+## Phase 2: Game Loop & Winning
+
+> Make it a real game with escalation, scoring, and an ending.
+> 
+- [ ]  Escalating waves / rounds (enemies get stronger over time)
+- [ ]  Extraction score system (IDEA 3 from design doc)
+    - [ ]  Score from kills, portals destroyed, rounds survived
+    - [ ]  Underdog multiplier (fewer survivors = higher bonus)
+    - [ ]  Probability-based extraction event trigger
+- [ ]  Win condition: portal evacuation (portal unlock after objectives; evac requires all living survivors)
+- [ ]  Basic HUD: round counter, score, extraction probability meter
+- [ ]  Resource pickups on map (health, ammo, basic items)
+
+---
+
+## Phase 3: Day/Night & Economy
+
+> Add rhythm to the game — safe moments vs. dangerous ones.
+> 
+- [ ]  Day/night cycle (IDEA 4)
+    - [ ]  Vision range changes (full day → reduced night)
+    - [ ]  Enemy behavior shifts (more aggressive at night?)
+    - [ ]  Visual indicator (sky color / overlay / UI clock)
+- [ ]  Shop / trading system (IDEA 5)
+    - [ ]  Sunrise buy window (Option C — enemies pause, shop opens)
+    - [ ]  Currency system (gold from kills? scavenged points?)
+    - [ ]  AI trade evaluation (reuse MonsterCards logic per agent)
+- [ ]  Player-to-player trading between AI agents
+
+---
+
+## Phase 4: Biome Expansion
+
+> Bring the world to life with variety.
+> 
+- [ ]  Biome 1: Lightly Forested Hills
+- [ ]  Biome 2: Dense Forest
+- [ ]  Biome 3: Desert
+- [ ]  Biome 4: Rocky Mountains
+- [ ]  Biome 5: City (+ biome mixing system)
+- [ ]  Biome 6: Snow Region
+- [ ]  Biome-specific structures & features
+- [ ]  Biome-specific resource distribution
+- [ ]  Terrain movement/visibility costs per biome
+
+---
+
+## Phase 5: Multi-Map & Progression
+
+> Turn single maps into a roguelike run across multiple levels.
+> 
+- [ ]  Portal system (exit the current map)
+- [ ]  Procedural next-map generation (new biome, harder difficulty)
+- [ ]  Survivor Market between maps (IDEA 5 updated solution)
+    - [ ]  Safe zone: no enemies
+    - [ ]  Buy/sell items, heal, restock
+    - [ ]  Neutral Faction D NPCs as shopkeepers
+- [ ]  Boss arena chance before market (IDEA 9 / S9 reference)
+- [ ]  Difficulty scaling across maps
+
+---
+
+## Phase 6: Advanced AI & Cameras
+
+> The big brain upgrade — agents think locally, not globally.
+> 
+- [ ]  Per-agent relative camera/viewport (IDEA 2)
+- [ ]  AI decision-making based on LIMITED local info only
+- [ ]  Independent exploration logic per agent
+- [ ]  Help request system (call for backup)
+- [ ]  Help response evaluation (should I go help or save myself?)
+- [ ]  Communication range (proximity? radio? line of sight?)
+- [ ]  Squad coordination behaviors
+
+---
+
+## Phase 7: Onslaught Zone & Factions
+
+> Late-game depth — pressure mechanics and social dynamics.
+> 
+- [ ]  Onslaught zone (IDEA 6 — moving danger area)
+    - [ ]  Zone movement triggers
+    - [ ]  Damage to agents inside the zone
+    - [ ]  Forces relocation and tactical decisions
+- [ ]  Faction system (IDEA 1 — experimental)
+    - [ ]  Faction types: friendly survivors, hostile humans, neutral traders, zombies
+    - [ ]  Faction relationships and allegiance shifts
+    - [ ]  Rival survivor groups?
+
+---
+
+## Phase 8: Horror & Polish
+
+> Make it FEEL like survival horror, not just a sim.
+> 
+- [ ]  Atmospheric visuals (darkness, fog, weather effects)
+- [ ]  Sound/detection mechanics (noise attracts zombies?)
+- [ ]  Special zombie types (runners, tanks, special infected, night-only)
+- [ ]  Environmental hazards (fires, collapsed buildings, traps)
+- [ ]  Weather system (S4 reference — hypothermia in snow, heat in desert)
+- [ ]  Performance metrics & post-game stats
+- [ ]  Victory / defeat screens with full run summary
+
+---
+
+## Open Design Questions
+
+> To be resolved before or during each phase.
+> 
+- Grid size per map? Fixed or configurable?
+- How many AI agents per squad? (4? 6? configurable?)
+- Zombie type roster — what are all the enemy types?
+- Onslaught zone behavior — gradual damage or instant kill?
+- Ammo system — finite per weapon? Shared pool?
+- Crafting — yes/no? If yes, how deep?
+- Barricading — can agents block doors/paths?
+- Friendly fire — on or off?
+- Reinforcements — can new agents arrive mid-game?
+- Rescued civilians (S8) — do they join the squad or just add score?
+- Confirm remaining combat details (cooldowns, attack windup, hit timing) for real-time loop
+- Communication system details (radio range, cooldowns, etc.)
+
+---
+
+*Last updated: Feb 2026Status: Skeleton — awaiting design finalization*
