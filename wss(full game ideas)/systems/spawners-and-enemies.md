@@ -6,39 +6,57 @@ Zombie and enemy spawning mechanics using resource pool-based spawners. Enemies 
 
 ## Overview
 
-> TBD — How do spawners work in real-time? Continuous spawning or wave-based? Do multiple spawners exist on one map? How visible are spawners to players (see the rift or hidden)?
+Spawners are entities placed on the map that produce enemies on a cooldown. Each spawner has a resource pool (like the beehive honey concept) that determines spawn capacity. Spawners run continuously during the tick loop, checking cooldowns and alive counts each tick.
+
+---
+
+## Spawner Entity
+
+A Spawner extends Entity with the following properties:
+
+- `spawnCooldown` -- ticks between spawn attempts
+- `maxAliveFromThisSpawner` -- cap on how many living enemies this spawner can have at once
+- `spawnType` -- which enemy type this spawner produces
 
 ---
 
 ## Spawner Types
 
-Three types of spawners (reuse beehive spawner concept from Scene 3):
+Three categories of spawners (reuse beehive spawner concept from Scene 3):
 
-- **Horde Spawner:** Fast spawning rate, weak enemies, resource pool depletes quickly.
-- **Elite Spawner:** Slow spawning rate, strong enemies, resource pool depletes slowly.
-- **Boss Spawner:** Rare, spawns single powerful boss enemy, one-time or repeatable?
+- **Horde Spawner:** Fast spawning rate, produces weak enemies, resource pool depletes quickly.
+- **Elite Spawner:** Slow spawning rate, produces strong enemies, resource pool depletes slowly.
+- **Boss Portal:** Rare, spawns a single powerful boss enemy. One-time or repeatable TBD.
 
-> TBD — How many spawners per map? Fixed locations or randomized? Can spawners migrate/relocate?
+> TBD -- How many spawners per map? Fixed locations or randomized? Can spawners migrate/relocate?
 
 ---
 
 ## Spawner Mechanics (Resource Pool)
 
-> TBD — Beehive concept implementation:
+Each spawner has a resource pool that determines spawn capacity (like honey in the beehive simulation):
 
-- Each spawner has a resource pool (like honey in the beehive simulation).
-- Pool refills at configurable rate (per second/round).
+- Pool refills at a configurable rate (per tick or per second).
 - Spawning costs resource points from the pool.
 - Pool size can increase with difficulty/waves.
-- Can spawners overflow (max pool cap or unbounded)?
 
-> TBD — Do different enemy types cost different amounts of resources? (Weak zombie = 1 point, strong runner = 3 points, boss = 50 points?)
+> TBD -- Can spawners overflow (max pool cap or unbounded)? Do different enemy types cost different amounts of resources? (Weak zombie = 1 point, strong runner = 3 points, boss = 50 points?)
+
+---
+
+## Enemy Base Class
+
+Zombie extends Actor (which extends Entity):
+
+- Has a simple brain: seek nearest survivor.
+- Uses the same Brain interface as survivors: `decide(actor, world) -> Intent`
+- Zombie brains typically return Move (toward nearest survivor) or Attack (if in range).
 
 ---
 
 ## Enemy Type Roster
 
-> TBD — Define all zombie/enemy types that spawn:
+> TBD -- Full enemy roster is still to be determined, but categories are established:
 
 - **Basic Zombie:** Slow, melee only, standard health/damage.
 - **Runner:** Fast, weak armor, higher threat due to speed.
@@ -48,25 +66,25 @@ Three types of spawners (reuse beehive spawner concept from Scene 3):
 - **Boss Zombie:** Unique, rare, high threat.
 - **[Other types TBD]**
 
-> TBD — Do zombie types have stat variations (tiers, mutations)?
+> TBD -- Do zombie types have stat variations (tiers, mutations)?
 
 ---
 
 ## Wave Escalation & Difficulty Scaling
 
-> TBD — How do enemies get stronger over time?
+> TBD -- How do enemies get stronger over time?
 
 - Do waves have defined difficulty thresholds?
 - Resource pool increases per wave?
 - New enemy types unlock at higher waves?
 - Boss spawner activation criteria (wave X, score threshold)?
-- Escalation formula/curve — linear, exponential, step-based?
+- Escalation formula/curve -- linear, exponential, step-based?
 
 ---
 
 ## Spawner Destruction
 
-> TBD — Can agents destroy spawners? How?
+> TBD -- Can agents destroy spawners? How?
 
 - Melee attack? Ranged only? Special ability?
 - How much health does a spawner have?
@@ -81,7 +99,7 @@ Three types of spawners (reuse beehive spawner concept from Scene 3):
 ## Connection to Other Systems
 
 - **Combat:** Enemy combat stats tied to Combat system (Combat)
-- **AI Brains:** Enemy AI decision-making (may use similar trees) (AI Brains)
+- **AI Brains:** Enemy AI decision-making uses the Brain interface (AI Brains)
 - **Map Generation:** Spawner placement tied to biome and difficulty (Map Generation)
 - **Fog & Vision:** Enemies spawn within visible/remembered fog or hidden? (Fog & Vision)
 - **Resources & Economy:** Enemies may drop loot/resources (Resources & Economy)

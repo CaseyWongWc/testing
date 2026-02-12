@@ -1,0 +1,861 @@
+**Source**
+
+- Uploaded PDF: *WSS -ideas (1).pdf*
+
+<aside>
+✅
+
+**Next steps (we can start now)**
+
+- [ ]  Decide scope for the *first playable slice* (Phase 0 MVP vs WSS2 prototype)
+- [ ]  Lock 3–5 non-negotiable features for v0.1
+- [ ]  Define the minimum object model (classes + responsibilities)
+- [ ]  Define the core loop (tick/turn flow) and what “done” means for one level
+</aside>
+
+<aside>
+❓
+
+**2 quick questions for you**
+
+1. Are you building this in the same stack as your current WSS (same language/framework), or are you switching?
+2. For v0.1, do you want **turn-based** (simpler) or **real-time** (harder) combat?
+</aside>
+
+<aside>
+🚀
+
+**Your answers locked in**
+
+- Stack: **same as existing WSS**
+- Combat: **real-time**
+</aside>
+
+## v0.1 (first playable slice) — scope lock
+
+**Goal:** Run a simulation where **multiple survivor AIs** move, scavenge, and fight **real-time** enemies on a grid, with a clear **lose condition** and a basic **progression trigger**.
+
+### Non‑negotiables (5)
+
+1. **Grid world + terrain costs** (walkable vs blocked, optional terrain movement cost)
+2. **Real-time tick loop** (update at fixed timestep)
+3. **Survivor squad (2–4 AI agents)** with simple roles/brains (balanced, cautious, aggressive)
+4. **Zombie enemies + spawners** (simple rift with cooldown + cap)
+5. **Win/Lose:** lose when all survivors dead. Win = survive X seconds **or** reach an extraction tile (keep it simple for v0.1)
+
+### Explicitly *not* in v0.1 (to protect scope)
+
+- Vehicles
+- Multi-floor buildings
+- Trading / Survivor Market
+- Hostile human NPCs
+- Weather
+- Sound propagation
+- Boss arenas
+
+---
+
+## Core loop (real-time)
+
+At each **tick** (e.g. 20–60 ticks/sec):
+
+- Sense: each agent gathers local info (nearby enemies, loot, exits)
+- Decide: brain picks an **intent** (move, attack, loot, flee)
+- Act: movement + attacks resolve
+- Spawn: spawners generate enemies if allowed
+- Cleanup: remove dead entities, drop loot
+
+**Definition of “done” for v0.1:**
+
+- You can start a run, watch it play, and it ends in a win/lose without manual intervention.
+
+---
+
+## Minimum object model (OOP)
+
+Keep it small and extendable.
+
+### World & map
+
+- `Game`
+    - owns main loop, tick timing, run state
+- `World`
+    - holds `GridMap`, entity lists, spawners, global parameters
+- `GridMap`
+    - tiles, bounds, helper queries
+- `Tile`
+    - terrain type, walkable, movementCost, maybe coverValue (future)
+
+### Entities
+
+- `Entity` (base)
+    - id, position, alive, update(world)
+- `Actor` extends `Entity`
+    - health, speed, faction, sensors, canMove/canAttack
+- `Survivor` extends `Actor`
+    - inventory, weapon, brain
+- `Zombie` extends `Actor`
+    - simple brain (seek nearest survivor)
+
+### AI
+
+- `Brain` (interface)
+    - `decide(actor, world) -> Intent`
+- `Intent` (data)
+    - type: Move/Attack/Loot/Flee/Idle
+    - targetPos or targetEntityId
+
+### Combat
+
+- `Weapon`
+    - damage, range, cooldown, ammo(optional in v0.1)
+- `CombatSystem`
+    - resolves hits, cooldowns, death
+
+### Items (v0.1 minimal)
+
+- `Item` extends `Entity` (or simple struct list)
+    - type: HealthPack, Ammo (optional)
+- `PickupSystem`
+    - handles pickup + apply effects
+
+### Spawning
+
+- `Spawner` extends `Entity`
+    - spawnCooldown, maxAliveFromThisSpawner, spawnType
+
+### Pathing
+
+- `Pathfinder`
+    - A* or weighted BFS over `GridMap`
+    - survivors use for movement intents
+
+---
+
+## v0.1 parameters (locked / updated)
+
+## Rule change idea: Center spawn + locked portal (objectives → activate)
+
+## Where mazes fit (reusing your Maze Solver + generators)
+
+## Maze extensions & biome integration (your new thoughts)
+
+## Maze idea #2: Central “frame maze” safe hub (spawn ring)
+
+**Classification:** Map Generation + Level Structure (a persistent *hub geometry*), not a biome.
+
+### Concept
+
+- A **rectangular frame maze** sits at the **center** of the map.
+- Inside the ring:
+    - Survivor spawn area
+    - The Portal
+- The frame acts like a semi-thin labyrinth wall layer around the hub.
+- Portal starts as an **inactive floor tile** in the hub.
+    - Survivors can **walk over it anytime**.
+    - It only triggers evacuation after it becomes **ACTIVE** (unlocked/activated by objectives).
+    - Survivors **spawn neatly arranged on top of/around the inactive portal** each new map (overflow may briefly clip if the survivor count is absurd).
+- Toggle: `center_frame_enabled` (if off, do normal center spawn without ring).
+
+### Why this is good
+
+- Gives every level an instantly recognizable **anchor**.
+- Naturally supports your loop:
+    - objectives out in the world → return to center → portal evac
+- Works great with fog-of-war and enemy “last seen” markers.
+
+### Design risks (and how to control them)
+
+- Risk: Survivors can camp forever in the ring.
+    - Control: portal is **locked** until objectives complete.
+    - Control: spawners or onslaught pressure can eventually push inward (later).
+- Risk: Pathing bottlenecks.
+    - Control: add **2–4 gates** (openings) in the frame.
+
+### Minimal v0.1 implementation (simple geometry)
+
+You do **not** need a full maze algorithm here at first.
+
+1. Pick a hub size, e.g. `hub_inner_w = 8`, `hub_inner_h = 8`.
+2. Pick a frame thickness: `frame_thickness = 2` tiles.
+3. Carve a rectangle ring (walls) around the hub.
+4. Add `gate_count = 2` openings on opposite sides.
+5. Place survivors + portal in the hub center.
+
+### v0.2 upgrade (make it a real “frame maze”)
+
+Once the base ring works:
+
+- Run a maze algorithm *only inside the frame band* (the donut/ring area), then thicken corridors.
+- Keep hub interior open for readability.
+
+### Suggested parameters
+
+- `center_frame_enabled`: true/false
+- `frame_thickness_tiles`: 2
+- `gate_count`: 2 or 4
+- `hub_inner_size`: 8×8 (tune later)
+
+### “Labyrinth” biome (optional)
+
+You *could* add a unique biome called **Labyrinth**, but you’re right that it may not blend naturally with other outdoor biomes.
+
+If you keep it, I’d treat it as a **special map type** (like a dungeon level) rather than a normal biome roll.
+
+- Entry via: portal transition, boss arena trigger, or rare objective chain.
+
+### Hallway width (not 1-tile thick)
+
+Great idea for readability and movement.
+
+- Represent corridors as **2–3 tiles wide**.
+- Easiest way: generate a 1-tile maze skeleton, then **“thicken”** corridors by expanding carved cells to neighboring tiles.
+
+### Floors as material groups (instead of “biome floors”)
+
+Also good. You can decouple **tile function** from **tile cosmetic skin**.
+
+- Functional terrain: `walkable`, `movementCost`, `blocksVision?`
+- Cosmetic skin: concrete, cracked stone, grass, mossy-clean variants
+- Weather + time of day still apply as global modifiers.
+
+### Recommendation
+
+Keep Labyrinth as a **rare/special level** in Phase 2/3.
+
+For v0.1, get value by using **maze pockets inside buildings/caves** first.
+
+<aside>
+💡
+
+You said you have another maze utilization idea.
+
+Drop it here, and I’ll help you classify it (Map Gen vs Objective vs Event) and reduce it to the smallest shippable version.
+
+</aside>
+
+Mazes can live under **Map Generation** as a *layout layer* (how the world is structured) and optionally under **Objectives** (as “dungeons” that contain a switch/NPC/item).
+
+### Option A (recommended): Mazes = sub-areas / points of interest
+
+Use your normal biome map as the main overworld, then stamp in **maze pockets**:
+
+- A maze inside a **building** (hallways/rooms)
+- A maze inside a **cave**
+- A maze inside an **underground bunker**
+
+**Why this is best:**
+
+- Keeps open spaces for roaming + onslaught pressure.
+- Lets you reuse maze algorithms without making the whole map claustrophobic.
+
+### Option B: Mazes = the main level layout
+
+Generate the whole map as a maze, then skin it with a biome theme.
+
+- Great for “dense forest” or “lab corridor” vibes.
+- Risk: can feel repetitive if every level is maze-shaped.
+
+### Option C: Mazes = objective gating
+
+Make the objective *require* entering a maze:
+
+- Switch is at the maze end.
+- Rescue NPC is deep inside.
+- Item pickup is inside, delivery exits to portal.
+
+### How they fall under your architecture
+
+- **Map Generation layer:**
+    - `LayoutGenerator` → chooses overworld vs maze-pocket placement
+    - `MazeGenerator` (your existing algorithms) → produces wall/corridor grid
+- **Navigation/AI layer:**
+    - `Pathfinder` (A*) uses walls as blocked tiles
+    - Fog-of-war radius vision makes mazes scary without special rules
+
+### Minimal v0.1 integration (fast win)
+
+1. Create a single “maze pocket” rectangle (e.g., 15×15) placed somewhere away from center.
+2. Run one maze algorithm to carve corridors.
+3. Place the **switch objective** at a far cell (or dead end).
+4. Compass points to the switch, so survivors can find it even with fog.
+
+This is a solid upgrade from “west → east” because it supports *repeatable levels*, *multi-agent coordination*, and *objective-driven pacing*.
+
+### Proposed level flow
+
+1. **Spawn:** Survivors spawn near the **center** (safe-ish start zone).
+2. **Portal state:** Portal exists but starts **Locked**.
+3. **Objectives:** Survivors complete objectives to generate **Progress**.
+4. **Activation:** When progress hits threshold, portal becomes **Active**.
+5. **Evacuation:** Survivors reach portal (soft lock-in) → cutscene → next map.
+
+### Minimal v0.1 objective system (keep it simple)
+
+Implement objectives as generic counters so you can swap themes later.
+
+- **ObjectiveType** examples:
+    - `KillCount(zombies=20)`
+    - `DestroySpawners(count=2)`
+    - `CollectItem(type="Fuse", count=3)`
+    - `HoldZone(duration_seconds=30)` (optional, later)
+- **ObjectiveManager**:
+    - Tracks active objectives
+    - Updates progress
+    - Raises event: `PortalUnlocked`
+
+### Data model (small)
+
+- `Portal.state`: LOCKED | ACTIVE
+- `Objective.status`: IN_PROGRESS | COMPLETE
+- `World.progress`: current / required
+
+### Why this helps (design)
+
+- Prevents “rush portal instantly” when portal is central.
+- Gives you knobs to tune difficulty without changing map size.
+- Creates a natural place for future systems:
+    - Survivor Market between maps
+    - Boss arenas as optional pre-portal / post-portal events
+
+### v0.1 scope suggestion
+
+## Objective system (location-based, one-at-a-time) — spec
+
+## Fog of war + Vision (radius-based) — spec (WSS2)
+
+Your direction is consistent and will feel more natural than “tile pattern” vision.
+
+### Vision model
+
+- Each survivor has a **vision radius** `vision_r` (in tiles).
+- A tile is visible if `distance(tile, survivorPos) <= vision_r`.
+- Use Euclidean distance for a true circle, or Chebyshev for a square/diamond. **Recommendation:** Euclidean for the feel you want.
+
+### Memory (explored map)
+
+- Fog of war is **remembered**.
+- Maintain per-survivor (or shared team) arrays:
+    - `seen[y][x]` (has ever been seen)
+    - `visible[y][x]` (currently visible this tick)
+- Rendering idea:
+    - `visible` = full brightness
+    - `seen && !visible` = dimmed/gray
+    - `!seen` = hidden
+
+### Shared team fog (chosen)
+
+- The fog-of-war memory is **shared across the survivor team**.
+- Use a single set of arrays for the whole run:
+    - `team_seen[y][x]`
+    - `team_visible[y][x]` (recomputed each tick from all living survivors)
+
+**Update rule (each tick)**
+
+1. Clear `team_visible` to false
+2. For each living survivor:
+    - Compute tiles within `effective_vision`
+    - Mark those tiles as `team_visible = true`
+    - Also set `team_seen = true`
+
+### “Last seen enemy” markers (red pings)
+
+### Marker persistence rule (chosen)
+
+- Markers (red outline / red ping) persist **until you look that way again**.
+    - Meaning: the marker stays while the tile is in **historical fog** (`team_seen && !team_visible`).
+    - When the tile becomes **currently visible** again, remove the marker (or update it to the enemy’s current position if the enemy is actually visible).
+
+### Two-step fog rendering (chosen)
+
+- **Immediate / visible:** normal color (`team_visible = true`)
+- **Historical / remembered:** dulled/washed (`team_seen = true && team_visible = false`)
+- **Unknown:** hidden (`team_seen = false`)
+
+### Horror variant: “phantom marker” / scripted sighting
+
+You want the option for a boss (or special enemy) to appear as a marker once and linger even before anyone truly sees it.
+
+Implement as a separate marker type so it does not conflict with real tracking:
+
+- `PhantomMarker`
+    - `pos`
+    - `type` (BOSS_HINT, SCREAMER_HINT, etc.)
+    - `created_tick`
+    - `clear_rule`: UNTIL_TILE_VISIBLE (matches your preference)
+
+**Rule:** phantom markers render on historical fog, and clear when the tile becomes visible.
+
+<aside>
+🩸
+
+This is a great horror tool because it creates dread without breaking the fog-of-war rules.
+
+</aside>
+
+You want red markers that persist when an enemy leaves visibility.
+
+**Data to store (per enemy id)**
+
+- `last_seen_pos[enemyId] = (x,y)`
+- `last_seen_tick[enemyId] = tick`
+- `last_seen_valid[enemyId] = true/false`
+
+**Rules**
+
+- If an enemy is currently in `team_visible`, update its last seen info.
+- If an enemy dies, clear its marker.
+- Render marker when:
+    - enemy is **not** currently visible, AND
+    - `last_seen_valid` is true, AND
+    - marker age is under a limit (optional)
+
+**Optional polish knobs**
+
+- `last_seen_fade_seconds` (e.g. fade out after 10–20s)
+- Use a “?” variant marker if the enemy has moved a lot since last seen (future)
+
+### Day/night effect (multiplier)
+
+- Define a multiplier `vision_mult` applied to base vision.
+- Night vision radius: **60–80%** of daytime.
+    - Example: `vision_mult_day = 1.0`, `vision_mult_night = 0.7`.
+
+### Traits & status modifiers
+
+Vision can be modified by traits and temporary states.
+
+- Trait example: `Scout` doubles base vision.
+- Status examples:
+    - `Downed` reduces vision
+    - `WellFed` increases vision
+
+**Simple formula**
+
+`effective_vision = base_vision * trait_mult * status_mult * timeOfDay_mult`
+
+### Vision bypass tools
+
+- **Night vision goggles**: override night multiplier (or add a flat bonus).
+- **Weapon range > vision**: allow firing at targets outside vision if they are:
+    - previously seen in memory, OR
+    - revealed by teammate vision, OR
+    - revealed by a “ping” mechanic (future)
+
+### v0.1 recommended defaults
+
+- `base_vision_tiles = 8` (tune later)
+- `vision_mult_night = 0.7`
+- `scout_trait_mult = 2.0`
+
+### Implementation notes (performance)
+
+- Only recompute `visible` for tiles in the bounding box of the radius each tick.
+- If you end up with 1–5 survivors, this is cheap even at 60 ticks/sec.
+
+<aside>
+🎯
+
+**Design tie-in:** the compass-to-objective means fog of war stays scary, but you still have forward direction.
+
+</aside>
+
+### Core concept
+
+- Objectives are **location-based** (a tile/area on the map).
+- Objectives appear **sequentially** (one active at a time).
+- Completing the current objective **spawns the next**.
+- After the objective chain is complete, the **portal unlocks**.
+
+### Fog of war + Compass (to avoid frustration)
+
+Because objectives may be hidden by fog of war:
+
+- Each survivor gets a **compass indicator** pointing to the current objective.
+- This applies to AI and user-controlled survivors.
+
+**Minimal implementation:**
+
+- Store [`objective.target](http://objective.target)_pos`.
+- For each survivor, render/compute a vector `target_pos - survivor.pos`.
+- AI can use it as a heuristic (move “generally toward” objective when not threatened).
+
+### Recommended v0.1 objective (single type)
+
+Start with the simplest location-based objective:
+
+- **Flip a power switch** (`ActivateSwitch`)
+    - A `Switch` entity exists at a coordinate.
+    - When any living survivor steps onto the switch tile (or interacts), mark objective complete.
+
+This matches your “instant tap” feel and lets you ship the whole chain quickly.
+
+### Expandable objective types (same framework)
+
+All of these can share the same interface: `isComplete(world)`, `onEnterTile(entity)`, `onTick()`.
+
+- **Rescue neutral** in a building (`RescueNPC`)
+    - Condition: survivor reaches NPC tile, NPC becomes “rescued” (or follows).
+- **Hold zone** for time or kills (`HoldZone`)
+    - Condition: all living survivors inside zone AND timer reaches N, OR kill count inside zone.
+- **Carry item** from A → B (`DeliverItem`)
+    - Condition: item picked up at A and delivered to B (portal or drop-off tile).
+- **Destroy thing** (`DestroyTarget`)
+    - Condition: target entity HP reaches 0.
+
+### Objective chain settings (pre-game)
+
+Keep it simple but configurable.
+
+- `objective_count`: 3–5
+- `objective_sequence_mode`: FIXED | RANDOM_FROM_POOL
+- `compass_enabled`: true/false
+- `portal_unlock_rule`: AFTER_OBJECTIVES | ALWAYS_UNLOCKED (debug)
+
+### Minimal data model
+
+- `Objective`
+    - `type`
+    - `target_pos` (or `zone_center` + `zone_radius`)
+    - `status`: IN_PROGRESS | COMPLETE
+    - `progress` (optional counter/timer)
+- `ObjectiveManager`
+    - `active_objective_index`
+    - `objectives[]`
+    - `advanceIfComplete()`
+    - emits `ObjectivesComplete` → sets `Portal.state = ACTIVE`
+
+### Main loop integration
+
+At each tick:
+
+1. `objectiveManager.update(world)`
+2. If active objective complete → advance
+3. If all objectives complete → `portal.state = ACTIVE`
+4. Portal rules (soft evac) take over once portal is active
+
+### Objective system v0.1 (your direction): location-based, sequential, compass-guided
+
+You’re describing a great structure that stays readable even with fog of war:
+
+#### Core rules
+
+- Objectives are **location-based** (a tile or zone).
+- Objectives appear **one at a time** (sequential chain).
+- Fog of war stays meaningful, but players are not lost because each survivor has a **compass pointer** to the current objective.
+- Difficulty setting can choose **3–5 objectives** per run.
+
+#### Recommended v0.1 objective set (pick 3)
+
+To keep the first implementation small, use *one* objective class with different configs.
+
+1. **Activate Switch** (best first objective)
+    - Go to a hidden tile and interact for N ticks.
+2. **Hold Zone**
+    - All living survivors must stand inside a zone for N seconds.
+3. **Carry Item**
+    - Pick up an item at Point A and deliver to Point B (often the portal).
+
+(You can add “Rescue Neutral” later as a variant of Carry Item with an escort behavior.)
+
+#### Minimal technical design (still OOP-friendly)
+
+- `ObjectiveManager`
+    - Holds `currentObjectiveIndex`, `currentObjective`, `objectiveQueue`
+    - Emits events: `ObjectiveStarted`, `ObjectiveCompleted`, `AllObjectivesCompleted`
+- `Objective` (interface)
+    - `isComplete(world) -> bool`
+    - `getTarget(world) -> Target` (for compass)
+    - `onTick(world)` (optional)
+- `Target`
+    - Either `TargetPos(x,y)` or `TargetZone(center, radius)`
+
+#### Compass design (simple)
+
+Each survivor renders a pointer to `Objective.getTarget()`.
+
+- For `TargetPos`: direction = targetPos - survivorPos
+- For `TargetZone`: direction = zoneCenter - survivorPos
+
+#### Portal unlocking rule with objectives
+
+- Portal starts **LOCKED**.
+- When `ObjectiveManager` completes the last objective:
+    - `Portal.state = ACTIVE`
+    - Survivors can evacuate (soft lock-in rule still applies)
+
+#### Pregame toggles (keep minimal in v0.1)
+
+- `objective_count` (3–5)
+- `portal_requires_all_survivors` (already defined)
+- `compass_enabled` (default true)
+
+---
+
+### One clarifying decision (keeps code clean)
+
+For **Activate Switch** and other interactions, should a survivor need to:
+
+- **Stand still for N ticks** to complete the interaction (interruptible), OR
+- **Tap once** (instant completion)?
+
+My recommendation for v0.1: **stand still for N ticks** (it creates tension and makes zombies matter).
+
+✅ **Decision: Hold-to-activate switch**
+
+- Interaction takes **N ticks**.
+- While activating, the survivor is **soft-locked** in place.
+- A **circular progress indicator** fills up (white, transparent).
+- If the survivor is user-controlled, they can **cancel** by moving.
+
+### Minimal interaction state machine
+
+Add a tiny state machine per survivor (or per interactable):
+
+- `IDLE`
+- `ACTIVATING` (has `activate_target_id`, `activate_progress_ticks`)
+
+**Rules**
+
+- Enter `ACTIVATING` when a survivor is on the switch tile and decides to interact.
+- Each tick in `ACTIVATING`: progress += 1.
+- Cancel conditions:
+    - Survivor moves (user input) → cancel
+    - Survivor is forced to move (knockback later) → cancel
+    - Switch tile no longer occupied → cancel
+- Complete when `progress >= N`:
+    - Mark objective complete
+    - Fire event `SwitchActivated` (useful for objective manager)
+
+### Suggested v0.1 parameters
+
+- `switch_activate_ticks`: 60 (at 60 ticks/sec = 1 second) or 120 (2 seconds)
+- `switch_cancel_on_damage`: false for v0.1 (add later if desired)
+- `tick_rate`: 60 ticks/sec (so 60 ticks = **1 second**)
+- `switch_activate_ticks`: **60** (1 second)
+
+### AI behavior during activation (locked)
+
+- AI survivors **do not auto-cancel** activation if enemies approach.
+- Once an AI survivor starts activating, it stays soft-locked until completion (or a forced-move mechanic is introduced later).
+
+<aside>
+🧠
+
+AI note: when in `ACTIVATING`, the survivor should still be allowed to **attack** (optional) but not move.
+
+</aside>
+
+For the very first build, pick **one** objective type:
+
+- **Destroy spawners** (best fit with what you already have), OR
+- **Kill count** (simplest)
+
+### Map size (TBD)
+
+You want to *see it first* before committing. That’s reasonable.
+
+**Recommendation for v0.1:** implement map sizing as a parameter and test a small set:
+
+- 30×30 (debug-friendly)
+- 40×40 (default)
+- 60×60 (stress test)
+
+### Survivor count
+
+- **Spawn range:** 1–5 survivors (config)
+- **Can exceed during gameplay:** yes (rescues/reinforcements later)
+
+### Win condition (portal entry)
+
+#### Soft “lock-in” rule (chosen)
+
+When `portal_requires_all_survivors = true`, survivors do **not** need to stand on the portal at the same time.
+
+- Any living survivor that reaches the portal becomes **Evacuating** (locked-in).
+- Win triggers when **all living survivors** are Evacuating.
+- Optional nicety: add `evacuation_delay_ticks` (e.g. 30–120 ticks) so it feels like boarding the helicopter.
+
+**Edge cases**
+
+- If a survivor is Evacuating and then dies before win triggers, remove them from the “must evacuate” set.
+- If `portal_requires_all_survivors = false`, the first survivor reaching the portal triggers win immediately (or after `evacuation_delay_ticks`).
+
+**Minimal data you need**
+
+- `survivor.state`: RUNNING | EVACUATING | DEAD
+- `world.portal_pos`
+- `world.settings.portal_requires_all_survivors`
+- **Win tile:** `Portal` tile
+- **Setting:** `portal_requires_all_survivors` (toggle)
+    - If true: **all living survivors** must reach portal to win
+    - If false: any survivor reaching portal triggers win
+
+### Win cutscene (v0.1 placeholder)
+
+You want: last map exploding + camera pan + helicopter silhouette exit.
+
+**v0.1 approach:** stub a `CutsceneManager` that can play a simple sequence:
+
+- Fade out → “map exploding” particle flashes (or tile highlights) → camera pan → helicopter sprite/silhouette crosses → fade to black.
+
+<aside>
+🧩
+
+**Implementation note:** treat cutscenes as *states* in the main loop (RUNNING → CUTSCENE → END).
+
+</aside>
+
+---
+
+## Summary
+
+Zero-player survival horror game inspired by COD Cold War Zombies: Onslaught, built on top of existing WSS OOP mechanics. Multiple AI human agents survive escalating zombie hordes on semi-randomly generated themed maps.
+
+## 1) Core vision & inspiration
+
+- COD Cold War Zombies: Onslaught (roaming danger zone, escalating waves, themed maps)
+- Original WSS class project (OOP principles, A-to-B navigation)
+- Colossal Cave Adventure (exploration vibe)
+- Dinogen Online (human AI squad behaviors)
+
+## 2) Existing WSS building blocks to reuse
+
+- Maze Solver (Recursive Backtracking, Prim’s, Recursive Division)
+- Terrain Navigator (terrain types with movement and resource costs)
+- Multi-goal robot (weighted pathfinding, resource priorities)
+- Rogue Like (turn-based combat, enemy types, stats)
+- Wilderness Survival (resource management, fog of war, brain types)
+- Spawner objects (resource-pool based spawns)
+- MonsterCards (AI trade evaluation)
+- Student Priority Simulator (needs system)
+- Tag Game / Follow Me (pursuit and evasion behaviors)
+
+## 3) Map generation (biomes)
+
+Cities can mix with natural biomes.
+
+- **Lightly forested hills:** barns, farms, villas, rivers, wide sight lines
+- **Dense forest:** labs, military compounds, caves, claustrophobic visibility
+- **Desert:** scarce water, gas stations, downtowns, rare oasis
+- **Rocky mountains:** scarcity, hidden bunker high risk/high reward
+- **City:** dense vertical CQB, lots of loot and threats, can mix with any biome
+- **Snow region:** cold, hypothermia risk, radio stations, bunkers
+
+## 4) AI human agents
+
+- Personality types: balanced, aggressive, defensive, cautious
+- Stats: health, stamina, hunger, ammo, damage, defense, range
+- Decisions: fight vs flee vs scavenge vs barricade
+
+## 5) Zombie / enemy system
+
+- Spawners as rifts/portals with a resource pool
+- Spawner types: horde, elite, boss portal
+- Enemy roster: basic + specials + bosses (TBD)
+
+## 6) Onslaught mechanic
+
+- Moving danger zone forces relocation
+- Escalating waves/rounds
+
+## 7) Combat system
+
+- Reuse Rogue Like combat foundations
+- Ranged vs melee
+- Ammo management
+
+## 8) Resource & economy
+
+- Health pickups, ammo crates, upgrades
+- Reuse WSS resources (food, water, strength)
+
+## 9) Horror elements
+
+- Fog of war / limited vision
+- Sound and detection
+- Scarcity and permadeath tension
+
+## 10) Win / lose
+
+- **Lose:** all PlayerAIs die
+- **Win:** extraction event (helicopter or similar)
+
+---
+
+## 11) New mechanics brainstorm (high level index)
+
+**Core candidates (stable):**
+
+- Relative cameras + local-only AI decisions
+- Extraction score / win probability system
+- Day/night cycle
+- Shop and trading system (with Survivor Market between maps)
+- Randomly generated themed structures
+- Evil human NPCs (hostile PlayerAI)
+
+**Advanced or optional:**
+
+- Building / barricades (camping risk)
+- Vehicles and armored vehicles
+- Dynamic weather
+- Sound/noise propagation
+- Downed state + revive
+- Wildlife as food sources
+- Boss portal arenas
+- Traits system
+- Corrupted terrain visuals
+
+---
+
+## Decisions log (captured)
+
+### IDEA 5: Shop & Trading
+
+- Shop options: **B (Shop Area)** + **C (Sunrise Buy Window)**
+- If building is added: **A (Craftable Workbench)** + **C**
+- Currency: **gold from kills or passive income** (separate from score)
+- Enemies stop during buy window: **yes**
+- Evolved solution: **Survivor Market between maps**
+    - Flow: Map → Portal → (Boss chance) → Survivor Market (safe) → Next map
+
+---
+
+## Roadmap (from brainstorm)
+
+### Phase 0: Foundation
+
+- Base WSS from rubric working (navigation, core classes, pathfinding, combat, resources, spawners, simple map gen)
+
+### Phase 1: Independent additions
+
+- Multiple AI humans
+- Fog of war
+- Zombies + portals
+- Simple themed maps (1–2 biomes)
+- Day/night affects vision
+- Weapons + armor
+- Wildlife
+
+### Phase 2: Connected systems
+
+- Relative cameras per agent + local-only AI
+- Help request/response
+- Portal progression
+- Extraction system
+- Sound/noise
+- Revive/downed state
+- Traits + personality drift
+- Trading
+- Hostile humans
+
+### Phase 3+: Advanced features
+
+- Survivor Market
+- Boss arenas
+- Dynamic weather
+- Full biome set + themed structures
+- Vehicles
+- Rescue civilians
+- (Optional) barricades
+- Corrupted terrain

@@ -8,15 +8,15 @@ A repeating day/night cycle that affects gameplay mechanics, visibility, enemy b
 
 ## Overview
 
-> TBD — How long is a full cycle? How many game ticks/rounds comprise day vs night? Is the cycle tied to real-time or game-time? Can cycle timing be configured per difficulty?
+> TBD -- How long is a full cycle? How many game ticks/rounds comprise day vs night? Is the cycle tied to real-time or game-time? Can cycle timing be configured per difficulty?
 
 ---
 
 ## Cycle Timing
 
-> TBD — Duration parameters:
+> TBD -- Duration parameters:
 
-- **Full Cycle:** How many ticks/rounds for complete day → night → day loop?
+- **Full Cycle:** How many ticks/rounds for complete day -> night -> day loop?
 - **Day Duration:** Number of ticks for daylight phase (e.g., 1000 ticks).
 - **Night Duration:** Number of ticks for darkness phase (e.g., 800 ticks).
 - **Transitional Periods:** Is there a dawn/dusk period with gradual transition or instant flip?
@@ -26,21 +26,27 @@ A repeating day/night cycle that affects gameplay mechanics, visibility, enemy b
 
 ## Vision Effects
 
-> TBD — Vision mechanics change with time of day:
+Vision range is modified by time of day through a multiplier applied to the base vision formula.
 
-- **Daytime:** Full/normal vision range (agents can see far, plan ahead, explore safely).
-  - Full vision range (e.g., 8 tiles).
-  - Clear visibility of structures and terrain.
-- **Nighttime:** Reduced vision range (makes exploration risky, scarier, forces different strategy).
-  - Reduced vision range (e.g., 4 tiles or 50% reduction).
-  - Partial vision visibility (are edges of darkness blurred or hard-cut?).
-- **Fog & Vision Integration:** Nighttime modifier applies to Fog & Vision system vision ranges.
+- **Daytime:** `vision_mult_day = 1.0` (full vision range, e.g., 8 tiles base).
+- **Nighttime:** `vision_mult_night = 0.7` (vision reduced to 70% of base).
+
+The multiplier feeds into the fog-and-vision system formula:
+
+```
+effective_vision = base_vision * trait_mult * status_mult * timeOfDay_mult
+```
+
+### Night Vision Goggles
+
+- **Night vision goggles** can override the night multiplier, effectively giving full daytime vision at night.
+- Implementation: when equipped, set `timeOfDay_mult = 1.0` regardless of actual time.
 
 ---
 
 ## Enemy Behavior Changes
 
-> TBD — Do enemy types and behaviors shift at night?
+> TBD -- Do enemy types and behaviors shift at night?
 
 - Are enemies more aggressive at night?
 - Do only certain enemy types spawn at night (special night-only variants)?
@@ -52,23 +58,23 @@ A repeating day/night cycle that affects gameplay mechanics, visibility, enemy b
 
 ## Sunrise Buy Window
 
-> TBD — Daily shopping opportunity (IDEA 5 Option C, tied to Resources & Economy):
+Tied to Resources & Economy system (IDEA 5 Option C):
 
 - **Trigger:** Window opens at dawn (start of day phase).
-- **Duration:** Timed window (e.g., 30 seconds game-time) for agents to shop.
+- **Duration:** Timed window for agents to shop (exact duration TBD).
 - **Mechanics:**
-  - Enemies STOP SPAWNING entirely during window (safe period).
+  - **Enemies STOP spawning** entirely during window (confirmed safe period).
   - Shop menu accessible to all agents.
-  - Agents can purchase items and resources.
-  - Trading between agents enabled?
+  - Agents can purchase items and resources using gold.
+  - Trading between agents enabled.
 - **Window Close:** After duration expires, spawning resumes and day begins.
-- **Frequency:** Happens once per cycle (daily) or multiple windows per day?
+- **Frequency:** Happens once per cycle (daily).
 
 ---
 
 ## Visual Representation
 
-> TBD — How does time of day appear to the player?
+> TBD -- How does time of day appear to the player?
 
 - **Sky Color:** Day = bright, Night = dark. Gradient transition?
 - **Lighting:** Dynamic lighting changes? Shadows longer at dusk?
@@ -81,7 +87,7 @@ A repeating day/night cycle that affects gameplay mechanics, visibility, enemy b
 
 ## Connection to Other Systems
 
-- **Fog & Vision:** Vision range modifiers tied to day/night cycle (Fog & Vision)
+- **Fog & Vision:** Vision range modifiers tied to day/night cycle via `timeOfDay_mult` (Fog & Vision)
 - **Spawners & Enemies:** Enemy types and behavior affected by time of day (Spawners & Enemies)
 - **Resources & Economy:** Sunrise buy window trigger (Resources & Economy)
 - **Combat:** Night might affect hit chance, visibility-based engagement (Combat)

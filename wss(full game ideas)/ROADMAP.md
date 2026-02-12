@@ -1,4 +1,4 @@
-# "A Forgotten Place" — Development Roadmap
+# "A Forgotten Place" -- Development Roadmap
 
 > Imported skeleton roadmap for WSS2. Updated to match locked design decisions.
 
@@ -7,6 +7,14 @@
 - Combat is **real-time** (60 ticks/sec).
 - Win condition is **portal evacuation** (all living survivors).
 - Fog is **shared team fog** with **remembered** fog.
+- Objectives are **location-based, sequential, one at a time**.
+- Switch activation is **hold-to-activate** (N ticks, soft-locked).
+- Survivors spawn **center of map**, portal in center, starts **LOCKED**.
+- Compass points each survivor toward current objective.
+- Portal uses **soft lock-in** (survivors enter one at a time, win when all living are evacuating).
+- AI does **not auto-cancel** activation when enemies approach.
+- v0.1 map sizes: **30x30, 40x40, 60x60** (configurable).
+- v0.1 survivor count: **1-5** (configurable).
 
 ---
 
@@ -27,10 +35,10 @@
 ## Phase 1: Core Simulation
 > One biome, basic enemies, AI squad with simple combat. The "proof of life" build.
 
-- [ ] Single biome map generation (pick one to start — Forest or Hills)
+- [ ] Single biome map generation (pick one to start -- Forest or Hills)
 - [ ] PlayerAI agents on the grid (movement, stats: health/stamina/ammo)
 - [ ] Basic zombie spawner (reuse beehive spawner concept)
-- [ ] Simple enemy type (basic zombie — move toward nearest agent)
+- [ ] Simple enemy type (basic zombie -- move toward nearest agent)
 - [ ] Real-time combat loop (60 ticks/sec) + damage/defense (reuse RogueLike combat math)
 - [ ] Shared team fog-of-war + remembered fog (two-step: visible vs explored)
 - [ ] Basic AI brain: fight / flee / scavenge decision tree
@@ -54,14 +62,14 @@
 ---
 
 ## Phase 3: Day/Night & Economy
-> Add rhythm to the game — safe moments vs. dangerous ones.
+> Add rhythm to the game -- safe moments vs. dangerous ones.
 
 - [ ] Day/night cycle (IDEA 4)
-  - [ ] Vision range changes (full day → reduced night)
+  - [ ] Vision range changes (full day -> reduced night)
   - [ ] Enemy behavior shifts (more aggressive at night?)
   - [ ] Visual indicator (sky color / overlay / UI clock)
 - [ ] Shop / trading system (IDEA 5)
-  - [ ] Sunrise buy window (Option C — enemies pause, shop opens)
+  - [ ] Sunrise buy window (Option C -- enemies pause, shop opens)
   - [ ] Currency system (gold from kills? scavenged points?)
   - [ ] AI trade evaluation (reuse MonsterCards logic per agent)
 - [ ] Player-to-player trading between AI agents
@@ -98,7 +106,7 @@
 ---
 
 ## Phase 6: Advanced AI & Cameras
-> The big brain upgrade — agents think locally, not globally.
+> The big brain upgrade -- agents think locally, not globally.
 
 - [ ] Per-agent relative camera/viewport (IDEA 2)
 - [ ] AI decision-making based on LIMITED local info only
@@ -111,13 +119,13 @@
 ---
 
 ## Phase 7: Onslaught Zone & Factions
-> Late-game depth — pressure mechanics and social dynamics.
+> Late-game depth -- pressure mechanics and social dynamics.
 
-- [ ] Onslaught zone (IDEA 6 — moving danger area)
+- [ ] Onslaught zone (IDEA 6 -- moving danger area)
   - [ ] Zone movement triggers
   - [ ] Damage to agents inside the zone
   - [ ] Forces relocation and tactical decisions
-- [ ] Faction system (IDEA 1 — experimental)
+- [ ] Faction system (IDEA 1 -- experimental)
   - [ ] Faction types: friendly survivors, hostile humans, neutral traders, zombies
   - [ ] Faction relationships and allegiance shifts
   - [ ] Rival survivor groups?
@@ -131,7 +139,7 @@
 - [ ] Sound/detection mechanics (noise attracts zombies?)
 - [ ] Special zombie types (runners, tanks, special infected, night-only)
 - [ ] Environmental hazards (fires, collapsed buildings, traps)
-- [ ] Weather system (S4 reference — hypothermia in snow, heat in desert)
+- [ ] Weather system (S4 reference -- hypothermia in snow, heat in desert)
 - [ ] Performance metrics & post-game stats
 - [ ] Victory / defeat screens with full run summary
 
@@ -140,20 +148,18 @@
 ## Open Design Questions
 > To be resolved before or during each phase.
 
-- Grid size per map? Fixed or configurable?
-- How many AI agents per squad? (4? 6? configurable?)
-- Zombie type roster — what are all the enemy types?
-- Onslaught zone behavior — gradual damage or instant kill?
-- Ammo system — finite per weapon? Shared pool?
-- Crafting — yes/no? If yes, how deep?
-- Barricading — can agents block doors/paths?
-- Friendly fire — on or off?
-- Reinforcements — can new agents arrive mid-game?
-- Rescued civilians (S8) — do they join the squad or just add score?
+- Zombie type roster -- what are all the enemy types?
+- Onslaught zone behavior -- gradual damage or instant kill?
+- Ammo system -- finite per weapon? Shared pool?
+- Crafting -- yes/no? If yes, how deep?
+- Barricading -- can agents block doors/paths?
+- Friendly fire -- on or off?
+- Reinforcements -- can new agents arrive mid-game?
+- Rescued civilians (S8) -- do they join the squad or just add score?
 - Confirm remaining combat details (cooldowns, attack windup, hit timing) for real-time loop
 - Communication system details (radio range, cooldowns, etc.)
 
 ---
 
 *Last updated: Feb 2026*
-*Status: Skeleton — awaiting design finalization*
+*Status: Skeleton with locked decisions from brainstorming session*

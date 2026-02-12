@@ -6,61 +6,83 @@ Items, currency, trading mechanics between agents, and the shop system. Includes
 
 ## Overview
 
-> TBD — What is the flow of resources through the game? How do agents earn currency? When/where do they spend it? How much does the economy affect survival chances?
+v0.1 keeps the economy minimal: HealthPack and Ammo as the only item types, with a simple PickupSystem for collecting items on the ground. Currency (gold) is earned from kills or passive income and is separate from score. The shop system combines Option B (Shop Area) with Option C (Sunrise Buy Window). Between maps, a Survivor Market provides a safe rest stop (Hades-style).
+
+### Game Flow
+
+Map -> Portal -> (Boss chance) -> Survivor Market (safe) -> Next map
 
 ---
 
-## Resource Types
+## v0.1 Items (Minimal)
 
-> TBD — Define all resource categories agents can carry/manage:
+- **HealthPack** -- Restores health when picked up.
+- **Ammo** -- Restocks weapon ammunition (optional in v0.1).
 
-- **Health/Healing:** Medical kits, bandages, drugs. Restore health when used.
-- **Ammo:** Ammunition per weapon type. Limited supply. Stackable or individual?
-- **Items:** General inventory items (grenades, lockpicks, food, water, flares, etc.). Do items take inventory slots?
-- **Equipment:** Armor, helmets, backpacks. Equippable gear with stat bonuses.
-- **[Other resource types TBD]**
+### Item Data Model
 
-> TBD — Does each agent have inventory limits (carrying capacity)? How many slots? Weight system?
+Item extends Entity (or can be a simple struct):
+
+- `type`: HealthPack | Ammo
+- `position`: (x, y) on the grid
+- `effect`: what happens when picked up (heal amount, ammo count)
+
+---
+
+## PickupSystem
+
+The PickupSystem handles item collection:
+
+- When a survivor steps onto a tile containing an Item, the PickupSystem triggers.
+- The item's effect is applied to the survivor (restore health, add ammo).
+- The item entity is removed from the world.
 
 ---
 
 ## Currency System
 
-> TBD — Economy implementation:
+- Currency is **gold** (name can change later).
+- Gold is earned from:
+  - Kill bounties (X gold per enemy killed)
+  - Passive income (TBD)
+  - Objective completion (TBD)
+- Gold is **separate from score** (score is for win condition, gold is for purchasing).
 
-- What is the currency called? Gold? Credits? Scrap?
-- How do agents earn currency?
-  - Kill bounties (X gold per zombie killed)?
-  - Loot caches (fixed loot or percentage drop)?
-  - Quest/objective completion?
-  - Scavenging actions?
-- Is currency shared across the team or per-agent?
-- Can currency be transferred between agents?
-- Can agents become "wealthy" and have strategic advantages?
+> TBD -- Is currency shared across the team or per-agent? Can currency be transferred between agents?
 
 ---
 
-## Shop System (Sunrise Buy Window)
+## Shop System
 
-> TBD — Shop system implementation (IDEA 5 Option C is the favorite):
+**Decision:** Option B (Shop Area) + Option C (Sunrise Buy Window)
 
-- **Sunrise Buy Window:** Every dawn, a timed window opens (duration TBD, e.g., 30 seconds game time).
+### Sunrise Buy Window (Option C)
+
+- Every dawn, a timed window opens.
 - During the window:
-  - Enemies STOP SPAWNING (safe window).
+  - **Enemies STOP spawning** (safe period) -- YES, confirmed.
   - All agents can access a shop menu.
-  - Limited inventory displayed (rotation or fixed?).
-  - Agents spend currency to purchase items.
+  - Agents spend gold to purchase items.
 - Window closes after duration, spawning resumes.
-- Does the shop inventory reset each day or carry unsold items?
-- Can agents buy on credit or must they pay upfront?
 
-> TBD — Who runs the shop? Is it an abstract vending machine or implied NPC?
+### Shop Area (Option B)
+
+- A designated area on the map where agents can access the shop.
+- Available during gameplay (not just at sunrise).
+- TBD -- exact shop area mechanics.
+
+### If Building System Added Later
+
+- Option A (Craftable Workbench) + Option C (Sunrise Buy Window) would be used instead.
+- Survivors can craft a workbench to access shop functionality.
+
+> TBD -- Shop inventory (rotation or fixed?). Can agents buy on credit or must they pay upfront? Who runs the shop?
 
 ---
 
 ## Player-to-Player Trading
 
-> TBD — Agent-to-agent trading mechanics (reuse MonsterCards evaluation logic):
+> TBD -- Agent-to-agent trading mechanics (reuse MonsterCards evaluation logic):
 
 - Can agents propose trades (item for item, item for currency)?
 - Does evaluation logic from MonsterCards apply (balanced/aggressive/defensive strategies)?
@@ -72,24 +94,37 @@ Items, currency, trading mechanics between agents, and the shop system. Includes
 
 ## Survivor Market (Between-Map Rest Stops)
 
-> TBD — Safe zone implementation (IDEA 5 Updated Solution):
+Hades-style safe zone between maps. After finding a portal and exiting the current map, survivors arrive at the Survivor Market.
 
-- After finding a portal and exiting current map, agents arrive at the Survivor Market.
-- Market is a safe zone (no enemies, no onslaught zone).
-- Features available in the Market:
-  - **Buy/Sell Items:** Full shop interface, larger inventory than sunrise window.
-  - **Trade Between Agents:** More time/options than during gameplay.
-  - **Healing:** Restore health for free or cost?
-  - **Restock Ammo:** Resupply ammunition.
-  - **Repair Equipment:** Fix degraded gear (if durability system exists)?
+- **Safe zone:** No enemies, no onslaught zone.
+- **Features:**
+  - Buy/Sell Items: Full shop interface, larger inventory than sunrise window.
+  - Trade Between Agents: More time/options than during gameplay.
+  - Healing: Restore health (free or cost TBD).
+  - Restock Ammo: Resupply ammunition.
+  - Repair Equipment: Fix degraded gear (if durability system exists, TBD).
 - Market has flavor NPCs (Neutral Faction D traders) running shops.
-- Market duration: Configurable rest period before next map loads (e.g., 60 seconds).
+- Market duration: Configurable rest period before next map loads.
 
 ---
 
-## Item List
+## Resource Types (Full Roster)
 
-> TBD — Comprehensive list of all purchasable/lootable items:
+> TBD -- Define all resource categories agents can carry/manage beyond v0.1:
+
+- **Health/Healing:** Medical kits, bandages, drugs. Restore health when used.
+- **Ammo:** Ammunition per weapon type. Limited supply. Stackable or individual?
+- **Items:** General inventory items (grenades, lockpicks, food, water, flares, etc.). Do items take inventory slots?
+- **Equipment:** Armor, helmets, backpacks. Equippable gear with stat bonuses.
+- **[Other resource types TBD]**
+
+> TBD -- Does each agent have inventory limits (carrying capacity)? How many slots? Weight system?
+
+---
+
+## Item List (Full Roster)
+
+> TBD -- Comprehensive list of all purchasable/lootable items:
 
 - **Weapons:** Pistol, shotgun, rifle, melee weapons (bat, axe, knife), [others TBD]
 - **Ammunition:** Pistol rounds, shotgun shells, rifle rounds, [others TBD]
@@ -99,7 +134,7 @@ Items, currency, trading mechanics between agents, and the shop system. Includes
 - **Armor/Gear:** Helmet, vest, backpack, gloves, [others TBD]
 - **Special:** [Rare/unique items TBD]
 
-> TBD — Item stats (damage, durability, weight). Rarity tiers (common, uncommon, rare, legendary)?
+> TBD -- Item stats (damage, durability, weight). Rarity tiers (common, uncommon, rare, legendary)?
 
 ---
 
