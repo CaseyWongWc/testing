@@ -15,9 +15,17 @@ This folder contains all UML diagrams and artifacts for the CS 4800 Software Eng
 
 | Deliverable | Status | Date Assigned | Notes |
 |---|---|---|---|
-| Use Case Diagram | Pending | 2/16/2026 | Required for final report. Identify primary/secondary actors, use cases per actor. |
+| Use Case Diagram | Done (v1) | 2/16/2026 | Required for final report. Analysis + FigJam diagram created. |
 | Activity Diagrams | TBD | — | — |
 | Other UML Artifacts | TBD | — | — |
+
+---
+
+## Diagram Links
+
+| Diagram | Link | Notes |
+|---|---|---|
+| Use Case Diagram (FigJam) | [View/Edit in FigJam](https://www.figma.com/online-whiteboard/create-diagram/919ee672-4488-46c3-9400-803473ca4842?utm_source=other&utm_content=edit_in_figjam&oai_id=&request_id=8ce9f859-c379-4f37-9aad-84192b2837e7) | Editable. Shows all primary/secondary actors and 28 use cases for WSS2. |
 
 ---
 
@@ -33,13 +41,12 @@ This folder contains all UML diagrams and artifacts for the CS 4800 Software Eng
 
 ```
 cs4800-deliverables/
-  README.md              <-- this file
-  (use-case-diagrams/)   <-- will contain use case diagram artifacts
-  (activity-diagrams/)   <-- will contain activity diagram artifacts
-  (other-uml/)           <-- additional UML artifacts as assigned
+  README.md                                        <-- this file
+  use-case-diagrams/
+    wss2-use-case-analysis.md                      <-- full actor/use case breakdown
+  (activity-diagrams/)                             <-- will contain activity diagram artifacts
+  (other-uml/)                                     <-- additional UML artifacts as assigned
 ```
-
-*Subfolders will be created as deliverables are assigned.*
 
 ---
 
