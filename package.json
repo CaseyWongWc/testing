@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@notionhq/client": "^5.9.0",
     "express": "^5.1.0",
     "http-proxy-middleware": "^3.0.5",
     "lucide-react": "^0.344.0",
