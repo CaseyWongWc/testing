@@ -6,25 +6,45 @@ Procedural generation of themed biome maps with semi-randomized structures, terr
 
 ## Overview
 
-Maps are generated as square grids with configurable size. Survivors spawn near the center of the map with the portal also placed in the center (starts LOCKED). The map generation system supports an optional center frame maze around the spawn hub, maze pockets as sub-areas, and biome-themed terrain.
+Maps are generated as square grids with configurable size. Survivors spawn near the center of the map with the portal also placed in the center (starts SEALED). The map generation system supports an optional center frame maze around the spawn hub, maze pockets as sub-areas, and biome-themed terrain.
+
+Map generation covers terrain, structures/buildings, vehicles, wreckages, debris, entity placement, and loot distribution — not just terrain tiles.
 
 ---
 
 ## Grid Structure
 
-Map size is a configurable parameter. v0.1 sizes:
+Map size is a configurable parameter tied to difficulty level:
 
-- **30x30** -- debug-friendly (small, fast iteration)
-- **40x40** -- default play size
-- **60x60** -- stress test (performance and scale testing)
+- **Easy** -- smaller maps (30x30), fewer objectives, less ground to cover
+- **Normal** -- default play size (40x40)
+- **Hard** -- larger maps (50x50–60x60), more objectives, greater distance between resources
+
+Configurable range: **30–60 tiles** per side.
 
 Grid format: square tiles only. Single layer (no multi-floor in v0.1). Coordinate system is (x, y) with (0,0) at top-left.
 
 ---
 
+## Map Generation Pipeline
+
+The map generator runs the following steps in order:
+
+1. **Terrain Generation** -- lay down base terrain tiles per biome rules
+2. **Structure Placement** -- stamp buildings, bunkers, caves, and other structures
+3. **Vehicle & Wreckage Placement** -- scatter vehicles, wrecks, and debris for cover and atmosphere
+4. **Corruption Nest Placement** -- place nests according to spread and distance rules
+5. **Rift Portal Placement** -- place the portal at the center or a designated location
+6. **Objective Marker Placement** -- distribute objective locations across the map
+7. **Trader NPC Placement** -- place trader NPCs in accessible but off-center locations
+8. **Static Loot Placement** -- distribute loot items across the map (details TBD, but integrated into map gen)
+9. **Survivor Start Position** -- place survivors at the center of the map near the portal
+
+---
+
 ## Center Spawn Concept
 
-Survivors spawn near the **center** of the map. The portal is placed in the center and starts **LOCKED** (unlocked by completing objectives).
+Survivors spawn near the **center** of the map. The portal is placed in the center and starts **SEALED** (transitions to OPEN when all objectives are complete, then ACTIVATED when survivors enter).
 
 - Portal exists as an inactive floor tile in the hub area.
 - Survivors can walk over the inactive portal freely.
@@ -67,6 +87,43 @@ Run a maze algorithm only inside the frame band (the donut/ring area), then thic
   - **Control:** Spawners or onslaught pressure can eventually push inward (later phases).
 - **Risk:** Pathing bottlenecks.
   - **Control:** Add 2-4 gates (openings) in the frame.
+
+---
+
+## Entity Placement Rules
+
+### Corruption Nest Placement
+
+- Nests are spread across the map to avoid clustering.
+- Minimum distance from survivor spawn point (center) to prevent early overwhelm.
+- Placed near or between objective locations to create threat around goals.
+- Nest tier (SMALL/MEDIUM/LARGE) scales with distance from center — larger nests further out.
+- Number of nests scales with difficulty and map size.
+
+### Rift Portal Placement
+
+- Placed at the center of the map (default) or at a specific designated location.
+- Starts in SEALED state, transitions to OPEN when objectives are met.
+- Must be on a walkable tile with clearance around it for survivor positioning.
+
+### Trader NPC Placement
+
+- Placed in accessible locations, typically near structures or points of interest.
+- Not placed at the center (avoid clustering with spawn point).
+- At least one trader per map; additional traders on larger/harder maps.
+
+### Objective Marker Placement
+
+- Distributed across the map to encourage exploration.
+- Minimum distance between objectives to prevent trivial completion.
+- At least one objective in each quadrant of the map on larger maps.
+
+### Static Loot Placement
+
+- Loot items are placed during map generation at fixed positions.
+- Concentrated inside and around structures, with sparse loot in open terrain.
+- Loot density and quality scale with distance from center and difficulty.
+- Exact item tables and distribution rules TBD.
 
 ---
 
@@ -152,11 +209,25 @@ Six confirmed biomes (reference IDEA 3 from WSS -ideas.md):
 
 ## Map Layout Rules
 
-- Survivors spawn near the center of the map.
+- Survivors spawn at the center of the map.
 - Portal is placed in the center, starts LOCKED.
 - Optional center frame maze ring around the hub.
 - Spawner placement follows biome theme and difficulty settings.
 - Minimum distance between spawners and player start: TBD.
+- Corruption Nests spread across the map, biased away from center.
+- Objectives distributed to encourage full-map exploration.
+
+---
+
+## Rendering & Performance
+
+- Render only tiles and entities within the current **viewport** (camera frustum).
+- Use **near/far plane** concepts (adapted from CS4450 3D rendering) to determine draw priority:
+  - **Near plane:** tiles and entities closest to the camera center are drawn at full detail.
+  - **Far plane:** tiles at the edge of the viewport can use simplified rendering or be culled.
+- Observer Grid UI renders a 2x vision range window around the active survivor group.
+- Off-screen entities still simulate but are not drawn.
+- With map sizes of 30–60 tiles, viewport culling keeps frame budgets low even with dense maps.
 
 ---
 
@@ -168,6 +239,7 @@ Six confirmed biomes (reference IDEA 3 from WSS -ideas.md):
 - **Resources & Economy:** Loot distribution tied to biome and structure types (Resources & Economy)
 - **Day/Night Cycle:** Biome affects day/night visual appearance (Day/Night Cycle)
 - **Win Conditions:** Portal location determined during map generation (Win Conditions)
+- **Object Model:** CorruptionNest, RiftPortal, and Placeable entities placed during generation (Object Model)
 
 ---
 

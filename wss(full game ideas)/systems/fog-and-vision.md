@@ -10,6 +10,8 @@ Shared team vision with remembered fog mechanics. Agents see what teammates see,
 
 The fog system uses two per-tile arrays shared across the entire survivor team. Each tick, `team_visible` is recomputed from all living survivors. Tiles transition between three rendering states based on whether they are currently visible, previously seen, or never explored.
 
+The vision system is **radius-based** with modifiers from weapons, items, and traits. Each survivor has a circular vision area determined by their effective vision radius, and the union of all survivor vision areas forms the team's visible region.
+
 ---
 
 ## Shared Team Fog Rules
@@ -56,7 +58,7 @@ The fog-of-war memory is **shared across the survivor team** (LOCKED decision). 
 ### Vision Formula
 
 ```
-effective_vision = base_vision * trait_mult * status_mult * timeOfDay_mult
+effective_vision = base_vision * trait_mult * status_mult * timeOfDay_mult + weapon_bonus + item_bonus
 ```
 
 ### Day/Night Multiplier
@@ -74,10 +76,31 @@ effective_vision = base_vision * trait_mult * status_mult * timeOfDay_mult
 - **Downed:** Reduces vision (specific multiplier TBD)
 - **WellFed:** Increases vision (specific multiplier TBD)
 
+### Weapon-Based Extended Vision
+
+Certain weapons extend the survivor's vision beyond the base radius:
+
+- **Scoped Rifle:** `weapon_bonus = +4 tiles` (extends vision in weapon's aim direction)
+- **Binoculars (item):** `item_bonus = +6 tiles` (extends vision while equipped, no combat use)
+- **Sniper Scope:** `weapon_bonus = +6 tiles` (longest weapon-based extension)
+
+Weapon vision bonuses apply on top of the base radius after all multipliers. This allows snipers and scouts to spot targets before enemies enter standard engagement range.
+
 ### Vision Bypass Tools
 
 - **Night vision goggles:** Override the night multiplier (or add a flat bonus), effectively giving full vision at night.
 - **Weapon range > vision:** Allow firing at targets outside vision if they are previously seen in memory, revealed by teammate vision, or revealed by a "ping" mechanic (future).
+
+---
+
+## Observer Grid UI
+
+The in-game camera and fog rendering use an **Observer Grid** that renders a window of **2x the vision range** around each survivor.
+
+- For a survivor with `effective_vision = 8`, the Observer Grid renders a 16-tile radius area centered on that survivor.
+- Tiles within the vision radius are rendered as Visible; tiles between 1x and 2x radius are rendered as Remembered or Unknown based on `team_seen` state.
+- This provides spatial context beyond what the survivor can currently see, showing previously explored terrain at the edges of the viewport.
+- Multiple survivors' Observer Grids are unioned for the final rendered view.
 
 ---
 
@@ -158,6 +181,7 @@ For boss hints, scripted sightings, and horror atmosphere. A separate marker typ
 - **Map Generation:** Terrain and structures affect line of sight blocking (Map Generation)
 - **Day/Night Cycle:** Night reduces vision range via multiplier (Day/Night Cycle)
 - **Spawners & Enemies:** Enemy vision may use similar mechanics (Spawners & Enemies)
+- **Object Model:** Weapon and item bonuses reference weapon/item stats from Object Model
 
 ---
 

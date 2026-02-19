@@ -6,7 +6,7 @@ Items, currency, trading mechanics between agents, and the shop system. Includes
 
 ## Overview
 
-v0.1 keeps the economy minimal: HealthPack and Ammo as the only item types, with a simple PickupSystem for collecting items on the ground. Currency (gold) is earned from kills or passive income and is separate from score. The shop system combines Option B (Shop Area) with Option C (Sunrise Buy Window). Between maps, a Survivor Market provides a safe rest stop (Hades-style).
+The economy system covers items, currency, trading, and the Survivor Market. Items include weapons, armor, consumables (healing, throwables, utility), and ammo. Currency (gold) is earned from kills, scavenging, and objective completion. Between maps, the Survivor Market provides a safe rest stop (Hades-style) where survivors buy, sell, heal, and restock.
 
 ### Game Flow
 
@@ -44,11 +44,61 @@ The PickupSystem handles item collection:
 - Currency is **gold** (name can change later).
 - Gold is earned from:
   - Kill bounties (X gold per enemy killed)
-  - Passive income (TBD)
-  - Objective completion (TBD)
+  - Scavenging (looting containers, searching structures)
+  - Objective completion (bonus gold for completing map objectives)
 - Gold is **separate from score** (score is for win condition, gold is for purchasing).
 
 > TBD -- Is currency shared across the team or per-agent? Can currency be transferred between agents?
+
+---
+
+## Trader Types
+
+Three distinct trader archetypes appear in-game:
+
+### Wandering Merchant
+
+- Roams the map during gameplay.
+- Limited inventory, random stock.
+- Disappears after a set number of ticks or when inventory is sold out.
+- Prices are fair (1.0x base multiplier).
+
+### Settlement Trader
+
+- Fixed location on the map, typically inside or near structures.
+- Larger inventory than wandering merchants.
+- Restocks inventory at dawn (sunrise restock cycle).
+- Prices slightly above base (1.1x–1.2x multiplier).
+
+### Black Market
+
+- Rare spawn, hidden in hard-to-reach locations.
+- Sells powerful/rare items not available from other traders.
+- High prices (1.5x–2.0x multiplier).
+- Does not restock — once sold out, gone for the map.
+
+### TradeOffer Structure
+
+Each item a trader sells is represented as a TradeOffer:
+
+- `itemID` -- reference to the item being sold
+- `price` -- gold cost to purchase
+- `quantity` -- number available in stock (decrements on purchase)
+
+### Pricing Modifiers
+
+Base prices are modified by:
+
+- **Difficulty multiplier** -- higher difficulty increases prices (Easy: 0.8x, Normal: 1.0x, Hard: 1.3x)
+- **Scarcity multiplier** -- items with low remaining stock across the map cost more (1.0x–1.5x)
+- **Combined formula:** `final_price = base_price * difficulty_mult * scarcity_mult`
+
+### Restock Mechanics
+
+- Settlement Traders restock at each dawn cycle (partial restock, not full reset).
+- Wandering Merchants do not restock — they carry what they carry.
+- Black Market does not restock.
+- Survivor Market (between maps) fully restocks each visit.
 
 ---
 
@@ -96,15 +146,64 @@ The PickupSystem handles item collection:
 
 Hades-style safe zone between maps. After finding a portal and exiting the current map, survivors arrive at the Survivor Market.
 
-- **Safe zone:** No enemies, no onslaught zone.
+- **Safe zone:** No enemies, no onslaught zone, no timer pressure.
 - **Features:**
-  - Buy/Sell Items: Full shop interface, larger inventory than sunrise window.
-  - Trade Between Agents: More time/options than during gameplay.
-  - Healing: Restore health (free or cost TBD).
-  - Restock Ammo: Resupply ammunition.
-  - Repair Equipment: Fix degraded gear (if durability system exists, TBD).
+  - **Buy/Sell Items:** Full shop interface, larger inventory than sunrise window. Survivors can sell unwanted gear for gold.
+  - **Heal:** Restore health (free partial heal, full heal costs gold — TBD).
+  - **Restock Ammo:** Resupply ammunition at market prices.
+  - **Trade Between Agents:** More time/options than during gameplay.
+  - **Repair Equipment:** Fix degraded gear (if durability system exists, TBD).
 - Market has flavor NPCs (Neutral Faction D traders) running shops.
 - Market duration: Configurable rest period before next map loads.
+- Market inventory fully restocks each visit.
+
+---
+
+## Ammo System
+
+Ammunition is tracked **per weapon type**, not as a shared pool.
+
+- **PistolRounds** -- used by pistols and revolvers
+- **ShotgunShells** -- used by shotguns
+- **RifleRounds** -- used by rifles and assault rifles
+- **SpecialAmmo** -- used by unique/rare weapons (crossbow bolts, explosive rounds, etc.)
+
+Each survivor carries their own ammo counts per type. Picking up an Ammo item adds to the matching ammo type. Weapons without matching ammo cannot fire (switch to melee or flee).
+
+---
+
+## Stamina System
+
+Stamina is a fast-recharging resource that gates burst actions.
+
+- **Recharge rate:** Recovers quickly during idle or normal movement.
+- **Drain triggers:** Sprinting, dodging, heavy melee attacks, and special abilities consume stamina.
+- **Hunger/Thirst interaction:** Low hunger or thirst slows stamina recharge rate. Well-fed survivors recover stamina faster.
+- **Zero stamina:** Survivor cannot sprint or perform stamina-costing actions until partial recovery.
+
+---
+
+## Charms & Lucky Items
+
+Passive bonus items that provide persistent effects. Three scopes:
+
+### Personal Charms
+
+- Affect a single survivor only.
+- Examples: Lucky Coin (+5% accuracy), Rabbit's Foot (+10% loot find), Tough Hide (+1 defense).
+- Equipped in a charm slot, one per survivor.
+
+### Team Charms
+
+- Affect all living survivors on the team.
+- Examples: War Banner (+5% damage for all), Medic's Oath (+10% healing received for all), Scout's Map (reveal a small area of the map).
+- One team charm active at a time.
+
+### World Charms
+
+- Affect the map or difficulty parameters globally.
+- Examples: Cursed Idol (more enemies but better loot), Peaceful Totem (fewer enemy spawns), Storm Caller (reduced vision but enemies also have reduced vision).
+- Applied at the start of a map, cannot be changed mid-run.
 
 ---
 
@@ -113,9 +212,10 @@ Hades-style safe zone between maps. After finding a portal and exiting the curre
 > TBD -- Define all resource categories agents can carry/manage beyond v0.1:
 
 - **Health/Healing:** Medical kits, bandages, drugs. Restore health when used.
-- **Ammo:** Ammunition per weapon type. Limited supply. Stackable or individual?
+- **Ammo:** Ammunition per weapon type. Limited supply. Stackable.
 - **Items:** General inventory items (grenades, lockpicks, food, water, flares, etc.). Do items take inventory slots?
 - **Equipment:** Armor, helmets, backpacks. Equippable gear with stat bonuses.
+- **Consumables:** Bandages, Medkits, Molotovs, Stims, Rations — single-use items with immediate effects.
 - **[Other resource types TBD]**
 
 > TBD -- Does each agent have inventory limits (carrying capacity)? How many slots? Weight system?
@@ -132,6 +232,7 @@ Hades-style safe zone between maps. After finding a portal and exiting the curre
 - **Grenades:** Fragmentation, flashbang, smoke, [others TBD]
 - **Utility:** Lockpicks, rope, flares, maps, [others TBD]
 - **Armor/Gear:** Helmet, vest, backpack, gloves, [others TBD]
+- **Charms:** Personal, Team, and World charms [specific items TBD]
 - **Special:** [Rare/unique items TBD]
 
 > TBD -- Item stats (damage, durability, weight). Rarity tiers (common, uncommon, rare, legendary)?
@@ -146,6 +247,7 @@ Hades-style safe zone between maps. After finding a portal and exiting the curre
 - **Spawners & Enemies:** Enemy drops contribute to economy (Spawners & Enemies)
 - **Win Conditions:** Resources affect survival and extraction odds (Win Conditions)
 - **Day/Night Cycle:** Sunrise buy window triggers at dawn (Day/Night Cycle)
+- **Object Model:** Ammo types match weapon ammoType field, stamina tied to Actor stats (Object Model)
 
 ---
 

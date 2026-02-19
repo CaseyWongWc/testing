@@ -1,20 +1,43 @@
 # "A Forgotten Place" -- Development Roadmap
 
-> Imported skeleton roadmap for WSS2. Updated to match locked design decisions.
+> Updated to match locked design decisions from brainstorming sessions.
 
 ### Locked decisions (override older notes)
 
-- Combat is **real-time** (60 ticks/sec).
-- Win condition is **portal evacuation** (all living survivors).
-- Fog is **shared team fog** with **remembered** fog.
-- Objectives are **location-based, sequential, one at a time**.
-- Switch activation is **hold-to-activate** (N ticks, soft-locked).
-- Survivors spawn **center of map**, portal in center, starts **LOCKED**.
-- Compass points each survivor toward current objective.
-- Portal uses **soft lock-in** (survivors enter one at a time, win when all living are evacuating).
-- AI does **not auto-cancel** activation when enemies approach.
-- v0.1 map sizes: **30x30, 40x40, 60x60** (configurable).
-- v0.1 survivor count: **1-5** (configurable).
+- Combat is **real-time** (60 ticks/sec)
+- Movement is **hybrid**: grid-based world, smooth entity movement on top (ragdoll-style)
+- AI pathfinds on grid, entities move smoothly in real-time
+- **Stamina system**: fast recharge, drains hunger/thirst
+- **World speed slider** in settings
+- Win condition is **portal evacuation** (Rift Portal = exit to next map)
+- **Corruption Nests** are enemy spawners (NOT rift portals)
+- **Placeables** are survivor-built objects (barricades, traps, campfires)
+- Fog is **shared team fog** with **remembered** fog
+- Objectives: **6 types** (ActivateSwitch, Survive, Extract/ReachPortal, DestroyNests, Collect, Rescue)
+- Objective visibility: **Option A** (AI knows all objectives from start, HUD does progressive text reveal)
+- Objectives are **location-based, sequential, one at a time**
+- Switch activation is **hold-to-activate** (N ticks, soft-locked)
+- Survivors spawn **center of map**, portal in center, starts **SEALED**
+- Compass points each survivor toward current objective (disabled in Hardcore mode)
+- Portal uses **soft lock-in** (survivors enter one at a time, win when all living are evacuating)
+- AI does **not auto-cancel** activation when enemies approach
+- v0.1 map sizes: **30x30, 40x40, 60x60** (configurable, tied to difficulty)
+- v0.1 survivor count: **1-5** (configurable)
+- Combat: **3 weapon classes** (fists/melee/guns), noise mechanic, armor system, cover system
+- Group combat is **simultaneous** (all attackers hit at once)
+- **Humanoid combat** for all entities (survivors and enemy humans use same system)
+- **Faction system**: PLAYER_TEAM / HOSTILE / NEUTRAL
+- Difficulty: **static within maps**, **adaptive between maps** (roguelike escalation)
+- **Charms/Lucky Items** affect difficulty (Personal/Team/World scope)
+- Run structure: **Map 1 → Rift Portal → Map 2 (harder) → Rift Portal → Map 3...**
+- **Survivor Market** between maps (safe zone, buy/sell, heal)
+- Win/Lose: **two-level** (per-map portal extraction + full-run completion)
+- **S/A/B/C/D/F grading system** for performance
+- **Multi-camera system**: Observer Grid, Survivor Cam, Free Cam, Free Zoom
+- Entity visuals: **modular sprite pieces** (paper-doll system, 5 layers)
+- Entity size: **STILL DEBATING** (1-tile logical footprint vs variable hitboxes)
+- Loot distribution: **TBD**
+- Revive: **availability-based** (not personality-based, from Dinogen research)
 
 ---
 
@@ -33,46 +56,62 @@
 ---
 
 ## Phase 1: Core Simulation
-> One biome, basic enemies, AI squad with simple combat. The "proof of life" build.
+> One biome, Corruption Nests, AI squad with smooth movement on grid. The "proof of life" build.
 
 - [ ] Single biome map generation (pick one to start -- Forest or Hills)
-- [ ] PlayerAI agents on the grid (movement, stats: health/stamina/ammo)
-- [ ] Basic zombie spawner (reuse beehive spawner concept)
+- [ ] Grid-based world with smooth entity movement on top (hybrid movement system)
+- [ ] PlayerAI agents on the grid (movement, stats: health/stamina/hunger/thirst/ammo)
+- [ ] Stamina system (fast recharge, drains hunger/thirst)
+- [ ] Corruption Nests as enemy spawners (spawn waves of enemies from nests)
 - [ ] Simple enemy type (basic zombie -- move toward nearest agent)
-- [ ] Real-time combat loop (60 ticks/sec) + damage/defense (reuse RogueLike combat math)
+- [ ] Real-time combat loop (60 ticks/sec) with 3 weapon classes (fists/melee/guns)
+- [ ] Noise mechanic (gunfire and actions attract enemies)
+- [ ] Armor system and cover system
+- [ ] Group combat: simultaneous (all attackers hit at once)
+- [ ] Humanoid combat system (survivors and enemy humans use same system)
+- [ ] Faction system: PLAYER_TEAM / HOSTILE / NEUTRAL
 - [ ] Shared team fog-of-war + remembered fog (two-step: visible vs explored)
 - [ ] Basic AI brain: fight / flee / scavenge decision tree
+- [ ] AI pathfinds on grid, entities move smoothly in real-time
+- [ ] Placeables: survivor-built objects (barricades, traps, campfires)
 - [ ] Death & permadeath for agents
 - [ ] Lose condition: all agents dead
+- [ ] World speed slider in settings
 
 ---
 
 ## Phase 2: Game Loop & Winning
-> Make it a real game with escalation, scoring, and an ending.
+> Rift Portal extraction, objective unsealing, scoring, and a real ending.
 
-- [ ] Escalating waves / rounds (enemies get stronger over time)
-- [ ] Extraction score system (IDEA 3 from design doc)
-  - [ ] Score from kills, portals destroyed, rounds survived
-  - [ ] Underdog multiplier (fewer survivors = higher bonus)
-  - [ ] Probability-based extraction event trigger
-- [ ] Win condition: portal evacuation (portal unlock after objectives; evac requires all living survivors)
-- [ ] Basic HUD: round counter, score, extraction probability meter
+- [ ] 6 objective types: ActivateSwitch, Survive, Extract/ReachPortal, DestroyNests, Collect, Rescue
+- [ ] Objectives are location-based, sequential, one at a time
+- [ ] Objective visibility: Option A (AI knows all objectives from start, HUD does progressive text reveal)
+- [ ] Rift Portal starts SEALED in center of map; unseals after objectives complete
+- [ ] Win condition: Rift Portal evacuation (portal = exit to next map)
+- [ ] Portal soft lock-in (survivors enter one at a time, win when all living are evacuating)
+- [ ] Compass points each survivor toward current objective (disabled in Hardcore mode)
+- [ ] Switch activation: hold-to-activate (N ticks, soft-locked)
+- [ ] Corruption Nest destruction as objective type
+- [ ] Escalating enemy pressure (enemies get stronger over time within map)
+- [ ] S/A/B/C/D/F grading system for per-map performance
+- [ ] Basic HUD: round counter, score, objective status, compass
 - [ ] Resource pickups on map (health, ammo, basic items)
 
 ---
 
-## Phase 3: Day/Night & Economy
-> Add rhythm to the game -- safe moments vs. dangerous ones.
+## Phase 3: Day/Night & Survivor Market
+> Add rhythm to the game -- safe moments vs. dangerous ones, plus between-map trading.
 
-- [ ] Day/night cycle (IDEA 4)
+- [ ] Day/night cycle
   - [ ] Vision range changes (full day -> reduced night)
-  - [ ] Enemy behavior shifts (more aggressive at night?)
+  - [ ] Enemy behavior shifts (more aggressive at night)
   - [ ] Visual indicator (sky color / overlay / UI clock)
-- [ ] Shop / trading system (IDEA 5)
-  - [ ] Sunrise buy window (Option C -- enemies pause, shop opens)
-  - [ ] Currency system (gold from kills? scavenged points?)
-  - [ ] AI trade evaluation (reuse MonsterCards logic per agent)
-- [ ] Player-to-player trading between AI agents
+- [ ] Survivor Market between maps (safe zone)
+  - [ ] Buy/sell items, heal, restock
+  - [ ] Neutral Faction NPCs as shopkeepers
+  - [ ] Currency system (gold from kills, scavenged points)
+- [ ] Charms/Lucky Items (Personal/Team/World scope, affect difficulty)
+- [ ] AI trade evaluation per agent
 
 ---
 
@@ -91,24 +130,32 @@
 
 ---
 
-## Phase 5: Multi-Map & Progression
+## Phase 5: Multi-Map Progression
 > Turn single maps into a roguelike run across multiple levels.
 
-- [ ] Portal system (exit the current map)
+- [ ] Run structure: Map 1 → Rift Portal → Map 2 (harder) → Rift Portal → Map 3...
+- [ ] Rift Portal as map exit (completing objectives unseals portal)
 - [ ] Procedural next-map generation (new biome, harder difficulty)
-- [ ] Survivor Market between maps (IDEA 5 updated solution)
+- [ ] Difficulty: static within maps, adaptive between maps (roguelike escalation)
+- [ ] Survivor Market between each map
   - [ ] Safe zone: no enemies
   - [ ] Buy/sell items, heal, restock
-  - [ ] Neutral Faction D NPCs as shopkeepers
-- [ ] Boss arena chance before market (IDEA 9 / S9 reference)
-- [ ] Difficulty scaling across maps
+  - [ ] Neutral Faction NPCs as shopkeepers
+- [ ] Boss arena chance before market
+- [ ] Win/Lose: two-level (per-map portal extraction + full-run completion)
+- [ ] Revive system: availability-based (not personality-based, from Dinogen research)
 
 ---
 
-## Phase 6: Advanced AI & Cameras
-> The big brain upgrade -- agents think locally, not globally.
+## Phase 6: Advanced AI & Multi-Camera
+> The big brain upgrade -- agents think locally, not globally. Multi-camera observation.
 
-- [ ] Per-agent relative camera/viewport (IDEA 2)
+- [ ] Multi-camera system
+  - [ ] Observer Grid (Diep.io-inspired split view of all survivors)
+  - [ ] Survivor Cam (follow individual survivor)
+  - [ ] Free Cam (detached camera, explore the map)
+  - [ ] Free Zoom (zoom in/out on any area)
+- [ ] Entity visuals: modular sprite pieces (paper-doll system, 5 layers)
 - [ ] AI decision-making based on LIMITED local info only
 - [ ] Independent exploration logic per agent
 - [ ] Help request system (call for backup)
@@ -118,17 +165,17 @@
 
 ---
 
-## Phase 7: Onslaught Zone & Factions
+## Phase 7: Onslaught Zone & Faction Depth
 > Late-game depth -- pressure mechanics and social dynamics.
 
-- [ ] Onslaught zone (IDEA 6 -- moving danger area)
+- [ ] Onslaught zone (moving danger area)
   - [ ] Zone movement triggers
   - [ ] Damage to agents inside the zone
   - [ ] Forces relocation and tactical decisions
-- [ ] Faction system (IDEA 1 -- experimental)
-  - [ ] Faction types: friendly survivors, hostile humans, neutral traders, zombies
+- [ ] Expanded faction interactions
+  - [ ] Faction types: PLAYER_TEAM, HOSTILE (zombies + hostile humans), NEUTRAL (traders)
   - [ ] Faction relationships and allegiance shifts
-  - [ ] Rival survivor groups?
+  - [ ] Rival survivor groups
 
 ---
 
@@ -136,30 +183,47 @@
 > Make it FEEL like survival horror, not just a sim.
 
 - [ ] Atmospheric visuals (darkness, fog, weather effects)
-- [ ] Sound/detection mechanics (noise attracts zombies?)
-- [ ] Special zombie types (runners, tanks, special infected, night-only)
+- [ ] Sound/detection mechanics (noise attracts enemies, ties into noise mechanic)
+- [ ] Special enemy types (runners, tanks, special infected, night-only)
 - [ ] Environmental hazards (fires, collapsed buildings, traps)
-- [ ] Weather system (S4 reference -- hypothermia in snow, heat in desert)
+- [ ] Weather system (hypothermia in snow, heat in desert)
 - [ ] Performance metrics & post-game stats
-- [ ] Victory / defeat screens with full run summary
+- [ ] Victory / defeat screens with full run summary and S/A/B/C/D/F grade
 
 ---
 
 ## Open Design Questions
 > To be resolved before or during each phase.
 
-- Zombie type roster -- what are all the enemy types?
-- Onslaught zone behavior -- gradual damage or instant kill?
-- Ammo system -- finite per weapon? Shared pool?
-- Crafting -- yes/no? If yes, how deep?
-- Barricading -- can agents block doors/paths?
-- Friendly fire -- on or off?
-- Reinforcements -- can new agents arrive mid-game?
-- Rescued civilians (S8) -- do they join the squad or just add score?
-- Confirm remaining combat details (cooldowns, attack windup, hit timing) for real-time loop
+### Resolved
+
+- ~~Combat system~~ → Real-time, 60 ticks/sec, 3 weapon classes, simultaneous group combat
+- ~~Movement system~~ → Hybrid: grid-based world, smooth entity movement
+- ~~Win condition~~ → Rift Portal evacuation + full-run completion
+- ~~Spawner type~~ → Corruption Nests (enemy spawners, not portals)
+- ~~Fog system~~ → Shared team fog with remembered fog
+- ~~Objective types~~ → 6 types, sequential, location-based
+- ~~Faction system~~ → PLAYER_TEAM / HOSTILE / NEUTRAL
+- ~~Market system~~ → Survivor Market between maps
+- ~~Scoring~~ → S/A/B/C/D/F grading system
+- ~~Camera system~~ → Observer Grid, Survivor Cam, Free Cam, Free Zoom
+- ~~Barricading~~ → Yes, via Placeables system (barricades, traps, campfires)
+- ~~Revive system~~ → Availability-based (from Dinogen research)
+
+### Still Open
+
+- Entity size: 1-tile logical footprint vs variable hitboxes
+- Loot distribution system: TBD
+- Zombie type roster: what are all the enemy types?
+- Onslaught zone behavior: gradual damage or instant kill?
+- Ammo system: finite per weapon? Shared pool?
+- Crafting: yes/no? If yes, how deep?
+- Friendly fire: on or off?
+- Reinforcements: can new agents arrive mid-game?
+- Rescued civilians: do they join the squad or just add score?
 - Communication system details (radio range, cooldowns, etc.)
 
 ---
 
 *Last updated: Feb 2026*
-*Status: Skeleton with locked decisions from brainstorming session*
+*Status: Locked decisions from brainstorming sessions applied*

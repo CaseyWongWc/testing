@@ -2,7 +2,40 @@
 
 ## Overview
 
-This is an advanced AI simulation framework built as a React + TypeScript web application. The project centers around a **Wilderness Survival System (WSS)** — a grid-based simulation where intelligent agents navigate procedurally generated terrain, manage resources (food, water, gold, strength), interact with traders, and use configurable AI "brain" algorithms for decision-making. Beyond the WSS, the project includes multiple interactive game/simulation modules: zombie combat scenarios, roguelike dungeon crawlers, pathfinding visualizations (maze solving, terrain navigation, fruit collection), collaborative drawing via WebSockets, robot trading simulations, and more. This is an academic project for a Software Engineering course (CS 4800), demonstrating OOP principles, AI decision-making, and real-time collaboration.
+This is an advanced AI simulation framework built as a React + TypeScript web application. The project centers around **"A Forgotten Place" (WSS2)** — a zero-player survival horror game inspired by COD Cold War Zombies: Onslaught. AI-controlled survivors navigate procedurally generated biomes, fight zombie hordes and hostile humans, complete objectives to unseal rift portals, and attempt evacuation across sequential maps. The project also includes the original **Wilderness Survival System (WSS1)** prototype and multiple interactive game/simulation modules used as building blocks: zombie combat, roguelike dungeons, pathfinding, collaborative drawing, trading simulations, and more. This is an academic project for CS 4800 (Software Engineering), demonstrating OOP principles, AI decision-making, and real-time systems.
+
+## WSS2 "A Forgotten Place" — Design Status
+
+### Locked Design Decisions (30 total)
+- **Movement**: Hybrid — grid-based world, smooth entity movement on top, AI pathfinds on grid
+- **Combat**: Real-time 60 ticks/sec, 3 weapon classes (fists/melee/guns), noise mechanic, armor system, simultaneous group combat, cover system
+- **Spawners**: Corruption Nests = enemy spawners, Rift Portals = exit goals, Placeables = survivor-built
+- **Objectives**: 6 types (ActivateSwitch, Survive, Extract, DestroyNests, Collect, Rescue), progressive HUD reveal
+- **Difficulty**: Static within maps, adaptive between maps (roguelike escalation), Charms/Lucky Items
+- **Run Structure**: Map 1 → Rift Portal → Survivor Market → Map 2 → ... with S/A/B/C/D/F grading
+- **Camera**: Observer Grid (all survivors), Survivor Cam, Free Cam, Free Zoom
+- **Visuals**: Modular sprite pieces (paper-doll, 5 layers) for humanoids
+- **Faction System**: PLAYER_TEAM / HOSTILE / NEUTRAL
+- **AI Brains**: 5 personality types, availability-based revive, compass navigation
+
+### Still Debating
+- Entity size (1-tile logical footprint vs variable hitboxes)
+- Loot distribution across maps
+- Brain decision model (tick-based vs event-driven hybrid)
+
+### Design Documents
+All design docs live in `wss(full game ideas)/`:
+- `ROADMAP.md` — Phased development plan (Phase 0-8)
+- `systems/combat.md` — Combat engine, weapons, armor, damage formulas
+- `systems/spawners-and-enemies.md` — Corruption Nests, Rift Portals, enemy roster
+- `systems/ai-brains.md` — Brain interface, personality types, decision trees
+- `systems/fog-and-vision.md` — Shared team fog, vision formula, phantom markers
+- `systems/map-generation.md` — Procedural terrain, structures, entity placement
+- `systems/object-model.md` — OOP class hierarchy (Entity/Actor/Survivor/Zombie/etc.)
+- `systems/resources-and-economy.md` — Gold, trading, stamina, market system
+- `systems/core-loop.md` — Main game loop architecture
+- `systems/day-night-cycle.md` — Day/night mechanics
+- `systems/win-conditions.md` — Portal evacuation, scoring, grading
 
 ## User Preferences
 
