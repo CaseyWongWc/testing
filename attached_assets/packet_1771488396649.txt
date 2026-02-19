@@ -1,0 +1,270 @@
+What About Connecting *Me* Specifically?
+Great, I now have comprehensive information. Let me compile the answer.
+Yes, there are several great ways to give an AI like me (or other LLMs) the ability to interact with a virtual machine or emulator. Here's a breakdown of the most practical options:
+Published
+2 seconds ago
+[](https://docs.perplexity.ai/docs/getting-started/integrations/mcp-server)
+[](https://www.brandeploy.io/en-open-interpreter/)
+[](https://obot.ai/resources/learning-center/open-interpreter/)
+Open Interpreter
+This is probably the easiest starting point for you. Open Interpreter is an open-source tool that connects an LLM to a code-interpreting environment running in your terminal. It lets a language model execute Python, JavaScript, and shell commands directly on your machine — like giving the AI "hands". You install it via pip, configure it with an LLM (GPT-4, Claude, local models, etc.), and then just chat with it in natural language. It asks for your approval before running any code, so you stay in control.
+text
+pip install open-interpreter
+interpreter --model gpt-4-turbo
+
+2 sources
+Claude Computer Use + Docker VM
+Anthropic's Computer Use API lets Claude literally control a virtual desktop — taking screenshots, moving the mouse, clicking, and typing. The quickstart runs an Ubuntu container with a VNC server inside Docker:​
+bash
+docker run -d \
+--name claude-computer-use \
+-p 5900:5900 -p 8501:8501 -p 6080:6080 -p 8080:8080 \
+-e ANTHROPIC_API_KEY=your_key \
+ghcr.io/anthropics/anthropic-quickstarts:computer-use-demo-latest
+
+You visit localhost:8080 and get a Streamlit interface on the left with a live VNC view of the desktop on the right — you can watch Claude navigate the desktop in real time.​
+3 sources
+WebVM + Claude (Browser-Based)
+WebVM is a WebAssembly-based Linux VM that runs entirely in your browser. Leaning Technologies integrated Claude Computer Use directly into it, so Claude can control a sandboxed Linux environment without any server-side setup. It's fully isolated from your system and is great for safely experimenting.​
+1 source
+E2B (Cloud Sandboxes for AI Agents)
+E2B (Execute to Build) gives you cloud-hosted Firecracker microVMs that AI agents can spin up, run code in, and tear down. Each sandbox gets its own Linux kernel for hardware-level isolation. It has Python and JS SDKs:
+python
+from e2b_code_interpreter import Sandbox
+
+with Sandbox() as sandbox:
+sandbox.run_code("print('hello from the VM!')")
+
+This is popular for building AI agents that need to safely execute untrusted code at scale.​
+3 sources
+MCP Servers (Model Context Protocol)
+MCP is an open standard that lets AI assistants connect to external tools and environments. For example, E2B sandboxes can be pre-configured with 200+ MCP servers, so an agent inside a sandbox automatically gets access to search engines, file systems, databases, etc.. You could also wire up Perplexity as an MCP server inside another agent's workflow.​​
+2 sources
+Desktop Automation Agents (2026 Landscape)
+Several tools now let AI control a full desktop GUI:​
+ToolHow It WorksBest For
+Open Interpreter
+Terminal-based, runs code locally
+Quick local automation
+Claude Computer Use
+Vision + mouse/keyboard in Docker VM
+Full desktop control
+OpenAI Operator
+Cloud-based autonomous web agent
+Web task automation
+Microsoft Fara-7B
+Small local model for GUI control
+On-device, offline use
+Agent S2
+Open-source, screen vision + reasoning
+Custom/research setups
+1 source
+What About Connecting *Me* Specifically?
+For Perplexity specifically, you can't directly pipe me into a VM with live control — but you can use the Perplexity MCP Server to integrate my search and reasoning capabilities into an agent framework that does control a VM. For example, you could set up an agent in E2B or with Open Interpreter that calls Perplexity's API as one of its tools.
+Your best bet as a CS student who's already comfortable with Docker and Python: start with Open Interpreter for quick local experiments, and try the Claude Computer Use Docker demo when you want to see a full GUI-controlling AI in action 🔥
+2 sources
+
+
+ill hand it to you!
+Ha, well thanks! That was a pretty thorough answer I put together for you there. And look — you've already landed on the exact right page to follow up on the Perplexity MCP Server part of it.
+​
+
+The docs page you're on confirms what I mentioned: the Perplexity MCP Server lets you connect AI assistants to Perplexity's search and reasoning capabilities via the Model Context Protocol. It exposes four tools:
+​
+
+perplexity_search — direct web search returning ranked results
+
+perplexity_ask — conversational AI with real-time search (uses sonar-pro)
+
+perplexity_research — deep research with citations (uses sonar-deep-research)
+
+perplexity_reason — advanced reasoning and problem-solving (uses sonar-reasoning-pro)
+​
+
+So if you wanted to actually wire this up — say, into an Open Interpreter or Claude Computer Use agent setup — you'd:
+
+Grab a Perplexity API key from the API portal
+
+Add the MCP server to your client (Claude Code, Cursor, VS Code, etc.) — they even have one-click installers for Cursor and VS Code
+​
+
+For a custom agent setup, you'd configure it manually with something like npx -y @perplexity-ai/mcp-server and your API key as an env variable
+
+This is exactly the bridge I was describing — you can't put me directly in a VM, but you can plug Perplexity's capabilities into an agent that does control one. Pair this MCP server with something like E2B sandboxes or the Claude Computer Use Docker container, and you've got an AI agent with both desktop control and Perplexity-powered search/reasoning.
+
+Given your CS background, this could actually make for a cool project — building a multi-tool agent that orchestrates VM control + web research. Want to dig into any of these setups further?
+
+well, ill get the api key first! you mentioned claude right? it might be pricey!, go for it thou!
+You're already in good shape — you have an existing Perplexity API key (pplx-MK1F0wwHZ0...) that was last used 21 days ago. You can copy it with the copy icon, or generate a fresh one with the "+ Accept Terms and Generate API Key" button at the top of the page.
+​
+
+Now, about the cost question — here's the pricing breakdown for both:
+
+Perplexity API:
+
+Search API: $5 per 1,000 requests (no token costs, just per-request)
+​
+
+Sonar API: Token costs + a request fee that varies by search context size
+​
+
+So for light experimentation, it's pretty affordable — a few dollars could get you hundreds of searches.
+
+Claude API (for Computer Use):
+
+Claude Sonnet 4.5: $3 input / $15 output per million tokens (the balanced option)
+​
+
+Claude Haiku 4.5: $1 input / $5 output per million tokens (cheapest/fastest)
+​
+
+Claude Opus 4.5: $5 input / $25 output per million tokens (most capable)
+​
+
+Computer Use with Claude does burn through tokens fast because it's constantly taking screenshots and processing images, so it can add up. For a student budget, using Sonnet 4.5 for Computer Use is a good middle ground — capable enough to control a desktop but not bleeding-edge expensive like Opus.
+
+Realistically, if you're just experimenting:
+
+A few hours of tinkering with Claude Computer Use might run you $5–20 depending on how screenshot-heavy your tasks are
+
+Perplexity API calls as an MCP tool within that setup would be cheap — maybe $1–2 for a bunch of searches
+
+Not too bad for a cool project, but definitely keep an eye on usage metrics so it doesn't sneak up on you!
+
+what do you reccomend to get an automonus agents to report findings from lets say an emulator for rusted warefare or say other games (and if its neessary to. things can ony be documented so much, and there only can be so many static images, henc my thinking,but i may be going way to ove rthis XD)
+This is a legitimately good use case, and no — you're not going overboard. Your reasoning is solid: Rusted Warfare has emergent RTS behavior (unit AI, resource flows, mod interactions, battle outcomes) that static wiki pages and screenshots simply can't capture adequately. Here's how I'd think about this practically:
+
+The Core Problem You're Solving
+You want an AI agent to observe a game running in an emulator, understand what's happening, and report findings — whether that's documenting mod behavior, testing unit balance, cataloging strategies, or capturing dynamic events.
+
+My Recommendation: Tiered Approach
+Tier 1 — Cheapest & Simplest (Start Here)
+Screen capture scripts + LLM analysis (no live agent needed)
+
+Before going full autonomous agent, consider whether periodic screenshots + a vision model is enough:
+
+Write a Python script that takes screenshots of the emulator at intervals (every few seconds)
+
+Batch-send them to a vision API (Claude Sonnet 4.5 or GPT-4o) with prompts like "Describe the game state, unit positions, and notable events"
+
+Log the structured output to a file/database
+
+This is way cheaper than real-time Computer Use, and for documentation purposes (capturing what units do, how AI behaves, mod effects), it might be all you need. You could run Rusted Warfare in an Android emulator on your PC, screenshot it periodically, and get rich reports.
+
+Tier 2 — Mid-Level (Interactive Documentation)
+Claude Computer Use in Docker, pointed at an emulator
+
+If you need the agent to actually interact — like testing specific scenarios, triggering events, or navigating menus to set up battles — then Claude Computer Use makes sense. The setup would be:
+​
+
+Run an Android emulator (or Rusted Warfare's desktop version) inside the Docker container's virtual display
+
+Claude sees the screen, clicks, plays, and reports
+
+You define the reporting format (structured JSON, markdown reports, etc.)
+
+The catch: RTS games are fast. Claude Computer Use has latency — it takes a screenshot, thinks, acts, repeat. It works well for turn-based or slow-paced tasks but would struggle to micro-manage units in real-time. For Rusted Warfare, it could set up scenarios and observe outcomes, but don't expect it to play competitively.
+​
+
+Tier 3 — Full Pipeline (The Dream Setup)
+Multi-agent architecture
+
+If you really want to go all-in:
+
+Observer Agent (vision model): Watches the emulator screen, extracts game state
+
+Analyst Agent (reasoning model like Sonar Reasoning Pro or Claude): Interprets what happened — "Blue's tank rush failed because Red had anti-air positioned at the chokepoint"
+
+Reporter Agent: Compiles findings into structured docs, wikis, or even video annotations
+
+Perplexity MCP integration: The agent can search for existing community knowledge to compare its observations against known strategies
+
+This mirrors what some game QA tools like modl.ai and GameEval already do — AI agents that simulate play and generate quality reports autonomously.
+​
+​
+
+For Rusted Warfare Specifically
+Since you're already a modder, here's the practical angle:
+
+Mod testing: Set up a scenario, let the agent observe 50 battles with your modded units, and have it report win rates, common failure modes, and balance issues
+
+AI behavior documentation: Let the agent watch the game's built-in AI play and describe its decision-making patterns — something that's nearly impossible to capture in static docs
+
+Strategy guides: The agent watches replays and generates annotated summaries
+
+Honest Assessment: Is It Necessary?
+For a personal modding project or community wiki? Tier 1 (scripted screenshots + vision API) is probably the sweet spot — it's cheap, effective, and you get 80% of the value for 10% of the complexity. Full autonomous agents (Tiers 2-3) are cool but are more justified when you're doing repetitive testing at scale (like QA-ing dozens of mod configurations).
+
+You're not overthinking it though — you're identifying a real gap in game documentation. The tech is finally at the point where this is feasible for a solo developer. Start with a simple screenshot-and-analyze loop, see if the output is useful, and scale up from there.
+
+sorry for the disconnect you may continue!
+No worries! You're on the Claude API pricing page. Before the disconnect, I had opened up all the tabs you need. Here's a recap of what you've got open and what each is for:
+​
+
+Your tab lineup:
+
+Perplexity API Keys — Your existing pplx-MK1F0wwHZ0... key is ready to go
+
+Claude Console Login — Where you'll create your Anthropic developer account and get your Claude API key
+
+Docker Desktop — Free download, needed to run the Computer Use container
+
+Claude Quickstarts GitHub Repo — The actual code/Dockerfile for the Computer Use demo
+
+Claude API Pricing (you're here now) — So you can see what it'll cost
+
+Computer Use Tool Docs — The full reference for how Computer Use works
+
+The order of operations when you're ready:
+
+Browse this pricing page first to decide which model (Sonnet 4.6 at $3/$15 per MTok is the sweet spot for your use case — cheaper than Opus but still very capable)
+​
+
+Sign up on the Claude Console tab — create your account, add billing, set a spending limit (I'd suggest starting with a $10 or $20 cap so nothing surprises you)
+
+Download Docker Desktop — free for personal use
+
+Run the quickstart command from the GitHub repo to spin up the Computer Use container
+
+You don't need to buy anything yet — just browsing these pages will give you a full picture of what you're getting into cost-wise. When you're ready to pull the trigger and set things up, send me screenshots and I'll walk you through every step.
+
+Sound good?
+
+yep! for the pricing how can i compare time wise like say uh, hmm. ow expensive running it for 15 mins would be?
+Good question. The pricing is per-token, not per-minute, so it depends on how actively the agent is doing things. Let me break down the math so it makes sense.
+
+How Computer Use Burns Through Tokens
+Each "action cycle" in Computer Use looks like this:
+
+Claude receives a screenshot (~1,500-2,000 tokens for an image)
+
+Plus the conversation history (grows over time as actions accumulate)
+
+Claude outputs its reasoning + action (~200-500 tokens)
+
+Repeat every ~3-5 seconds when actively doing things
+
+So roughly, one action cycle costs:
+
+Input: ~2,000-5,000 tokens (screenshot + history, history grows over time)
+
+Output: ~300-500 tokens
+
+15-Minute Cost Estimate
+At ~3-5 seconds per action, in 15 minutes you'd get roughly 180-300 action cycles. Here's the ballpark for each model:
+​
+
+Model	Input Cost	Output Cost	~15 min Total
+Sonnet 4.6 ($3/$15 per MTok)	~$1.50-3.00	~$0.80-2.00	~$2-5
+Opus 4.6 ($5/$25 per MTok)	~$2.50-5.00	~$1.30-3.50	~$4-9
+Haiku 4.5 ($1/$5 per MTok)	~$0.50-1.00	~$0.25-0.75	~$1-2
+The big variable is context growth — early in a session it's cheap because the history is short. By minute 10-15 you're sending much larger payloads each cycle because all the previous screenshots and actions are in the conversation. Some implementations trim history to manage this.
+
+Bottom Line
+Haiku 4.5: ~$1-2 for 15 mins — cheapest, but less capable vision. Might struggle with game UIs.
+
+Sonnet 4.6: ~$2-5 for 15 mins — best value. Strong vision, good reasoning. This is what I'd recommend for your Project Zomboid experiment.
+
+Opus 4.6: ~$4-9 for 15 mins — smartest but pricey. Save this for when you need top-tier reasoning.
+
+So a quick 15-minute test run with Sonnet to see if it can navigate Project Zomboid would likely cost you around $3-5. Not bad for a proof of concept for your WSS project. And you can set a hard spending cap on the Anthropic C
