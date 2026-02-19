@@ -11,7 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@notionhq/client": "^2.2.15",
+    "@notionhq/client": "^2.3.0",
+    "@tryfabric/martian": "^1.2.4",
     "express": "^5.1.0",
     "http-proxy-middleware": "^3.0.5",
     "lucide-react": "^0.344.0",
