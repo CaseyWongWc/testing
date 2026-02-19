@@ -70,15 +70,39 @@ Zombie extends Actor (which extends Entity):
 
 ---
 
-## Wave Escalation & Difficulty Scaling
+## Wave Escalation & Difficulty Scaling (DECISION 7 - DECIDED)
 
-> TBD -- How do enemies get stronger over time?
+**Hybrid system: Base difficulty selection + adaptive scaling layer.**
 
-- Do waves have defined difficulty thresholds?
-- Resource pool increases per wave?
-- New enemy types unlock at higher waves?
-- Boss spawner activation criteria (wave X, score threshold)?
-- Escalation formula/curve -- linear, exponential, step-based?
+### Base Difficulty (from WSS1)
+
+Selectable at game start, carries over from WSS1's difficulty dropdown (Easy/Medium/Hard/Very Hard). Sets initial spawn rates, enemy health, and resource availability.
+
+### Adaptive Scaling Layer
+
+On top of the base difficulty, spawner behavior adjusts dynamically based on:
+
+- **Survivor health/resources:** Doing well = more spawns
+- **Time survived:** Escalation over turns
+- **Portals destroyed:** Clearing portals slows spawns, but remaining ones intensify
+- **Kill count:** High kills = tougher enemy types
+
+### Adaptive Parameters
+
+- **Spawn rate multiplier:** 0.5x to 2.0x of base rate
+- **Enemy type tier:** Basic zombies -> armored -> special (unlocks based on performance)
+- **Resource scarcity:** Fewer items spawn on map when survivors are resource-rich (market inventory stays independent)
+
+### Director System (Left 4 Dead-inspired)
+
+A "Director" AI tracks a **tension metric** and orchestrates the pacing:
+
+- Alternates between **pressure waves** (intense spawning) and **calm periods** (breathing room)
+- Prevents both tedium (too easy for too long) and overwhelming difficulty (nonstop pressure)
+- Tension resets to zero when entering **Survivor Market** between maps
+- **Day/Night cycle** feeds into tension -- nighttime naturally ramps tension, daytime is a built-in calm window
+
+> TBD -- Exact tension thresholds, calm period duration, pressure wave intensity curves
 
 ---
 
