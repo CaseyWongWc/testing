@@ -118,7 +118,11 @@ Ranged weapons that consume ammo per shot. Guns generate noise on firing, which 
 
 **Silenced Variants:** Rare loot versions of pistols and rifles with significantly reduced noise values. A silenced pistol might have noise 1 instead of 4.
 
-**Ammo:** Ammo is finite and tracked per type. Ammo is looted from the world or traded. When a gun runs out of ammo, the entity falls back to melee or fists. Reload is instant in v0.1 (reload mechanics are a stretch goal).
+**Ammo:** Ammo is finite and tracked per type. Ammo is looted from the world or traded. When a gun runs out of ammo, the entity falls back to melee or fists.
+
+**Reload Mechanics (LOCKED):** Guns have reload mechanics. When a magazine is emptied, the entity must reload before firing again. Reload takes a set number of ticks (weapon-dependent). During reload, the entity cannot fire but can still move. Reload can be interrupted by taking damage or choosing to switch weapons.
+
+**Melee Durability (LOCKED):** Melee weapons have a durability stat. Each hit decrements durability by 1. When durability reaches 0, the weapon breaks and is removed from inventory. The entity falls back to fists. Higher-quality melee weapons have more durability. Durability can potentially be repaired at the Survivor Market (stretch goal).
 
 ---
 
@@ -385,6 +389,6 @@ Friendly fire is ON. Attacks that hit an allied entity (same faction) deal full 
 - Stagger/stun mechanics from heavy hits — how long, what thresholds?
 - Does stamina cost apply to attacking? Running and attacking simultaneously?
 - How does combat scale when 20+ agents and 50+ zombies are fighting at once? (Performance budget)
-- Reload mechanics for guns (v0.2+ stretch goal).
+- ~~Reload mechanics for guns~~ → LOCKED: Guns have reload mechanics with weapon-dependent reload times.
 - Armor repair/crafting system details.
 - AI cover-seeking behavior implementation details (v0.2+ stretch goal).

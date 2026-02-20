@@ -12,7 +12,18 @@ The game runs in **real-time at 60 ticks/sec**. Each AI agent follows a per-tick
 - **Decide:** The brain picks an **Intent** based on current state, personality, and sensory input.
 - **Act:** The intent is executed (movement, attack, pickup, interaction).
 
-The brain architecture is a **hybrid of tick-based evaluation + event-driven reactions**. Every tick the brain runs the full Sense/Decide/Act loop, but high-priority events (taking damage, hearing gunfire, ally downed) can interrupt and force immediate re-evaluation. This hybrid approach is the starting point and still being refined.
+### Brain Tick Rate (LOCKED)
+
+The brain architecture is a **hybrid of tick-based evaluation + event-driven reactions**.
+
+- **Default:** Brain runs the full Sense/Decide/Act loop **every tick** (60 decisions/sec at 60 FPS).
+- **Fallback:** If performance degrades under high entity counts, brains can be throttled to **every 5 ticks** (12 decisions/sec) via a debug/config toggle.
+- **Event interrupts** override the baseline loop for urgent situations — these fire immediately regardless of tick schedule:
+  - **Took damage** — re-evaluate stance (fight/flee/cover)
+  - **Significant self-status change** — very low health, out of ammo, stamina exhausted
+  - **Radio-based events (later upgrade):** ally died, ally requesting help — requires the survivor to have a radio item for team-wide awareness
+- **Priority:** Decisions are primarily based on **self status**. Team awareness (knowing ally positions, ally health, ally death) is gated behind the **radio communication upgrade** — survivors without a radio only react to what they personally see and experience.
+- **Performance target:** Exact entity count limit left to profiling/playtesting, not pre-determined. The toggle between every-tick and every-5-ticks provides a tuning lever.
 
 ### World Speed Slider
 
@@ -241,6 +252,17 @@ AI survivors use the **objective compass** as a heuristic:
 - **Help/Revive:** Availability-based, not personality-based.
 - **Real-time vs turn-based:** Real-time at 60 ticks/sec with hybrid tick + event-driven brain.
 
+## Resolved Questions
+
+- **Personality types:** Five types defined — Balanced, Aggressive, Cautious/Defensive, Survivalist, Money-Driven.
+- **Decision tree:** Fight/Flee/Scavenge/Barricade/ActivateObjective/HelpTeammate with concrete conditions.
+- **Agent stats:** Health, Stamina, Ammo, Strength, Defense, Speed, Accuracy, Morale.
+- **Objective visibility:** AI knows all objectives from the start. Compass points immediately.
+- **Help/Revive:** Availability-based, not personality-based.
+- **Real-time vs turn-based:** Real-time at 60 ticks/sec with hybrid tick + event-driven brain.
+- **Brain tick rate:** Every tick by default, fallback to every 5 ticks if needed. Event interrupts for urgent situations.
+- **Decision priority:** Self-status based. Team awareness gated behind radio item.
+
 ## Open Questions
 
 - Should AI agents have memory? What do they remember about explored areas, enemy locations, resource caches?
@@ -250,6 +272,5 @@ AI survivors use the **objective compass** as a heuristic:
 - Should there be a "panic" state that agents can enter under extreme stress?
 - Do agents have different vision accuracy at night vs day?
 - Can agents learn/adapt to enemy behavior patterns?
-- How does the hybrid tick/event brain perform under high entity counts? May need throttling.
 - What is the exact stamina recharge rate and sprint drain rate?
 - How does morale recover — slowly over time, or only from positive events?

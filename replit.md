@@ -19,10 +19,14 @@ This is an advanced AI simulation framework built as a React + TypeScript web ap
 - **AI Brains**: 5 personality types, availability-based revive, compass navigation
 - **Entity Size**: Sub-tile (radius 0.3–0.4 tiles, float positions, multiple per tile)
 - **Buildings**: Stamp Library + Placement Rules + Dressing Pass (12-20 templates, biome-weighted)
+- **Loot Distribution**: Clustered in buildings + random scatter (pre-game slider), pre-placed + enemy drops, no rarity tiers, difficulty-driven quality
+- **Brain Model**: Hybrid tick-based + event-driven, every tick default (fallback every 5), self-status priority, radio for team awareness
+- **Melee Durability**: Melee weapons break after durability depletes
+- **Reload Mechanics**: Guns have reload times, can move during reload, interrupt on damage/weapon switch
 
 ### Still Debating
-- Loot distribution across maps
-- Brain decision model (tick-based vs event-driven hybrid)
+- Loot bias model (distance vs difficulty weighting for loot quality)
+- Brain tick rate default for v0.1 (every tick vs every 5 ticks starting point)
 
 ### Design Documents
 All design docs live in `wss(full game ideas)/`:

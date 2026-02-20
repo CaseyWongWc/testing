@@ -120,12 +120,20 @@ Run a maze algorithm only inside the frame band (the donut/ring area), then thic
 - Minimum distance between objectives to prevent trivial completion.
 - At least one objective in each quadrant of the map on larger maps.
 
-### Static Loot Placement
+### Static Loot Placement (LOCKED)
 
-- Loot items are placed during map generation at fixed positions.
-- Concentrated inside and around structures, with sparse loot in open terrain.
-- Loot density and quality scale with distance from center and difficulty.
-- Exact item tables and distribution rules TBD.
+Loot is distributed via two channels: **pre-placed during map generation** and **dropped from human enemy kills**.
+
+- **Building-clustered:** Loot is concentrated inside buildings (loot sockets in stamps) and around structures. Buildings are the primary loot source.
+- **Random scatter:** Loot also appears randomly in open terrain. A **pre-game slider** controls how scattered vs. concentrated loot is per terrain type.
+- **No rarity tier labels:** Loot does not use explicit common/rare/legendary labels.
+- **Difficulty-driven quality:** Higher map difficulty = better loot available. Tougher human enemies (bandits, raiders, military) carry and drop better gear.
+- **Enemy drops:** Human enemies drop their equipped weapons, ammo, and carried items on death. This is a major loot source alongside pre-placed items.
+
+**OPEN — Loot Bias Model:** How strongly does distance from spawn vs. difficulty level drive loot quality? Options under consideration:
+- (A) **Stepped tiers** — each difficulty/map tier has a base loot quality range, plus a mild distance bonus
+- (B) **Strong distance gradient** — near spawn is mostly junk, high-end loot only far from spawn or in special POIs
+- (C) **Difficulty-driven, distance as flavor** — difficulty does the heavy lifting, distance only nudges slightly
 
 ---
 
