@@ -39,7 +39,7 @@ The map generator runs the following steps in order:
 5. **Rift Portal Placement** -- place the portal at the center or a designated location
 6. **Objective Marker Placement** -- distribute objective locations across the map
 7. **Trader NPC Placement** -- place trader NPCs in accessible but off-center locations
-8. **Static Loot Placement** -- distribute loot items across the map (details TBD, but integrated into map gen)
+8. **Static Loot Placement** -- distribute loot items across the map (see Static Loot Placement section below for locked details)
 9. **Survivor Start Position** -- place survivors at the center of the map near the portal
 
 ---
@@ -130,10 +130,20 @@ Loot is distributed via two channels: **pre-placed during map generation** and *
 - **Difficulty-driven quality:** Higher map difficulty = better loot available. Tougher human enemies (bandits, raiders, military) carry and drop better gear.
 - **Enemy drops:** Human enemies drop their equipped weapons, ammo, and carried items on death. This is a major loot source alongside pre-placed items.
 
-**OPEN — Loot Bias Model:** How strongly does distance from spawn vs. difficulty level drive loot quality? Options under consideration:
-- (A) **Stepped tiers** — each difficulty/map tier has a base loot quality range, plus a mild distance bonus
-- (B) **Strong distance gradient** — near spawn is mostly junk, high-end loot only far from spawn or in special POIs
-- (C) **Difficulty-driven, distance as flavor** — difficulty does the heavy lifting, distance only nudges slightly
+**Loot Bias Model (LOCKED — C+A Hybrid):** Difficulty level does the heavy lifting for loot quality (Option C), with a mild distance-from-spawn nudge on top (Option A flavor). The distance modifier is designed to be removable for other game modes that don't want spatial bias.
+
+**Loot Density (LOCKED):** More loot spawns indoors than outdoors. Inside buildings: containers + scattered floor items. Outside: sparser ground items only.
+
+**Themed Containers (LOCKED):** Loot containers inside buildings are themed to building type:
+- Hospital / clinic → medical supplies (medkits, bandages, drugs)
+- Military base / armory → weapons, ammo, armor
+- Police station → pistols, shotgun shells, body armor
+- Gas station / store → food, water, utility items
+- Residential → mixed low-tier supplies
+
+**Enemy Drops (LOCKED):** Human enemies drop their equipped gear on death — weapons, ammo, armor, food/water, currency, clothes, and backpacks (limit: 1 backpack per survivor).
+
+**Loot Respawn (LOCKED):** Loot respawn is ON by default (togglable in pre-game settings). Container loot is one-time only (once looted, stays empty). Respawned loot appears as new ground items or in newly generated containers, not in previously looted ones.
 
 ---
 

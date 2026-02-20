@@ -39,6 +39,33 @@ The PickupSystem handles item collection:
 
 ---
 
+## Loot Distribution (LOCKED)
+
+Loot enters the game through two channels:
+
+### Pre-Placed Loot (Map Generation)
+- **Building-clustered:** Primary loot source. Items spawn in loot sockets inside building stamps and scattered on building floors.
+- **Random outdoor scatter:** Secondary source. Items appear randomly in open terrain, controlled by a pre-game density slider per terrain type.
+- **Themed containers:** Building type determines loot category — hospitals yield medical supplies, military buildings yield weapons/ammo, etc. (see Map Generation for full mapping).
+- **Density:** More loot indoors than outdoors. Container loot inside buildings + scattered floor items; sparser ground items outside.
+
+### Enemy Drops
+- Human enemies drop their equipped gear on death: weapons, ammo, armor, food/water, currency, clothes, backpacks.
+- **Backpack limit:** Each survivor can carry only 1 backpack.
+- Tougher human enemies (higher difficulty maps) carry and drop better gear.
+- Zombie enemies may drop minor items but are not a primary loot source.
+
+### Loot Quality
+- **No rarity tier labels** — no common/rare/legendary system.
+- **Difficulty-driven quality (C+A hybrid):** Map difficulty does the heavy lifting for loot quality. A mild distance-from-spawn nudge adds spatial flavor (removable for other game modes).
+
+### Loot Respawn
+- Loot respawn is **ON by default** (togglable in pre-game settings).
+- Container loot is **one-time only** — once looted, stays empty.
+- Respawned loot appears as new ground items or in newly generated containers, not in previously looted ones.
+
+---
+
 ## Currency System
 
 - Currency is **gold** (name can change later).
@@ -235,7 +262,7 @@ Passive bonus items that provide persistent effects. Three scopes:
 - **Charms:** Personal, Team, and World charms [specific items TBD]
 - **Special:** [Rare/unique items TBD]
 
-> TBD -- Item stats (damage, durability, weight). Rarity tiers (common, uncommon, rare, legendary)?
+> TBD -- Item stats (damage, durability, weight). No rarity tiers (LOCKED — quality driven by difficulty, not labels).
 
 ---
 
@@ -254,7 +281,6 @@ Passive bonus items that provide persistent effects. Three scopes:
 ## Open Questions
 
 - Should items have weight and encumbrance? How does it affect movement/combat?
-- Should items degrade/break? Do they need repair?
 - Can agents craft items from materials?
 - Should rare items have special properties (unique weapons, legendary armor)?
 - Is the shop inventory completely randomized or seeded?

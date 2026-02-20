@@ -6,7 +6,7 @@ This is an advanced AI simulation framework built as a React + TypeScript web ap
 
 ## WSS2 "A Forgotten Place" — Design Status
 
-### Locked Design Decisions (30 total)
+### Locked Design Decisions (36 total)
 - **Movement**: Hybrid — grid-based world, smooth entity movement on top, AI pathfinds on grid
 - **Combat**: Real-time 60 ticks/sec, 3 weapon classes (fists/melee/guns), noise mechanic, armor system, simultaneous group combat, cover system
 - **Spawners**: Corruption Nests = enemy spawners, Rift Portals = exit goals, Placeables = survivor-built
@@ -20,12 +20,17 @@ This is an advanced AI simulation framework built as a React + TypeScript web ap
 - **Entity Size**: Sub-tile (radius 0.3–0.4 tiles, float positions, multiple per tile)
 - **Buildings**: Stamp Library + Placement Rules + Dressing Pass (12-20 templates, biome-weighted)
 - **Loot Distribution**: Clustered in buildings + random scatter (pre-game slider), pre-placed + enemy drops, no rarity tiers, difficulty-driven quality
+- **Loot Bias Model**: C+A hybrid — difficulty-driven quality base + mild distance-from-spawn nudge (distance modifier removable for other game modes)
+- **Loot Density**: More indoors than outdoors; containers + scattered inside buildings, sparser outside
+- **Themed Containers**: Building type determines loot category (hospital=medical, military=weapons/ammo, etc.)
+- **Enemy Drops**: Weapons, ammo, armor, food/water, currency, clothes, backpacks (1 backpack per survivor)
+- **Loot Respawn**: ON by default (togglable); container loot one-time, respawns as new ground items/containers
+- **Friendly Fire**: ON — full damage to allies
 - **Brain Model**: Hybrid tick-based + event-driven, every tick default (fallback every 5), self-status priority, radio for team awareness
 - **Melee Durability**: Melee weapons break after durability depletes
 - **Reload Mechanics**: Guns have reload times, can move during reload, interrupt on damage/weapon switch
 
 ### Still Debating
-- Loot bias model (distance vs difficulty weighting for loot quality)
 - Brain tick rate default for v0.1 (every tick vs every 5 ticks starting point)
 
 ### Design Documents
