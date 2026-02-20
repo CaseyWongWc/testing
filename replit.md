@@ -6,7 +6,7 @@ This is an advanced AI simulation framework built as a React + TypeScript web ap
 
 ## WSS2 "A Forgotten Place" — Design Status
 
-### Locked Design Decisions (36 total)
+### Locked Design Decisions (37 total)
 - **Movement**: Hybrid — grid-based world, smooth entity movement on top, AI pathfinds on grid
 - **Combat**: Real-time 60 ticks/sec, 3 weapon classes (fists/melee/guns), noise mechanic, armor system, simultaneous group combat, cover system
 - **Spawners**: Corruption Nests = enemy spawners, Rift Portals = exit goals, Placeables = survivor-built
@@ -29,9 +29,6 @@ This is an advanced AI simulation framework built as a React + TypeScript web ap
 - **Brain Model**: Hybrid tick-based + event-driven, every tick default (fallback every 5), self-status priority, radio for team awareness
 - **Melee Durability**: Melee weapons break after durability depletes
 - **Reload Mechanics**: Guns have reload times, can move during reload, interrupt on damage/weapon switch
-
-### Still Debating
-- Brain tick rate default for v0.1 (every tick vs every 5 ticks starting point)
 
 ### Design Documents
 All design docs live in `wss(full game ideas)/`:
