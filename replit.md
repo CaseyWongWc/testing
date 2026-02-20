@@ -17,9 +17,10 @@ This is an advanced AI simulation framework built as a React + TypeScript web ap
 - **Visuals**: Modular sprite pieces (paper-doll, 5 layers) for humanoids
 - **Faction System**: PLAYER_TEAM / HOSTILE / NEUTRAL
 - **AI Brains**: 5 personality types, availability-based revive, compass navigation
+- **Entity Size**: Sub-tile (radius 0.3–0.4 tiles, float positions, multiple per tile)
+- **Buildings**: Stamp Library + Placement Rules + Dressing Pass (12-20 templates, biome-weighted)
 
 ### Still Debating
-- Entity size (1-tile logical footprint vs variable hitboxes)
 - Loot distribution across maps
 - Brain decision model (tick-based vs event-driven hybrid)
 

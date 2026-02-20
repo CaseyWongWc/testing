@@ -325,6 +325,17 @@ Windup/recovery frames are a stretch goal for v0.2+.
 
 ---
 
+## Distance & Range Model
+
+**Locked Decision:** Float Euclidean distance for all combat checks.
+
+- All distance checks (weapon range, melee reach, noise radius) use **float Euclidean distance** between entity positions, NOT tile distance.
+- This prevents "sub-tile but feels grid-snappy" combat.
+- Melee range: ~0.8–1.2 tiles (float distance).
+- Cover evaluation still uses tile-based coverValue/coverDirection but attacker/defender positions are float.
+
+---
+
 ## Hit Detection
 
 Hit chance is determined by the attacker's Accuracy stat modified by distance and weapon type:

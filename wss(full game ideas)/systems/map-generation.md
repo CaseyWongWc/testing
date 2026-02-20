@@ -10,6 +10,8 @@ Maps are generated as square grids with configurable size. Survivors spawn near 
 
 Map generation covers terrain, structures/buildings, vehicles, wreckages, debris, entity placement, and loot distribution — not just terrain tiles.
 
+Entity sizing is **sub-tile** — entities are smaller than tiles, maps stay 30x30 to 60x60. Map generation places entities at float positions within tiles. Buildings use a **Stamp Library + Placement Rules + Dressing Pass** system (details in Building Generation section).
+
 ---
 
 ## Grid Structure
@@ -240,6 +242,71 @@ Six confirmed biomes (reference IDEA 3 from WSS -ideas.md):
 - **Day/Night Cycle:** Biome affects day/night visual appearance (Day/Night Cycle)
 - **Win Conditions:** Portal location determined during map generation (Win Conditions)
 - **Object Model:** CorruptionNest, RiftPortal, and Placeable entities placed during generation (Object Model)
+
+---
+
+## Building Generation
+
+Buildings are generated using a **Stamp Library** system — pre-authored building templates placed procedurally onto the map.
+
+### 3-Phase Pipeline
+
+1. **Macro Layout** — Determine building count and rough zones based on map size, biome, and difficulty. Divide map into sectors to ensure even distribution.
+2. **Stamp Placement** — Select templates from the stamp library (weighted by biome), find valid positions (no overlap, valid terrain, minimum spacing), apply random rotation (0/90/180/270).
+3. **Interior Dressing** — Randomize props within templates (furniture placement, loot socket filling, ruined variant application) to reduce repetition.
+
+### Stamp Library
+
+Each stamp is a 2D grid pattern defining a building's layout. v0.1 target: 12–20 templates across biomes.
+
+**Stamp Data Model:**
+- `id`: unique template identifier
+- `name`: human-readable name (e.g., "Farmhouse", "Police Station")
+- `size`: (width, height) in tiles
+- `biome`: which biomes this stamp can appear in
+- `tiles`: 2D array of tile types (WALL, FLOOR, DOOR, WINDOW, FURNITURE, EMPTY)
+- `hooks`: embedded gameplay markers
+  - `doors`: entry/exit points
+  - `lootSockets`: positions where loot can spawn (with loot tier/category)
+  - `coverClusters`: groups of tiles with cover values (tables, crates, desks)
+  - `spawnPoints`: positions where enemies or NPCs can spawn inside
+
+**Biome Template Categories:**
+- **Rural**: farmhouse, barn, shed, gas station, trailer
+- **Urban**: apartment, shop, police station, hospital, restaurant
+- **Military**: barracks, bunker, watchtower, armory, checkpoint
+- **Industrial**: warehouse, factory, storage containers, loading dock
+
+### Placement Rules
+
+- **No overlap**: buildings cannot overlap each other or other placed structures
+- **Minimum spacing**: at least 2-3 tiles between buildings for pathability
+- **Valid terrain**: buildings only place on valid ground (not water, cliffs, etc.)
+- **Biome weighting**: each biome has weighted probabilities for which stamps appear
+- **Rotation**: stamps can be rotated 0/90/180/270 degrees for variety
+- **Max attempts**: if placement fails after N attempts (e.g., 50), skip that building
+- **Density**: building count scales with map size (roughly 1 building per 100-150 tiles of map area)
+
+### Variety Mechanisms
+
+- **Rotation**: 4 orientations per stamp
+- **Ruined variants**: each template can have a "destroyed" version with missing walls, rubble, debris
+- **Prop randomization**: furniture, containers, and decorations vary between instances of the same template
+- **Exterior variation**: same floor plan can have different exterior appearances (color, material, damage level)
+
+### Compound Stamps
+
+Larger locations are built by clustering multiple stamps:
+- **Military base**: 3-4 military stamps placed as a group with a fence perimeter
+- **Settlement**: cluster of rural/urban stamps around a central area
+- **Industrial park**: warehouses + loading docks + storage containers grouped together
+
+### Vehicle & Wreckage Stamps
+
+Small stamps (2x3, 3x3) for environmental objects:
+- Crashed cars, overturned trucks, abandoned vehicles
+- Provide cover and atmosphere in open areas
+- Placed between buildings or along roads
 
 ---
 

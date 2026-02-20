@@ -35,7 +35,12 @@
 - **S/A/B/C/D/F grading system** for performance
 - **Multi-camera system**: Observer Grid, Survivor Cam, Free Cam, Free Zoom
 - Entity visuals: **modular sprite pieces** (paper-doll system, 5 layers)
-- Entity size: **STILL DEBATING** (1-tile logical footprint vs variable hitboxes)
+- Entity size: **sub-tile** (entities smaller than tiles, radius 0.3–0.4 tiles, float positions, multiple entities per tile)
+- All combat distance checks use **float Euclidean distance**, not tile distance
+- Building generation: **Stamp Library + Placement Rules + Dressing Pass** (pre-authored templates placed procedurally, 12-20 templates across biomes)
+- Buildings include **gameplay hooks**: doors, loot sockets, cover clusters, spawn points
+- Building variety via **rotation + ruined variants + prop randomization + exterior variation**
+- **Compound stamps** for larger locations (military bases, settlements, industrial parks)
 - Loot distribution: **TBD**
 - Revive: **availability-based** (not personality-based, from Dinogen research)
 

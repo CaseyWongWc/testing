@@ -42,6 +42,19 @@ Minimum object model for v0.1. Designed to be small and extendable.
 - `alive` -- boolean
 - `update(world)` -- per-tick update method
 
+### Entity Sizing
+
+**Locked Decision:** Sub-tile entity sizing.
+
+- Entities use **sub-tile sizing**: entities are smaller than grid tiles.
+- Entity radius: 0.3–0.4 tiles (configurable per entity type).
+- Position stored as **float coordinates** (x: 23.4, y: 17.8), not integer grid coords.
+- Each entity also tracks its **current tile** (floor(x), floor(y)) for grid-based logic (pathfinding, fog, cover).
+- Multiple entities can occupy the same tile.
+- Collision detection uses float positions and entity radii.
+- Rendering: sprites scaled to ~60-80% of tile size for visual clarity.
+- This supports the hybrid movement model: grid for AI logic, floats for smooth movement.
+
 ### Actor (extends Entity)
 
 - `health` -- current / max health
