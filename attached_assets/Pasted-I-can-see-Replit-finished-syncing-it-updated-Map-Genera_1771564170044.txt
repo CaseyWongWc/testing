@@ -1,0 +1,26 @@
+I can see Replit finished syncing — it updated Map Generation, Resources & Economy, Open Questions, and the local markdown files. It even says you're down to **1 open question** (brain tick rate default, which we just resolved). Now let's tackle ammo.
+
+**Minimalist ammo classes is the way to go for WSS2.** Here's why:
+
+Your game has AI-controlled survivors making split-second decisions about ammo management. The simpler the ammo model, the easier it is for the Brain to reason about it. "Do I have pistol ammo? Yes/no" is a much cleaner decision than "Do I have 9mm? .45 ACP? .357 Magnum?"
+
+Here's what I'd recommend — **5-6 ammo classes by weapon category:**
+
+| Ammo Class | Covers | Example Guns |
+|---|---|---|
+| Pistol Ammo | All handguns | Revolver, Auto Pistol, Desert Eagle |
+| Shotgun Shells | All shotguns | Pump, Sawed-off, Auto Shotgun |
+| Rifle Ammo | All rifles | Assault Rifle, Hunting Rifle, Sniper |
+| SMG Ammo | All submachine guns | Uzi, MP5, MAC-10 |
+| Bolts/Arrows | All silent ranged | Crossbow, Compound Bow |
+| (Optional) Heavy Ammo | Rare/special weapons | RPG, LMG |
+
+**The tradeoff you identified (gun balancing) is real but manageable.** If a revolver and an auto pistol share ammo, you balance through the *other* weapon stats — damage, cooldown, accuracy, noise. The revolver hits harder per shot but fires slower. The auto pistol fires fast but burns through the shared ammo pool quicker. Same ammo class, different playstyles.
+
+For the Desert Eagle question specifically — in this model it just uses Pistol Ammo. It hits hard (maybe 25 damage vs the 9mm's 15), has higher noise, slower cooldown, but draws from the same pool. No need to create ".50 AE" as a separate type. That's the minimalist approach.
+
+**"Sniper Ammo" not ".50 BMG"** — absolutely minimalist labels. Your AI doesn't care about real-world calibers, and neither does the player in a top-down zombie survival game. Keep the labels functional.
+
+The shared pool per class also creates an interesting strategic tension: if your squad has 3 survivors all carrying pistols, they're competing for the same Pistol Ammo pool from loot. That naturally encourages loadout diversity without any explicit game rule forcing it.
+
+Want to lock this in?
