@@ -85,7 +85,7 @@ Structured data backing the narrative:
 | Restriction | Reason |
 |---|---|
 | **Create or place buildings** | Map structures are generated at map creation and cannot be added mid-run |
-| **Modify the map layout** | Terrain, tiles, elevation, and building positions are locked after generation *(exception pending — see below)* |
+| **Modify the map layout** | Terrain, tiles, elevation, and building positions are locked after generation *(EXCEPTION: Simulation Mode — see below)* |
 | **Edit existing entity behaviors** | Survivor, zombie, and hostile human base AI brains are off-limits; God can only add NEW entities with new behaviors |
 | **Modify survivor-craftable/playable items** | Items that survivors can craft or use keep their base stats and recipes; God cannot alter the item system itself |
 
@@ -238,6 +238,98 @@ Contents:
 The God Panel can be activated:
 - **Pre-game**: In the run configuration screen
 - **In-game**: From a toggle button in the Observer UI
+
+---
+
+## Simulation Mode — The Exception
+
+This is a completely separate game mode where the God System's restrictions are lifted. Instead of the God layering changes onto a procedurally generated map, the God **builds the entire scenario from scratch**.
+
+This is the exception to the "no map modification" rule — in Simulation mode, the LLM has full map creation powers.
+
+### The Facility (Biome / Environment)
+
+The Facility is the dedicated environment for Simulation mode. It's not really a traditional biome — it's a blank canvas.
+
+- **Tile set**: Gray industrial tiles with darker gray industrial markings, numbers, and grid lines (think laboratory floor, military testing grounds, or SCP-style containment facility)
+- **Starting state**: Completely flat — no terrain features, no buildings, no entities (besides the survivors)
+- **Elevation**: Supports elevation variation, but starts at uniform flat; the LLM can raise/lower terrain as part of scenario building
+- **Map size**: Set by the Observer pre-game (same size picker as normal mode)
+
+### Simulation Mode Game Loop
+
+```
+Survivors spawn at center of empty Facility map
+       ↓
+The Feast — survivors sit around a long rectangular table
+  (large spread of food, water, medical items)
+  (crates with random loot around them, scaled to difficulty)
+       ↓
+Day 1 begins — LLM builds the scenario
+  The God has full creation powers:
+  - Place terrain, elevation changes
+  - Build structures and buildings
+  - Place spawners (Corruption Nests, etc.)
+  - Spawn enemies, NPCs, custom entities
+  - Set weather conditions
+  - Create custom objectives
+  - Place loot, crates, containers
+  - Set up traps, hazards, environmental dangers
+       ↓
+If the God is still generating when night falls:
+  Survivors wait at the Feast table
+  (maximum wait: 5-10 minutes real-time, then scenario locks as-is)
+       ↓
+Scenario begins — survivors leave the table and engage
+  Standard WSS2 gameplay rules apply (combat, AI brains, etc.)
+  Round is won when ALL God-created objectives are complete
+       ↓
+Map clears — all entities, terrain, buildings removed
+Survivors return to the Feast table
+Survivors choose perks (reward screen)
+       ↓
+LLM analyzes the previous round's performance
+LLM plans and builds the next scenario
+       ↓
+(repeat — escalating scenarios)
+```
+
+### Key Differences from Standard Mode
+
+| Feature | Standard "A Forgotten Place" | Simulation Mode |
+|---|---|---|
+| Map generation | Procedural algorithm | LLM builds from scratch |
+| God restrictions | Bounded whitelist, 3 changes/night | Nearly unlimited creation powers |
+| Buildings | Pre-generated, locked | LLM places them freely |
+| Map modification | Forbidden | Fully allowed |
+| Terrain | Biome-based procedural | Starts flat, LLM shapes it |
+| Objectives | 6 preset types | LLM creates custom objectives |
+| Between rounds | Rift Portal → Survivor Market → next map | Map clears → Feast table → perks → next scenario |
+| Pacing | Continuous survival across nights | Discrete scenario rounds |
+| Win condition | Complete objectives + evacuate via portal | Complete all God-created objectives per round |
+
+### The Feast Table
+
+The Feast is the safe zone and hub between scenarios:
+- Long rectangular table at the center of the Facility
+- Loaded with food, water, and medical items (survivors can heal up, eat, drink)
+- Crates around the table with random loot (quality based on difficulty setting)
+- Survivors sit and wait here while the LLM builds the next scenario
+- Perk selection screen appears here between rounds (survivors get stronger over time)
+
+### What the God Can Do in Simulation Mode (Full Powers)
+
+Everything from the standard ALLOWED list, PLUS:
+- Place and modify terrain (elevation, tile types)
+- Create and place buildings from the stamp library
+- Design custom objectives (not limited to the 6 preset types)
+- Shape the entire map layout from nothing
+- No change budget limit (build as much as needed to create a full scenario)
+
+Still FORBIDDEN even in Simulation mode:
+- Editing existing survivor/zombie base AI behaviors (can still create new custom entities)
+- Modifying the item crafting system itself
+- Breaking the Feast table safe zone (survivors must always have a safe return point)
 
 ---
 
