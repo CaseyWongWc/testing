@@ -43,6 +43,7 @@ All design docs live in `wss(full game ideas)/`:
 - `systems/core-loop.md` — Main game loop architecture
 - `systems/day-night-cycle.md` — Day/night mechanics
 - `systems/win-conditions.md` — Portal evacuation, scoring, grading
+- `systems/god-system.md` — God System (LLM-Assisted Asynchronous Director) — UNSTABLE, post-Phase 4
 
 ## User Preferences
 
