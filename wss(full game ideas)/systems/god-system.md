@@ -54,24 +54,46 @@ Structured data backing the narrative:
 
 ---
 
-## What the God Can Change (Parameter Whitelist)
+## God Permissions — What It Can and Cannot Do
 
-The God picks from a bounded menu of knobs with min/max ranges. It cannot generate arbitrary code or modify core game logic.
+### ALLOWED — The God CAN:
 
-| Parameter | Range | Example |
-|---|---|---|
-| Zombie spawn rate multiplier | 0.5x – 3.0x | "Double zombie spawns next night" |
-| Special enemy unlock | boolean per type | "Introduce Brute zombie variant" |
-| Boss spawn | boolean + which boss | "Spawn Hive Mother at nest #2" |
-| Weather | enum (clear/rain/fog/blizzard/heatwave) | "Trigger blizzard" |
-| Resource drop rate | 0.25x – 2.0x | "Halve ammo drops" |
-| Loot quality modifier | -2 to +2 | "Improve loot quality by 1 tier" |
-| Vision modifier | 0.5x – 1.5x | "Fog rolls in, -30% vision range" |
-| Faction event | enum list | "Mercenary patrol appears from the south" |
-| Portal activation | specific portal IDs | "Activate dormant east portal" |
-| Morale event | enum list | "Survivors find a hopeful note, +10 morale" |
-| Day length modifier | 0.5x – 2.0x | "Shorter days, longer nights" |
-| Custom entity spawn | see Custom Entities section | "Place a wandering hermit NPC" |
+| Category | Action | Range/Details | Example |
+|---|---|---|---|
+| **Survivor Values** | Modify survivor stats directly | Health, stamina, morale, hunger, thirst — within survivable bounds | "Set survivor #3 health to 50%" |
+| **Survivor Resources** | Give survivors resources directly | Ammo, food, water, medical, gold — any amount | "Give all survivors 20 ammo" |
+| **Survivor Status** | Apply physical statuses | Injured, poisoned, bleeding, well-fed, energized, etc. | "Inflict bleeding on survivor #1" |
+| **Survivor Life/Death** | Kill or revive survivors | Instant kill or bring back dead survivors | "Revive the fallen Aggressive survivor" |
+| **Win/Lose Conditions** | Force end-state | Trigger immediate win or loss | "Force extraction — survivors win" |
+| **Weather** | Change weather | enum (clear/rain/fog/blizzard/heatwave) | "Trigger blizzard" |
+| **Spawners** | Create new spawners | Place Corruption Nests or other spawner types on the map | "Place a new nest at coordinates (12, 8)" |
+| **Supply Crates** | Spawn or resupply crates | Drop crates with configurable contents anywhere on map | "Drop an ammo crate near the hospital" |
+| **Zombie Spawn Rate** | Adjust spawn multiplier | 0.5x – 3.0x | "Double zombie spawns next night" |
+| **Special Enemies** | Unlock enemy types | boolean per type | "Introduce Brute zombie variant" |
+| **Boss Spawn** | Spawn bosses | boolean + which boss | "Spawn Hive Mother at nest #2" |
+| **Resource Drop Rate** | Adjust loot drops | 0.25x – 2.0x | "Halve ammo drops" |
+| **Loot Quality** | Modify loot quality | -2 to +2 | "Improve loot quality by 1 tier" |
+| **Vision** | Modify vision range | 0.5x – 1.5x | "Fog rolls in, -30% vision range" |
+| **Faction Events** | Trigger faction activity | enum list | "Mercenary patrol appears from the south" |
+| **Portal Activation** | Activate dormant portals | specific portal IDs | "Activate dormant east portal" |
+| **Morale Events** | Trigger morale changes | enum list | "Survivors find a hopeful note, +10 morale" |
+| **Day Length** | Modify day/night ratio | 0.5x – 2.0x | "Shorter days, longer nights" |
+| **Custom Entities** | Spawn new entities | see Custom Entities section | "Place a wandering hermit NPC" |
+
+### FORBIDDEN — The God CANNOT:
+
+| Restriction | Reason |
+|---|---|
+| **Create or place buildings** | Map structures are generated at map creation and cannot be added mid-run |
+| **Modify the map layout** | Terrain, tiles, elevation, and building positions are locked after generation *(exception pending — see below)* |
+| **Edit existing entity behaviors** | Survivor, zombie, and hostile human base AI brains are off-limits; God can only add NEW entities with new behaviors |
+| **Modify survivor-craftable/playable items** | Items that survivors can craft or use keep their base stats and recipes; God cannot alter the item system itself |
+
+### DEBATING — Open for Discussion:
+
+| Topic | Concern |
+|---|---|
+| **Access to objectives** | Can the God modify, add, or remove active objectives? This is powerful — it could redirect the entire run's story. Could be limited to "add optional side objectives" only, keeping main objectives locked. |
 
 ### Change Budget
 
