@@ -15,6 +15,7 @@
     "@tryfabric/martian": "^1.2.4",
     "express": "^5.1.0",
     "http-proxy-middleware": "^3.0.5",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
