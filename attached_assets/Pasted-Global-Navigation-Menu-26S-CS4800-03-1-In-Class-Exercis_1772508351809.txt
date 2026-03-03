@@ -1,0 +1,180 @@
+Global Navigation Menu
+
+[
+
+26S\_CS4800.03-1
+
+In Class Exercise - 3
+
+](https://canvas.cpp.edu/courses/132692)
+
+[Skip To Content](https://canvas.cpp.edu/courses/132692/quizzes/330420#content)
+
+[Dashboard](https://canvas.cpp.edu/)
+
+-   [
+    
+    ![Casey Wong](https://canvas.cpp.edu/images/messages/avatar-50.png)
+    
+    Account
+    
+    ](https://canvas.cpp.edu/profile/settings)
+-   [
+    
+    Dashboard
+    
+    ](https://canvas.cpp.edu/)
+-   [
+    
+    Courses
+    
+    ](https://canvas.cpp.edu/courses)
+-   [
+    
+    Groups
+    
+    ](https://canvas.cpp.edu/groups)
+-   [
+    
+    Calendar
+    
+    ](https://canvas.cpp.edu/calendar)
+-   [
+    
+    12 unread messages.12
+    
+    Inbox
+    
+    ](https://canvas.cpp.edu/conversations)
+-   [
+    
+    History
+    
+    ](https://canvas.cpp.edu/courses/132692/quizzes/330420#)
+-   [![Kaltura](https://cdnsecakmi.kaltura.com/content/static/canvas/my_media.png)
+    
+    Kaltura - My Media
+    
+    ](https://canvas.cpp.edu/accounts/1/external_tools/848?launch_type=global_navigation&toolId=kaltura---my-media-848)
+-   [
+    
+    10 unread release notes.10
+    
+    Help
+    
+    ](https://help.instructure.com/)
+
+-   [
+    
+    ](https://canvas.cpp.edu/courses/132692/quizzes/330420# "Minimize global navigation")
+
+[Close](https://canvas.cpp.edu/courses/132692/quizzes/330420#)
+
+1.  [_My Dashboard_](https://canvas.cpp.edu/)
+2.  [26S\_CS4800.03-1](https://canvas.cpp.edu/courses/132692)
+3.  [Quizzes](https://canvas.cpp.edu/courses/132692/quizzes)
+4.  [In Class Exercise - 3](https://canvas.cpp.edu/courses/132692/quizzes/330420)
+
+Spring Semester 2026
+
+-   [Home](https://canvas.cpp.edu/courses/132692)
+-   [Announcements](https://canvas.cpp.edu/courses/132692/announcements)
+-   [Assignments](https://canvas.cpp.edu/courses/132692/assignments)
+-   [Discussions](https://canvas.cpp.edu/courses/132692/discussion_topics)
+-   [Grades**1**](https://canvas.cpp.edu/courses/132692/grades)
+-   [People](https://canvas.cpp.edu/courses/132692/users)
+-   [Pages](https://canvas.cpp.edu/courses/132692/wiki)
+-   [Files](https://canvas.cpp.edu/courses/132692/files)
+-   [Syllabus](https://canvas.cpp.edu/courses/132692/assignments/syllabus)
+-   [Quizzes](https://canvas.cpp.edu/courses/132692/quizzes)
+-   [Modules](https://canvas.cpp.edu/courses/132692/modules)
+-   [BigBlueButton](https://canvas.cpp.edu/courses/132692/conferences)
+-   [Collaborations](https://canvas.cpp.edu/courses/132692/collaborations)
+-   [Chat](https://canvas.cpp.edu/courses/132692/external_tools/5)
+-   [Library Resources](https://canvas.cpp.edu/courses/132692/external_tools/465)
+-   [Course Evaluations](https://canvas.cpp.edu/courses/132692/external_tools/599)
+-   [Zoom LTI Integration](https://canvas.cpp.edu/courses/132692/external_tools/727)
+-   [Kaltura Media](https://canvas.cpp.edu/courses/132692/external_tools/848)
+-   [Namecoach](https://canvas.cpp.edu/courses/132692/external_tools/982)
+-   [Instant Access Complete](https://canvas.cpp.edu/courses/132692/external_tools/1272)
+-   [Parchment Badges](https://canvas.cpp.edu/courses/132692/external_tools/1404)
+
+# In Class Exercise - 3
+
+-   Due Mar 2 at 8:30pm
+-   Points 10
+-   Questions 1
+-   Available Mar 2 at 7pm - Mar 2 at 8:30pm 1 hour and 30 minutes
+-   Time Limit None
+
+## Instructions
+
+1.  Compile a list of high-level functional requirements for your class project
+2.  Compile a list of high-level non-functional requirements for your class project.
+    -   For each non-functional requirement, define a criteria to verify/validate the requirement.
+    -   Verifiable non-functional requirement needs to have a measure that can be objectively tested 
+3.  Compile a list of high-level domain-specific requirements for your class project
+
+You can use ChatGPT, Google Gemini, Claude or another LLM to assist you in generating following set to requirements for your class project. Use the Business Plan, Use Cases and Story Boards as source documents. 
+
+### Attempt History
+
+|     | Attempt | Time | Score |
+| --- | --- | --- | --- |
+| LATEST | [Attempt 1](https://canvas.cpp.edu/courses/132692/quizzes/330420/history?version=1) | Time: 2 minutes | Score: 10 out of 10 |
+
+Score for this quiz: 10 out of 10
+
+Submitted Mar 2 at 7:21pm
+
+This attempt took 2 minutes.
+
+Correct answer
+
+_Move To... This element is a more accessible alternative to drag & drop reordering. Press Enter or Space to move this question._
+
+Question 1
+
+10 / 10 pts
+
+[_Edit this Question_](https://canvas.cpp.edu/courses/132692/quizzes/330420# "Edit this Question") [_Delete this Question_](https://canvas.cpp.edu/courses/132692/quizzes/330420# "Delete this Question")
+
+0 short\_answer\_question  [](https://canvas.cpp.edu/courses/132692/quizzes/330420/questions/5179077) 7617751
+
+Please enter the code provided in class.
+
+Please enter the code provided in class.
+
+9915
+
+51
+
+51
+
+exact\_answer none 5179077 9915
+
+0 (with margin: 0)
+
+0 (with precision: 10)
+
+Between 0 and 0
+
+margin of error +/-
+
+100
+
+Quiz Score: 10 out of 10
+
+[Previous](https://canvas.cpp.edu/courses/132692/modules/items/5051058)
+
+[Next](https://canvas.cpp.edu/courses/132692/modules/items/5051063)
+
+## Related Items
+
+Submission Details:
+
+| Time: | 2 minutes |
+| --- | --- |
+| Current Score: | 10 out of 10 |
+| Kept Score: | 10 out of 10 |
+
