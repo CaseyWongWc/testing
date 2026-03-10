@@ -1,0 +1,115 @@
+title WSS2 "A Forgotten Place" — Software Architecture
+
+// Primary Actors
+Actors [icon: users] {
+  Observer [icon: user, label: "Observer (Human)"]
+  AI Survivors [icon: users, label: "AI Survivors"]
+  Enemy AI [icon: alert-triangle, label: "Enemy AI"]
+  Game Engine [icon: cpu, label: "Game Engine"]
+}
+
+// Presentation Layer
+Presentation Layer [color: blue, icon: monitor] {
+  Observer UI Controls [icon: sliders]
+  Camera System [icon: video]
+  HUD Overlay [icon: layout]
+  Menus Config [icon: settings, label: "Menus & Configuration"]
+  Canvas Rendering Engine [icon: image]
+}
+
+// Application Layer
+Application Layer [color: green, icon: server] {
+  Game Loop Controller [icon: refresh-cw]
+
+  AI System [icon: brain] {
+    Brain Interface [icon: cpu]
+    Survivor Brains [icon: users, label: "Survivor Brains (5)"]
+    Enemy Brains [icon: alert-circle, label: "Enemy Brains (4+)"]
+    Intent System [icon: target]
+    Radio System [icon: radio]
+  }
+
+  Combat System [icon: crosshair] {
+    Weapon Manager [icon: tool]
+    Armor System [icon: shield]
+    Cover System [icon: square]
+    Noise System [icon: volume-2]
+    Damage Calculator [icon: zap]
+  }
+
+  World Systems [icon: globe] {
+    Map Generator [icon: map]
+    Spawner System [icon: plus-circle]
+    Objective System [icon: flag]
+    Fog of War [icon: eye-off, label: "Fog-of-War"]
+    Day Night Cycle [icon: sun, label: "Day/Night Cycle"]
+    Faction Manager [icon: users]
+    Rift Portal Controller [icon: aperture]
+    Loot Distribution [icon: package]
+  }
+
+  Navigation Pathfinding [icon: navigation, label: "Navigation & Pathfinding"]
+  Progression Economy [icon: trending-up, label: "Progression & Economy"]
+}
+
+// Data Layer
+Data Layer [color: orange, icon: database] {
+  World State [icon: layers]
+  GridMap [icon: grid]
+  Stamp Library [icon: copy]
+  Biome Definitions [icon: map-pin]
+  Seeded PRNG [icon: shuffle]
+
+  Entity Hierarchy [icon: git-branch] {
+    Actor Base [icon: user, label: "Actor"]
+    Survivor Entity [icon: heart, label: "Survivor"]
+    Zombie Entity [icon: alert-triangle, label: "Zombie"]
+    Enemy Humanoid [icon: user-x, label: "Enemy Humanoid"]
+    Corruption Nest [icon: cloud, label: "CorruptionNest"]
+    Rift Portal Entity [icon: aperture, label: "RiftPortal"]
+    Item Entity [icon: box, label: "Item"]
+  }
+}
+
+// Technology Stack
+Tech Stack [color: gray, icon: code] {
+  React TypeScript [icon: react, label: "React 18 + TypeScript"]
+  Vite [icon: zap, label: "Vite"]
+  Canvas API [icon: image, label: "HTML5 Canvas"]
+  Tailwind [icon: wind, label: "Tailwind CSS"]
+  Express [icon: server, label: "Express 5"]
+  WebSocket [icon: wifi, label: "WebSocket"]
+}
+
+// Connections - Actors to Presentation
+Observer > Observer UI Controls: configure
+Observer > Camera System: switch views
+
+// Connections - Presentation Layer internal
+Observer UI Controls > Game Loop Controller: start/stop/speed
+Camera System > Canvas Rendering Engine: viewport
+HUD Overlay < Objective System: status
+HUD Overlay < Progression Economy: score
+
+// Connections - Presentation to Data
+Canvas Rendering Engine < World State: render state
+
+// Connections - Application Layer internal
+Game Loop Controller > AI System: sense + decide
+Game Loop Controller > Combat System: act phase
+Game Loop Controller > World Systems: spawn + cleanup
+
+AI System > Navigation Pathfinding: movement
+AI System > Combat System: attack intents
+Objective System > Rift Portal Controller: unseal portal
+
+// Connections - Application to Data
+
+// Connections - Data Layer internal
+Actor Base > Survivor Entity
+Actor Base > Zombie Entity
+Actor Base > Enemy Humanoid
+World Systems <-- Data Layer: nest data
+Game Loop Controller <> World State: read/write
+Navigation Pathfinding < GridMap: walkability
+Cover System < GridMap: cover values

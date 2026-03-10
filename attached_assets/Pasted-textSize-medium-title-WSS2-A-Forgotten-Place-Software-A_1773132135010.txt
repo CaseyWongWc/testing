@@ -1,0 +1,113 @@
+textSize medium
+title WSS2 "A Forgotten Place" — Software Architecture
+
+// Primary Actors
+Actors [icon: users, textSize: medium] {
+  Observer [icon: user, label: "Observer (Human)", textSize: medium]
+  AI Survivors [icon: users, label: "AI Survivors", textSize: medium]
+  Enemy AI [icon: alert-triangle, label: "Enemy AI", textSize: medium]
+  Game Engine [icon: cpu, label: "Game Engine", textSize: medium]
+}
+
+// Presentation Layer
+Presentation Layer [color: blue, icon: monitor, textSize: medium] {
+  Observer UI Controls [icon: sliders, textSize: medium]
+  Camera System [icon: video, textSize: medium]
+  HUD Overlay [icon: layout, textSize: medium]
+  Menus Config [icon: settings, label: "Menus & Configuration", textSize: medium]
+  Canvas Rendering Engine [icon: image, textSize: medium]
+}
+
+// Application Layer
+Application Layer [color: green, icon: server, textSize: medium] {
+  Game Loop Controller [icon: refresh-cw, textSize: medium]
+
+  AI System [icon: brain, textSize: medium] {
+    Brain Interface [icon: cpu, textSize: medium]
+    Survivor Brains [icon: users, label: "Survivor Brains (5)", textSize: medium]
+    Enemy Brains [icon: alert-circle, label: "Enemy Brains (4+)", textSize: medium]
+    Intent System [icon: target, textSize: medium]
+    Radio System [icon: radio, textSize: medium]
+  }
+
+  Combat System [icon: crosshair, textSize: medium] {
+    Weapon Manager [icon: tool, textSize: medium]
+    Armor System [icon: shield, textSize: medium]
+    Cover System [icon: square, textSize: medium]
+    Noise System [icon: volume-2, textSize: medium]
+    Damage Calculator [icon: zap, textSize: medium]
+  }
+
+  World Systems [icon: globe, textSize: medium] {
+    Map Generator [icon: map, textSize: medium]
+    Spawner System [icon: plus-circle, textSize: medium]
+    Objective System [icon: flag, textSize: medium]
+    Fog of War [icon: eye-off, label: "Fog-of-War", textSize: medium]
+    Day Night Cycle [icon: sun, label: "Day/Night Cycle", textSize: medium]
+    Faction Manager [icon: users, textSize: medium]
+    Rift Portal Controller [icon: aperture, textSize: medium]
+    Loot Distribution [icon: package, textSize: medium]
+  }
+
+  Navigation Pathfinding [icon: navigation, label: "Navigation & Pathfinding", textSize: medium]
+  Progression Economy [icon: trending-up, label: "Progression & Economy", textSize: medium]
+}
+
+// Data Layer
+Data Layer [color: orange, icon: database, textSize: medium] {
+  World State [icon: layers, textSize: medium]
+  GridMap [icon: grid, textSize: medium]
+  Stamp Library [icon: copy, textSize: medium]
+  Biome Definitions [icon: map-pin, textSize: medium]
+  Seeded PRNG [icon: shuffle, textSize: medium]
+
+  Entity Hierarchy [icon: git-branch, textSize: medium] {
+    Actor Base [icon: user, label: "Actor", textSize: medium]
+    Survivor Entity [icon: user-check, label: "Survivor", textSize: medium]
+    Zombie Entity [icon: alert-triangle, label: "Zombie", textSize: medium]
+    Enemy Humanoid [icon: user-x, label: "Enemy Humanoid", textSize: medium]
+    Corruption Nest [icon: alert-octagon, label: "Corruption Nest", textSize: medium]
+    Rift Portal Entity [icon: aperture, label: "Rift Portal", textSize: medium]
+    Item Entity [icon: box, label: "Item", textSize: medium]
+  }
+}
+
+// Technology Stack
+Tech Stack [color: gray, icon: code, textSize: medium] {
+  React TypeScript [icon: react, label: "React 18 + TypeScript", textSize: medium]
+  Vite [icon: zap, label: "Vite", textSize: medium]
+  Canvas API [icon: image, label: "HTML5 Canvas", textSize: medium]
+  Tailwind [icon: wind, label: "Tailwind CSS", textSize: medium]
+  Express [icon: server, label: "Express 5", textSize: medium]
+  WebSocket [icon: wifi, label: "WebSocket", textSize: medium]
+}
+
+// Connections - Actors to Presentation
+Observer > Observer UI Controls: configure [textSize: medium]
+Observer > Camera System: switch views [textSize: medium]
+
+// Connections - Presentation Layer internal
+Observer UI Controls > Game Loop Controller: start/stop/speed [textSize: medium]
+Camera System > Canvas Rendering Engine: viewport [textSize: medium]
+HUD Overlay < Objective System: status [textSize: medium]
+HUD Overlay < Progression Economy: score [textSize: medium]
+
+// Connections - Presentation to Data
+Canvas Rendering Engine < World State: render state [textSize: medium]
+
+// Connections - Application Layer internal
+Game Loop Controller > AI System: sense/decide [textSize: medium]
+Game Loop Controller > Combat System: act [textSize: medium]
+Game Loop Controller > World Systems: spawn/cleanup [textSize: medium]
+
+AI System > Navigation Pathfinding: movement [textSize: medium]
+AI System > Combat System: attack intents [textSize: medium]
+Combat System > Noise System: weapon fire [textSize: medium]
+Noise System > AI System: alerts [textSize: medium]
+
+Objective System > Rift Portal Controller: unseal [textSize: medium]
+Spawner System <-- World State: nest data [textSize: medium]
+
+// Connections - Application to Data
+World State <> Game Loop Controller: read/write [textSize: medium]
+GridMap > Navigation Pathfinding: walkability  [textSize: medium]
