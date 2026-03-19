@@ -5,12 +5,31 @@ import RogueLikeGame from "./RogueLikeGame";
 import WSSRogueHDraft from "./WSSRogueHDraft";
 import WSSTwo from "./WSSTwo";
 import WSSPhase0 from "./WSSPhase0";
-import { Wifi, Compass, Skull, Map } from "lucide-react";
+import WSSPhase1 from "./WSSPhase1";
+import { Wifi, Compass, Map } from "lucide-react";
 
 const Combat: React.FC = () => {
   const [activeScene, setActiveScene] = useState<
-    "wssphase0" | "zombies" | "classroom" | "rogue" | "wssrogue" | "wsstwo"
-  >("wssphase0");
+    "wssphase1" | "wssphase0" | "zombies" | "classroom" | "rogue" | "wssrogue" | "wsstwo"
+  >("wssphase1");
+
+  if (activeScene === "wssphase1") {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col">
+        <div className="shrink-0 bg-gray-950 border-b border-gray-700 px-3 py-1 flex gap-2">
+          <button
+            onClick={() => setActiveScene("zombies")}
+            className="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded hover:bg-gray-800 transition-colors"
+          >
+            ← Other Simulations
+          </button>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <WSSPhase1 />
+        </div>
+      </div>
+    );
+  }
 
   if (activeScene === "wssphase0") {
     return (
@@ -34,10 +53,16 @@ const Combat: React.FC = () => {
     <div className="p-8">
       <div className="flex flex-wrap gap-4 mb-8">
         <button
-          onClick={() => setActiveScene("wssphase0")}
+          onClick={() => setActiveScene("wssphase1")}
           className="px-4 py-2 rounded transition-colors flex items-center gap-2 bg-red-900 hover:bg-red-800 text-red-100 border border-red-600 font-bold"
         >
-          <Map className="w-4 h-4" /> A Forgotten Place (Phase 0)
+          <Map className="w-4 h-4" /> A Forgotten Place (Phase 1)
+        </button>
+        <button
+          onClick={() => setActiveScene("wssphase0")}
+          className="px-4 py-2 rounded transition-colors flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-500"
+        >
+          <Map className="w-4 h-4" /> Phase 0 (Foundation)
         </button>
         <button
           onClick={() => setActiveScene("zombies")}
