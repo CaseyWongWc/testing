@@ -76,7 +76,7 @@ type AnyEntity = Survivor | Zombie | CorruptionNest | RiftPortal | ObjectiveSwit
 
 interface NoiseEvent { pos: Vec2; radius: number; ticksLeft: number; maxTicks: number; }
 interface AttackEffect { from: Vec2; to: Vec2; color: string; ticksLeft: number; class: WeaponClass; }
-interface LogEntry { tick: number; text: string; type: "combat"|"death"|"spawn"|"info"|"warn"|"objective"|"loot"; }
+interface LogEntry { tick: number; text: string; type: "combat"|"damage"|"death"|"spawn"|"info"|"warn"|"objective"|"loot"; }
 
 interface GameSettings {
   seed: number; mapSize: 30 | 40 | 60;
@@ -647,6 +647,7 @@ function resolveCombat(
         t.health -= dmg;
         effects.push({ from:{...z.pos}, to:{...t.pos}, color:"#ff0000", ticksLeft:6, class:"fists" });
         const surv = t as Survivor;
+        addLog(`🧟 zombie → ${surv.name} [-${dmg}hp] (${Math.max(0,Math.round(t.health))}hp left)`, "damage");
         if (t.health <= 0) { t.dead = true; addLog(`💀 ${surv.name} has DIED!`, "death"); }
         break;
       }
@@ -1238,8 +1239,9 @@ const WSSPhase3: React.FC = () => {
   useEffect(()=>{syncUI();},[syncUI]);
 
   const logColors:Record<LogEntry["type"],string>={
-    combat:"text-yellow-400",death:"text-red-400",spawn:"text-purple-400",
-    info:"text-gray-400",warn:"text-orange-400",objective:"text-cyan-400",loot:"text-green-400",
+    combat:"text-yellow-400",damage:"text-red-300",death:"text-red-500 font-bold",
+    spawn:"text-purple-400",info:"text-gray-400",warn:"text-orange-400",
+    objective:"text-cyan-400",loot:"text-green-400",
   };
   const survivedCount=stateRef.current.entities.filter(e=>e.kind==="survivor"&&!e.dead).length;
 
