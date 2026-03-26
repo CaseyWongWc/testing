@@ -62,7 +62,7 @@ Preferred communication style: Simple, everyday language.
 ### Application Layout
 - `src/App.tsx` — Main router/switcher. Uses a `useState` to toggle between ~20 different game/simulation views. Default view is `wss-prototype`.
 - `src/components/` — General-purpose game components (MazeGame, TerrainGame, FruitCollector, FollowMeGame, GuessingGame, MultiGoalRobot, DarkGame, TagGame, RGBTerrainNavigator, RobotTrading, MonsterCards, CollaborativeDrawing, WebSocketChat, WSSPrototype, etc.)
-- `src/combat/` — Combat-related simulations (Combat.tsx as sub-router, **WSSPhase2** [A Forgotten Place Phase 2 — default], WSSPhase1, WSSPhase0, ZombiesAhh, EmptyClassroom, RogueLikeGame, WSSRogueHDraft, WSSTwo)
+- `src/combat/` — Combat-related simulations (Combat.tsx as sub-router, **WSSPhase3** [A Forgotten Place Phase 3 — default], WSSPhase2, WSSPhase1, WSSPhase0, ZombiesAhh, EmptyClassroom, RogueLikeGame, WSSRogueHDraft, WSSTwo)
 - `src/replit/` — Additional simulation scenes (ReplitScene as sub-router, Priority, WeightedDecisions, Pathfinder, BeeHiveSimulation, AIEcosystem, Spawner, MultiValuedItemCollector, Scene7, Scene8)
 - `WSS_Submission/` — Duplicate copies of key source files bundled for academic submission
 

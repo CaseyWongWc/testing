@@ -1,0 +1,53 @@
+PHASE 3 BUILD — Resources & Balance (March 25, 2026)
+
+Context: Phase 2 is COMPLETE and working (WSSPhase2.tsx). All 5 features confirmed via playtesting. However, survivors are massively overpowered — a single survivor can solo 20 zombies and 6 nests because ammo is infinite and there's no resource pressure. Phase 3 adds finite resources to create tension and naturally balance the game.
+
+IMPORTANT: Read WSSPhase2.tsx first. Build Phase 3 as a NEW file WSSPhase3.tsx that copies Phase 2 and adds the features below. Update Combat.tsx to set Phase 3 as the default. Do NOT modify WSSPhase2.tsx.
+
+Reference docs: wss(full game ideas)/systems/resources-and-economy.md, combat.md, ai-brains.md
+
+--- 5 CRITICAL FEATURES ---
+
+1. [CRITICAL] Finite Ammo System
+- Each weapon starts with LIMITED ammo (Pistol: 15 rounds, Shotgun: 8 shells, Knife: unlimited but low damage)
+- Ammo tracked per weapon type: PistolRounds, ShotgunShells
+- When ammo hits 0, survivor auto-switches to melee (fists) which does much less damage
+- Display current ammo in the survivor card (e.g. "Pistol [7/15]")
+- Combat log shows "[tick] Survivor is out of ammo!" when depleted
+
+2. [CRITICAL] Loot Spawns (HealthPacks + AmmoCrates)
+- Spawn 8-12 loot items on the map during world generation
+- Two types: HealthPack (green cross icon, restores 30 HP) and AmmoCrate (yellow box icon, restores 8 rounds matching weapon type)
+- Place loot with some clustering near buildings/structures and some scattered randomly
+- When a survivor walks within 1 tile of loot, they auto-pickup: apply effect, remove item from world, log "[tick] Survivor picked up HealthPack" in combat log
+- Loot renders as small colored squares on the map (green for health, yellow for ammo)
+
+3. [CRITICAL] Resource-Aware AI Brain
+- Add new AI state: "scavenging" — survivor actively moves toward nearest visible loot item
+- Decision priority update: Flee (HP < 20%) > Fight (enemy in range AND has ammo) > Scavenge (ammo == 0 OR HP < 50%) > Activate objective > Evacuate > Wander
+- Key change: if ammo == 0 and no loot visible, survivor should FLEE from zombies instead of fighting (they can only punch for low damage)
+- Survivors with no ammo and low HP should be very vulnerable — this is the balance fix
+- AI brain checks: "Do I have ammo? Do I see loot? What's my HP?" before deciding to fight
+
+4. [CRITICAL] Loot Respawn from Nest Destruction
+- When a zombie nest is destroyed, it drops 1-2 random loot items at its position
+- This creates a risk/reward: nests are dangerous but destroying them gives resources
+- Nest destruction already partially works — enhance it so nests have HP (e.g. 50 HP) and survivors can attack them
+- Combat log: "[tick] Nest destroyed! Loot dropped."
+
+5. [CRITICAL] Resource HUD + Balance Tuning
+- Add ammo count to the top-right HUD panel (next to survivors/zombies/nests counts)
+- Show total team ammo remaining as a summary stat
+- Survivor cards already show weapon — add ammo count prominently (color it red when low, grey when empty)
+- BALANCE TUNING: Reduce survivor base HP from current value by ~20%. Increase zombie damage by ~15%. This combined with finite ammo means survivors will actually die sometimes.
+- The goal: on default settings (3 survivors, 8 zombies, 3 nests), roughly 50-70% of runs should be wins. A solo survivor vs 20 zombies should almost always lose.
+
+--- IMPLEMENTATION NOTES ---
+- Loot items are entities with position, type, and effect
+- PickupSystem: check distance each tick, apply effect when within range, remove entity
+- Ammo is per-survivor, per-weapon-type (not shared pool)
+- The AI brain's scavenge state should pathfind to nearest known loot (within fog-revealed area)
+- After completing, run TypeScript check (npx tsc --noEmit)
+- Update Combat.tsx to default to WSSPhase3
+- Add a comment to the Notion WSS2 Source of Truth page (https://www.notion.so/30a0e51f71de8149af72cd8ce49b0fda) documenting Phase 3 completion
+- Publish the app after successful build
