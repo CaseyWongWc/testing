@@ -1,0 +1,42 @@
+Here's the full playtest report from Phase 3 Combat testing:
+
+## Playtest Results: Phase 3 Combat - `wss-revised.replit.app`
+
+### Test 1: Default Settings (3 survivors, 8 zombies, 3 nests, 30x30)
+- Ran to **T:30,608** at 8x speed [wss-revised.replit](https://wss-revised.replit.app/)
+- **All 3 survivors alive the entire time**, HP bars stayed 100% full
+- Combat log showed ONLY survivor → zombie damage (e.g. "Aria → zombie [-30hp]", "Boone → zombie [-55hp]")
+- **Zero instances of zombie → survivor damage** in the entire combat log
+- Nests continuously spawned zombies (up to 15+ on map), survivors killed them indefinitely
+
+### Test 2: Default Settings in Phase 3 Full Game (3 survivors, 8 zombies, 3 nests)
+- Ran to **T:65,728** at 8x speed
+- **All 3 survivors alive the entire time** despite all resources depleted
+- HP slowly drained from **starvation/dehydration only** — all hunger/water/stamina bars hit zero
+- Even with HP bars showing barely a sliver, **no survivor died**
+- Combat log still showed zero zombie → survivor damage entries
+
+***
+
+### Critical Bugs Found:
+
+**BUG 1 (Blocker): Zombies do NOT deal damage to survivors.**
+Across 95k+ combined ticks of gameplay, the combat log never once showed a zombie attacking a survivor. Survivors can fight zombies infinitely with no risk. This completely breaks the survival loop.
+
+**BUG 2 (Blocker): Survivors cannot die.**
+Even when HP is drained to near-zero via starvation/dehydration, survivors never actually reach 0 HP or trigger a death state. The "alive" counter never decrements. HP appears to floor at some minimum value > 0.
+
+**BUG 3 (Minor): Slider values don't persist through Generate World.**
+Setting sliders programmatically (or possibly at all) to extreme values — the labels showed old values and the world generated with defaults. Could be a React state sync issue where the display label and actual value diverge.
+
+### What's Working:
+- Survivor → zombie combat damage works correctly
+- Ammo system works (running out, switching to melee, grabbing ammo pickups)
+- AI states work (FIGHTING, FLEEING, SCAVENGING transitions)
+- Nest spawning and nest destruction work
+- Objective switches progress correctly
+- Hunger/thirst/stamina drain over time
+- Fog of war rendering looks good
+
+### Recommendation:
+The zombie attack logic needs to be implemented/fixed before combat is meaningful. Check the zombie AI for a missing `attackSurvivor()` call or similar. Also check the HP → death threshold — there may be no `if (hp <= 0) → die` check, or HP might be clamped to a minimum.

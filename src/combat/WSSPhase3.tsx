@@ -311,7 +311,7 @@ function spawnEntities(settings: GameSettings, rand: () => number): [AnyEntity[]
         x: Math.max(1, Math.min(size - 1, half + Math.cos(angle) * r)),
         y: Math.max(1, Math.min(size - 1, half + Math.sin(angle) * r)),
       },
-      health: 40 + Math.floor(rand() * 20), maxHealth: 60,
+      health: 65 + Math.floor(rand() * 25), maxHealth: 90,
       vel: { x: 0, y: 0 }, alertRadius: ZOMBIE_ALERT,
       ticksUntilMove: Math.floor(rand() * 30),
       attackCooldown: 0, alertedByNoise: false, noiseTarget: null,
@@ -397,15 +397,15 @@ function chooseSurvivorAI(
     }};
   }
 
-  // 2 — FIGHT: has effective weapon and enemy is close
+  // 2 — EVACUATE: portal open — takes priority over combat so survivors don't get stuck fighting
+  if (portalOpen && !s.evacuated) {
+    return { state:"evacuating", target:{ ...portalPos } };
+  }
+
+  // 3 — FIGHT: has effective weapon and enemy is close
   if (nearest && hasEffectiveAmmo(s) &&
       Math.hypot(nearest.pos.x - s.pos.x, nearest.pos.y - s.pos.y) <= Math.max(s.weapon.range, THREAT_DIST[s.brain])) {
     return { state:"fighting", target:{ ...nearest.pos } };
-  }
-
-  // 3 — EVACUATE: portal open
-  if (portalOpen && !s.evacuated) {
-    return { state:"evacuating", target:{ ...portalPos } };
   }
 
   // 4 — SCAVENGE: seek loot when low HP or low/no ammo
@@ -455,7 +455,8 @@ function tickSurvivor(
     }
   }
 
-  if (s.targetPos && aiState !== "fighting") {
+  // Melee fighters (range ≤ 1.5) must move toward enemy to close gap; ranged hold position
+  if (s.targetPos && (aiState !== "fighting" || s.weapon.range <= 1.5)) {
     const dx = s.targetPos.x - s.pos.x;
     const dy = s.targetPos.y - s.pos.y;
     const dist = Math.hypot(dx, dy);
@@ -476,6 +477,7 @@ function tickSurvivor(
   s.hunger = Math.max(0, s.hunger - 0.002 * drainMult);
   s.thirst = Math.max(0, s.thirst - 0.003 * drainMult);
   if (s.hunger <= 0 || s.thirst <= 0) s.health = Math.max(0, s.health - 0.04);
+  if (s.health <= 0) { s.dead = true; return s; }
 
   s.pos.x = Math.max(0.5, Math.min(size-0.5, s.pos.x));
   s.pos.y = Math.max(0.5, Math.min(size-0.5, s.pos.y));
@@ -489,7 +491,7 @@ function tickZombie(z: Zombie, state: GameState): Zombie {
   if (z.dead) return z;
   const size = state.settings.mapSize;
   if (z.ticksUntilMove > 0) { z.ticksUntilMove--; return z; }
-  z.ticksUntilMove = 2;
+  z.ticksUntilMove = 1;
 
   if (!z.alertedByNoise) {
     for (const n of state.noiseEvents) {
@@ -506,7 +508,7 @@ function tickZombie(z: Zombie, state: GameState): Zombie {
     if (dist < z.alertRadius && dist < nearestDist) { nearestDist = dist; nearest = e; }
   }
 
-  const speed = 0.018;
+  const speed = 0.028;
   if (nearest) {
     z.alertedByNoise = false; z.noiseTarget = null;
     const dx = nearest.pos.x - z.pos.x, dy = nearest.pos.y - z.pos.y;
@@ -518,10 +520,10 @@ function tickZombie(z: Zombie, state: GameState): Zombie {
     if (dist > 0.5) { z.pos.x += (dx / dist) * speed; z.pos.y += (dy / dist) * speed; }
     else { z.alertedByNoise = false; z.noiseTarget = null; }
   } else {
-    z.vel.x += (Math.random() - 0.5) * 0.12;
-    z.vel.y += (Math.random() - 0.5) * 0.12;
+    z.vel.x += (Math.random() - 0.5) * 0.14;
+    z.vel.y += (Math.random() - 0.5) * 0.14;
     const vlen = Math.hypot(z.vel.x, z.vel.y);
-    if (vlen > 0.035) { z.vel.x = (z.vel.x/vlen)*0.035; z.vel.y = (z.vel.y/vlen)*0.035; }
+    if (vlen > 0.04) { z.vel.x = (z.vel.x/vlen)*0.04; z.vel.y = (z.vel.y/vlen)*0.04; }
     z.pos.x += z.vel.x; z.pos.y += z.vel.y;
   }
 
@@ -547,8 +549,8 @@ function tickNest(nest: CorruptionNest, state: GameState): [CorruptionNest, Zomb
       return [nest, {
         id: state.nextId, kind:"zombie", faction:"HOSTILE", dead:false, armor:0,
         pos:{ x:nest.pos.x+Math.cos(angle)*r, y:nest.pos.y+Math.sin(angle)*r },
-        health:40, maxHealth:40, vel:{x:0,y:0},
-        alertRadius:ZOMBIE_ALERT, ticksUntilMove:5,
+        health:65, maxHealth:65, vel:{x:0,y:0},
+        alertRadius:ZOMBIE_ALERT, ticksUntilMove:3,
         attackCooldown:0, alertedByNoise:false, noiseTarget:null,
         nestId:nest.id,
       } as Zombie];
@@ -639,7 +641,7 @@ function resolveCombat(
     for (const t of entities) {
       if (t.dead || t.faction !== "PLAYER_TEAM" || t.kind !== "survivor") continue;
       const d = Math.hypot(t.pos.x - z.pos.x, t.pos.y - z.pos.y);
-      if (d <= 0.9) {
+      if (d <= 1.3) {
         z.attackCooldown = 25;
         const dmg = Math.max(1, ZOMBIE_DAMAGE - t.armor);
         t.health -= dmg;
@@ -805,6 +807,21 @@ function runTick(state: GameState): GameState {
         addLog(`🌀 ${s.name} evacuated through the portal!`, "objective");
       }
     }
+  }
+
+  // Loot respawn — per design doc: respawn ON by default, cap at 8 loot items on map
+  const lootOnMap = moved.filter(e=>e.kind==="loot" && !e.dead).length;
+  if (state.tick > 0 && state.tick % 500 === 0 && lootOnMap < 8) {
+    const sz = state.settings.mapSize, half2 = sz / 2;
+    const angle = Math.random() * Math.PI * 2;
+    const r2 = 4 + Math.random() * (sz * 0.4);
+    const isH = Math.random() < 0.4;
+    moved.push({
+      id: nextId++, kind:"loot", faction:"NEUTRAL", dead:false, armor:0,
+      pos:{ x:Math.max(1.5, Math.min(sz-1.5, half2+Math.cos(angle)*r2)),
+            y:Math.max(1.5, Math.min(sz-1.5, half2+Math.sin(angle)*r2)) },
+      health:1, maxHealth:1, lootType: isH ? "health" : "ammo", amount: isH ? 30 : 8,
+    } as LootItem);
   }
 
   // Win / Lose
