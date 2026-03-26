@@ -1,0 +1,32 @@
+Here's what I found across 3 test runs on the Combat sim (seed 12345, 30x30, 3 survivors, 8 zombies, 3 nests): [wss-revised.replit](https://wss-revised.replit.app/)
+
+## 1. Zombie Attack Damage in Combat Log — NOT APPEARING
+
+Across all 3 runs, the combat log **never shows zombie attack damage entries**. Survivors take damage (HP bars visibly decrease, survivors die), but the log only contains:
+- Kill events: "X killed a zombie"
+- Death events: "X has DIED!"
+- Ammo warnings: "X is out of ammo!"
+- Evacuations: "X evacuated through the portal!"
+- Pickups: "X picked up HealthPack (+30 HP)", "X grabbed ammo"
+- Objectives: "Objective N activated!"
+
+**Missing:** Something like "Zombie attacked Aria for X damage" — this needs to be added to the combat log so you can tell whether deaths are from zombie attacks, starvation, or other causes.
+
+## 2. Evacuation Sprint-to-Portal — WORKING
+
+In Run 1 (MISSION COMPLETE at T:5,277), all 3 objectives were completed, portal opened, and survivors successfully evacuated. Boone evacuated at T:3,475, Aria at T:3,690, then Cal at T:5,276. The EVAC phase triggered correctly and survivors pathfound to the portal. [wss-revised.replit](https://wss-revised.replit.app/)
+
+One oddity: Aria evacuated at T:3,690 but then somehow died at T:4,817 — this might be a display/ordering bug, or Aria was fighting near the portal and died before fully evacuating. Worth investigating.
+
+## 3. Balance Tuning Observations
+
+- **Run 1:** MISSION COMPLETE, 2/3 survived, T:5,277. Fairly quick and successful.
+- **Run 2:** GAME OVER at T:16,213. Only 2/3 objectives, 0 total kills displayed (possible bug — log shows kills happened). All died.
+- **Run 3:** GAME OVER at T:35,109. Only 1/3 objectives, 11 total kills. All died.
+
+**Balance issues:**
+- High variance between runs (same seed produces different outcomes due to RNG). Run 1 won easily; Runs 2-3 were total wipes.
+- Zombie scaling from nests (8→10→12) overwhelms survivors who run out of ammo.
+- **"Total kills" counter was 0 in Run 2 despite log showing kills** — likely a bug in the GAME OVER summary.
+- Ammo scarcity is the main death driver. Once ammo runs out, survivors just flee until they die.
+- Survivors seem to die from attrition without clear combat log feedback (ties back to issue #1).

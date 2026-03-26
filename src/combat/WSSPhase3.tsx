@@ -96,7 +96,7 @@ interface GameState {
 
 const TILE_SIZE      = 18;
 const VISION_RADIUS  = 6;
-const MAX_LOG        = 40;
+const MAX_LOG        = 120;
 const MAX_ZOMBIES    = 20;
 const PER_NEST_MAX   = 4;
 const NEST_COOLDOWN  = 320;
@@ -110,7 +110,7 @@ const LOOT_COUNT_MAX = 12;
 
 // Phase 3 balance tuning
 const SURVIVOR_BASE_HP  = 80;   // -20% from Phase 2's 100
-const ZOMBIE_DAMAGE     = 14;   // +15% from Phase 2's 12
+const ZOMBIE_DAMAGE     = 20;   // Raised from 14 — high armor was reducing to 1
 const NEST_HP           = 60;   // Nests now have meaningful HP
 
 const TERRAIN_COLORS: Record<TerrainType, string> = {
@@ -261,7 +261,7 @@ function spawnEntities(settings: GameSettings, rand: () => number): [AnyEntity[]
       health: SURVIVOR_BASE_HP, maxHealth: SURVIVOR_BASE_HP,
       brain, name: SURVIVOR_NAMES[i % SURVIVOR_NAMES.length],
       stamina: 100, hunger: 100, thirst: 100,
-      armor: brain === "cautious" ? 15 : brain === "aggressive" ? 10 : 5,
+      armor: brain === "cautious" ? 8 : brain === "aggressive" ? 5 : brain === "survivalist" ? 6 : 3,
       weapon: brainWeapon(brain),
       primaryWeapon: null,
       attackCooldown: 0, vel: { x: 0, y: 0 },
@@ -639,7 +639,7 @@ function resolveCombat(
     const z = e as Zombie;
     if (z.attackCooldown > 0) { z.attackCooldown--; continue; }
     for (const t of entities) {
-      if (t.dead || t.faction !== "PLAYER_TEAM" || t.kind !== "survivor") continue;
+      if (t.dead || t.faction !== "PLAYER_TEAM" || t.kind !== "survivor" || (t as Survivor).evacuated) continue;
       const d = Math.hypot(t.pos.x - z.pos.x, t.pos.y - z.pos.y);
       if (d <= 1.3) {
         z.attackCooldown = 25;
@@ -780,7 +780,11 @@ function runTick(state: GameState): GameState {
   const portalEntity = afterPickup.find(e=>e.kind==="portal") as RiftPortal;
 
   for (const e of afterPickup) {
-    if (e.dead) continue;
+    if (e.dead) {
+      // Keep dead survivors in state so game-over stats can read their kill counts
+      if (e.kind === "survivor") moved.push(e);
+      continue;
+    }
     if (e.kind === "survivor") {
       moved.push(tickSurvivor(e as Survivor, stateForTick, currentObjPos, {
         x: portalEntity?.pos.x ?? 15,
