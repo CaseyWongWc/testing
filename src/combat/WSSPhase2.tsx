@@ -108,7 +108,7 @@ const PICKUP_RADIUS  = 1.0;
 const LOOT_COUNT_MIN = 8;
 const LOOT_COUNT_MAX = 12;
 
-// Phase 3 balance tuning
+// Phase 2 balance tuning
 const SURVIVOR_BASE_HP  = 80;   // -20% from Phase 2's 100
 const ZOMBIE_DAMAGE     = 20;   // Raised from 14 — high armor was reducing to 1
 const NEST_HP           = 60;   // Nests now have meaningful HP
@@ -1256,7 +1256,7 @@ const WSSPhase2: React.FC = () => {
       <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 border-b border-gray-700 shrink-0 flex-wrap">
         <span className="text-red-400 font-bold text-xs tracking-widest">◈ A FORGOTTEN PLACE</span>
         <span className="text-gray-700">│</span>
-        <span className="text-green-400 text-xs">PHASE 3</span>
+        <span className="text-green-400 text-xs">PHASE 2</span>
         <span className="text-gray-700">│</span>
         <span className="text-yellow-400 text-xs">T:{tick.toLocaleString()}</span>
         <span className="text-gray-700">│</span>
