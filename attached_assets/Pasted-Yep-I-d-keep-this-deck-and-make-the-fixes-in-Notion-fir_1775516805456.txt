@@ -1,0 +1,56 @@
+Yep — I’d **keep this deck and make the fixes in Notion first**, not rebuild from scratch. The Replit review is pretty clear: the deck structure is already solid, and the real work is just correcting a few accuracy mismatches like deleting Slide 14, fixing Slide 11 notes, updating Slide 13 next steps, and marking Slides 6–7 as planned rather than current. [replit](https://replit.com/@caseywongwc/WSS-Revised)
+
+## My vote
+
+The fastest, safest move is:
+
+- **Make a Notion outline/script first**
+- Then use that to edit the slide copy only if needed
+- Do **not** ask for a totally new deck unless something breaks badly
+
+That works because the Replit review already says **“Keep it. Fix 4 specific things. Don’t rebuild.”** [replit](https://replit.com/@caseywongwc/WSS-Revised)
+
+## Why Notion first
+
+You said you might want to turn this into a different slide later, and that’s exactly why a Notion version is useful. If you put the corrected talking points and slide notes into Notion first, you get:
+- a clean source of truth,
+- something easy to paste into speaker notes,
+- and a backup script even if the deck formatting gets messy.
+
+Also, the Replit review already gave you the exact content to change, especially for the updated roadmap wording and next-steps bullets. [replit](https://replit.com/@caseywongwc/WSS-Revised)
+
+## What to put in Notion
+
+Make one temporary page with 4 mini sections:
+
+- **Delete**
+  - Slide 14 planning/changes slide. [replit](https://replit.com/@caseywongwc/WSS-Revised)
+
+- **Fix Notes**
+  - Slide 11: change “We’re in Sprint 1” to “We’re currently completing Sprint 2…” and mention early Sprint 3 features already live. [replit](https://replit.com/@caseywongwc/WSS-Revised)
+
+- **Fix Content**
+  - Slide 13: replace the outdated upcoming items with:
+    - Day/Night cycle with dynamic enemy scaling
+    - Survivor Market between maps
+    - Director AI / LLM-assisted difficulty management. [replit](https://replit.com/@caseywongwc/WSS-Revised)
+
+- **Clarify as Planned**
+  - Slides 6–7: buildings, hospitals, merchants, and trading should be labeled as **planned/in design**, not current. [replit](https://replit.com/@caseywongwc/WSS-Revised)
+
+## Best next action
+
+I recommend you **have the Replit bot turn that review into a clean Notion-style outline** first. The review already contains the exact fixes and even a tighter 5-minute slide order, so it’s a great source to convert into a usable prep sheet. [replit](https://replit.com/@caseywongwc/WSS-Revised)
+
+If you want, send the Replit bot this:
+
+> Please turn your deck review into a clean Notion-ready outline with these sections:  
+> 1. Slides to delete  
+> 2. Speaker notes to replace  
+> 3. Slide content to update  
+> 4. Planned vs current features to clarify  
+> 5. Recommended 5-minute presentation order  
+> 6. Final one-line demo summary  
+> Keep it concise and easy to paste into Notion.
+
+That’ll give you something super usable fast. Want me to also format that same outline **right here** so you can paste it immediately if you don’t want to wait?

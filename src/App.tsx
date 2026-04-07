@@ -41,7 +41,8 @@ type GameType =
   | "wss-prototype";
 
 function App() {
-  const [activeGame, setActiveGame] = useState<GameType>("wss-prototype");
+  // A Forgotten Place (WSS2) is the landing page
+  const [activeGame, setActiveGame] = useState<GameType>("combat");
   const [width, setWidth] = useState(20);
   const [height, setHeight] = useState(15);
   const [wallDensity, setWallDensity] = useState(0.3);
@@ -52,13 +53,41 @@ function App() {
   const [showWebSocketComponents, setShowWebSocketComponents] = useState(false);
   const [showWebSocketButtons, setShowWebSocketButtons] = useState(false);
 
+  // ── A FORGOTTEN PLACE (WSS2) — Landing page ───────────────────────────────
+  if (activeGame === "combat") {
+    return (
+      <div className="relative w-screen h-screen overflow-hidden">
+        <Combat />
+        {/* Escape hatch — higher z than Combat's fixed z-50 */}
+        <div className="fixed bottom-4 right-4 z-[200]">
+          <button
+            onClick={() => setActiveGame("other-apps")}
+            className="px-3 py-2 bg-gray-900/90 hover:bg-gray-800 text-gray-400 hover:text-white text-xs rounded-lg backdrop-blur shadow-lg transition-all border border-gray-700"
+          >
+            ☰ WSS Components
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── WSS1 PROTOTYPE — accessible but not the landing ───────────────────────
   if (activeGame === "wss-prototype") {
     return (
       <div>
         <WSSPrototype />
-        <div className="fixed bottom-4 right-4 z-50">
-          <button onClick={() => setActiveGame("maze")} className="px-3 py-2 bg-gray-800/80 hover:bg-gray-700 text-white text-xs rounded-lg backdrop-blur shadow-lg transition-all">
-            Other Components
+        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 items-end">
+          <button
+            onClick={() => setActiveGame("combat")}
+            className="px-3 py-2 bg-red-900/90 hover:bg-red-800 text-red-200 text-xs rounded-lg backdrop-blur shadow-lg transition-all border border-red-700"
+          >
+            ◈ A Forgotten Place
+          </button>
+          <button
+            onClick={() => setActiveGame("other-apps")}
+            className="px-3 py-2 bg-gray-800/80 hover:bg-gray-700 text-white text-xs rounded-lg backdrop-blur shadow-lg transition-all"
+          >
+            ☰ WSS Components
           </button>
         </div>
       </div>
@@ -73,10 +102,10 @@ function App() {
             <div className="flex items-center justify-between w-full">
               <h1 className="text-2xl font-bold text-blue-600 flex items-center">
                 WSS COMPONENTS{" "}
-                <ArrowIcon 
-                  size={24} 
-                  color="#2563eb" 
-                  className="ml-2 cursor-pointer" 
+                <ArrowIcon
+                  size={24}
+                  color="#2563eb"
+                  className="ml-2 cursor-pointer"
                   isActive={activeGame === "other-apps"}
                   onClick={() => setActiveGame(activeGame === "other-apps" ? "maze" : "other-apps")}
                   isButton={true}
@@ -84,164 +113,103 @@ function App() {
               </h1>
               <button
                 onClick={() => setShowWebSocketComponents(!showWebSocketComponents)}
-                className={`px-4 py-2 ${showWebSocketComponents ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'} rounded-lg text-sm font-medium hover:opacity-90 transition-colors flex items-center gap-2`}
+                className={`px-4 py-2 ${showWebSocketComponents ? "bg-blue-100 text-blue-800" : "bg-yellow-100 text-yellow-800"} rounded-lg text-sm font-medium hover:opacity-90 transition-colors flex items-center gap-2`}
               >
-                <ArrowIcon 
-                  size={16} 
-                  color={showWebSocketComponents ? '#1d4ed8' : '#854d0e'} 
-                  className={showWebSocketComponents ? 'rotate-90 transition-transform' : 'rotate-0 transition-transform'} 
+                <ArrowIcon
+                  size={16}
+                  color={showWebSocketComponents ? "#1d4ed8" : "#854d0e"}
+                  className={showWebSocketComponents ? "rotate-90 transition-transform" : "rotate-0 transition-transform"}
                   isActive={showWebSocketComponents}
                   isButton={false}
                 />
-                {showWebSocketComponents ? '' : ''} {/*//Show WebSocket Panel //Hide WebSocket Panel*/}
               </button>
             </div>
           </div>
+
           <div className="bg-white rounded-lg shadow-sm p-1 flex gap-1 flex-wrap">
             <button
               onClick={() => setActiveGame("maze")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "maze"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded transition-colors ${activeGame === "maze" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             >
               Maze Solver
             </button>
             <button
               onClick={() => setActiveGame("terrain")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "terrain"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded transition-colors ${activeGame === "terrain" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             >
               Terrain Navigator
             </button>
             <button
               onClick={() => setActiveGame("rgbterrain")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "rgbterrain"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded transition-colors ${activeGame === "rgbterrain" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             >
               RGB Navigator
             </button>
             <button
               onClick={() => setActiveGame("fruit")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "fruit"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded transition-colors ${activeGame === "fruit" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             >
               Fruit Collector
             </button>
             <button
               onClick={() => setActiveGame("multigoal")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "multigoal"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded transition-colors ${activeGame === "multigoal" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             >
               Multi-Goal Robot
             </button>
             <button
               onClick={() => setActiveGame("follow")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "follow"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded transition-colors ${activeGame === "follow" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             >
               Follow Me
             </button>
             <button
               onClick={() => setActiveGame("guessing")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "guessing"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded transition-colors ${activeGame === "guessing" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             >
               Guessing Game
             </button>
             <button
               onClick={() => setActiveGame("whatsyourname")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "whatsyourname"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded transition-colors ${activeGame === "whatsyourname" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             >
               What's Your Name?
             </button>
             <button
               onClick={() => setActiveGame("tag")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "tag"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded transition-colors ${activeGame === "tag" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             >
               Tag Game
             </button>
             <button
               onClick={() => setActiveGame("multivalued")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "multivalued"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded transition-colors ${activeGame === "multivalued" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             >
               Multi-Valued Items
             </button>
             <button
               onClick={() => setActiveGame("rogue")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "rogue"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded transition-colors ${activeGame === "rogue" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             >
               MonsterCards
             </button>
-            
-            {/* Other Apps button is always visible */}
             <button
               onClick={() => setActiveGame("other-apps")}
-              className={`px-4 py-2 rounded transition-colors ${
-                activeGame === "other-apps"
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-100"
-              }`}
+              className={`px-4 py-2 rounded transition-colors ${activeGame === "other-apps" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
             >
               Other Apps
             </button>
-            
-            {/* WebSocket buttons are visible only when not showing WebSocket panel 
-                and either we're on a WebSocket page OR the WebSocket buttons are shown */}
             {!showWebSocketComponents && ((activeGame === "wss-chat" || activeGame === "wss-drawing") || showWebSocketButtons) && (
               <>
                 <button
                   onClick={() => setActiveGame("wss-chat")}
-                  className={`px-4 py-2 rounded transition-colors ${
-                    activeGame === "wss-chat"
-                      ? "bg-blue-500 text-white"
-                      : "hover:bg-gray-100"
-                  }`}
+                  className={`px-4 py-2 rounded transition-colors ${activeGame === "wss-chat" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
                 >
                   WebSocket Chat
                 </button>
                 <button
                   onClick={() => setActiveGame("wss-drawing")}
-                  className={`px-4 py-2 rounded transition-colors ${
-                    activeGame === "wss-drawing"
-                      ? "bg-blue-500 text-white"
-                      : "hover:bg-gray-100"
-                  }`}
+                  className={`px-4 py-2 rounded transition-colors ${activeGame === "wss-drawing" ? "bg-blue-500 text-white" : "hover:bg-gray-100"}`}
                 >
                   Collaborative Drawing
                 </button>
@@ -260,188 +228,66 @@ function App() {
             activeGame !== "wss-drawing" && (
               <div className="bg-white rounded-lg shadow-sm p-4 flex flex-wrap gap-4">
                 <div>
-                  <label
-                    htmlFor="width"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Width
-                  </label>
-                  <input
-                    type="number"
-                    id="width"
-                    min="5"
-                    max="50"
-                    value={width}
-                    onChange={(e) =>
-                      setWidth(
-                        Math.max(
-                          5,
-                          Math.min(50, parseInt(e.target.value) || 5),
-                        ),
-                      )
-                    }
+                  <label htmlFor="width" className="block text-sm font-medium text-gray-700 mb-1">Width</label>
+                  <input type="number" id="width" min="5" max="50" value={width}
+                    onChange={(e) => setWidth(Math.max(5, Math.min(50, parseInt(e.target.value) || 5)))}
                     className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="height"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Height
-                  </label>
-                  <input
-                    type="number"
-                    id="height"
-                    min="5"
-                    max="50"
-                    value={height}
-                    onChange={(e) =>
-                      setHeight(
-                        Math.max(
-                          5,
-                          Math.min(50, parseInt(e.target.value) || 5),
-                        ),
-                      )
-                    }
+                  <label htmlFor="height" className="block text-sm font-medium text-gray-700 mb-1">Height</label>
+                  <input type="number" id="height" min="5" max="50" value={height}
+                    onChange={(e) => setHeight(Math.max(5, Math.min(50, parseInt(e.target.value) || 5)))}
                     className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
                 {activeGame === "whatsyourname" && (
                   <div>
-                    <label
-                      htmlFor="robotCount"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Number of Robots
-                    </label>
-                    <input
-                      type="number"
-                      id="robotCount"
-                      min="2"
-                      max="5"
-                      value={robotCount}
-                      onChange={(e) =>
-                        setRobotCount(
-                          Math.max(
-                            2,
-                            Math.min(5, parseInt(e.target.value) || 2),
-                          ),
-                        )
-                      }
+                    <label htmlFor="robotCount" className="block text-sm font-medium text-gray-700 mb-1">Number of Robots</label>
+                    <input type="number" id="robotCount" min="2" max="5" value={robotCount}
+                      onChange={(e) => setRobotCount(Math.max(2, Math.min(5, parseInt(e.target.value) || 2)))}
                       className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
                 )}
-                {(activeGame === "maze" ||
-                  activeGame === "fruit" ||
-                  activeGame === "multigoal" ||
-                  activeGame === "follow" ||
-                  activeGame === "whatsyourname") && (
+                {(activeGame === "maze" || activeGame === "fruit" || activeGame === "multigoal" || activeGame === "follow" || activeGame === "whatsyourname") && (
                   <div>
-                    <label
-                      htmlFor="wallDensity"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Wall Density
-                    </label>
+                    <label htmlFor="wallDensity" className="block text-sm font-medium text-gray-700 mb-1">Wall Density</label>
                     <div className="flex items-center gap-2">
-                      <input
-                        type="range"
-                        id="wallDensity"
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        value={wallDensity}
-                        onChange={(e) =>
-                          setWallDensity(parseFloat(e.target.value))
-                        }
-                        className="w-24"
+                      <input type="range" id="wallDensity" min="0" max="1" step="0.05" value={wallDensity}
+                        onChange={(e) => setWallDensity(parseFloat(e.target.value))} className="w-24"
                       />
-                      <span className="text-sm text-gray-600 w-12">
-                        {(wallDensity * 100).toFixed(0)}%
-                      </span>
+                      <span className="text-sm text-gray-600 w-12">{(wallDensity * 100).toFixed(0)}%</span>
                     </div>
                   </div>
                 )}
-                {(activeGame === "terrain" ||
-                  activeGame === "multigoal" ||
-                  activeGame === "guessing") && (
+                {(activeGame === "terrain" || activeGame === "multigoal" || activeGame === "guessing") && (
                   <>
                     <div>
-                      <label
-                        htmlFor="roughness"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        Terrain Roughness
-                      </label>
+                      <label htmlFor="roughness" className="block text-sm font-medium text-gray-700 mb-1">Terrain Roughness</label>
                       <div className="flex items-center gap-2">
-                        <input
-                          type="range"
-                          id="roughness"
-                          min="0"
-                          max="1"
-                          step="0.05"
-                          value={roughness}
-                          onChange={(e) =>
-                            setRoughness(parseFloat(e.target.value))
-                          }
-                          className="w-24"
+                        <input type="range" id="roughness" min="0" max="1" step="0.05" value={roughness}
+                          onChange={(e) => setRoughness(parseFloat(e.target.value))} className="w-24"
                         />
-                        <span className="text-sm text-gray-600 w-12">
-                          {(roughness * 100).toFixed(0)}%
-                        </span>
+                        <span className="text-sm text-gray-600 w-12">{(roughness * 100).toFixed(0)}%</span>
                       </div>
                     </div>
                     <div>
-                      <label
-                        htmlFor="terrainIntensity"
-                        className="block text-sm font-medium text-gray-700 mb-1"
-                      >
-                        Terrain Intensity
-                      </label>
+                      <label htmlFor="terrainIntensity" className="block text-sm font-medium text-gray-700 mb-1">Terrain Intensity</label>
                       <div className="flex items-center gap-2">
-                        <input
-                          type="range"
-                          id="terrainIntensity"
-                          min="0"
-                          max="1"
-                          step="0.05"
-                          value={terrainIntensity}
-                          onChange={(e) =>
-                            setTerrainIntensity(parseFloat(e.target.value))
-                          }
-                          className="w-24"
+                        <input type="range" id="terrainIntensity" min="0" max="1" step="0.05" value={terrainIntensity}
+                          onChange={(e) => setTerrainIntensity(parseFloat(e.target.value))} className="w-24"
                         />
-                        <span className="text-sm text-gray-600 w-12">
-                          {(terrainIntensity * 100).toFixed(0)}%
-                        </span>
+                        <span className="text-sm text-gray-600 w-12">{(terrainIntensity * 100).toFixed(0)}%</span>
                       </div>
                     </div>
                   </>
                 )}
                 {activeGame === "multigoal" && (
                   <div>
-                    <label
-                      htmlFor="goalCount"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Number of Goals
-                    </label>
-                    <input
-                      type="number"
-                      id="goalCount"
-                      min="1"
-                      max="20"
-                      value={goalCount}
-                      onChange={(e) =>
-                        setGoalCount(
-                          Math.max(
-                            1,
-                            Math.min(20, parseInt(e.target.value) || 1),
-                          ),
-                        )
-                      }
+                    <label htmlFor="goalCount" className="block text-sm font-medium text-gray-700 mb-1">Number of Goals</label>
+                    <input type="number" id="goalCount" min="1" max="20" value={goalCount}
+                      onChange={(e) => setGoalCount(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
                       className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
@@ -450,93 +296,66 @@ function App() {
             )}
         </div>
 
-        {activeGame === "maze" && (
-          <MazeGame width={width} height={height} wallDensity={wallDensity} />
-        )}
-        {activeGame === "terrain" && (
-          <TerrainGame width={width} height={height} roughness={roughness} />
-        )}
-        {activeGame === "rgbterrain" && (
-          <RGBTerrainNavigator width={20} height={15} />
-        )}
-        {activeGame === "fruit" && (
-          <FruitCollector
-            width={width}
-            height={height}
-            wallDensity={wallDensity}
-            fruitCount={10}
-          />
-        )}
+        {activeGame === "maze" && <MazeGame width={width} height={height} wallDensity={wallDensity} />}
+        {activeGame === "terrain" && <TerrainGame width={width} height={height} roughness={roughness} />}
+        {activeGame === "rgbterrain" && <RGBTerrainNavigator width={20} height={15} />}
+        {activeGame === "fruit" && <FruitCollector width={width} height={height} wallDensity={wallDensity} fruitCount={10} />}
         {activeGame === "multigoal" && (
-          <MultiGoalRobot
-            width={width}
-            height={height}
-            wallDensity={wallDensity}
-            roughness={roughness}
-            terrainIntensity={terrainIntensity}
-            goalCount={goalCount}
+          <MultiGoalRobot width={width} height={height} wallDensity={wallDensity}
+            roughness={roughness} terrainIntensity={terrainIntensity} goalCount={goalCount}
           />
         )}
-        {activeGame === "follow" && (
-          <FollowMeGame
-            width={width}
-            height={height}
-            wallDensity={wallDensity}
-            stopInterval={3}
-          />
-        )}
-        {activeGame === "guessing" && (
-          <GuessingGame width={width} height={height} roughness={roughness} />
-        )}
+        {activeGame === "follow" && <FollowMeGame width={width} height={height} wallDensity={wallDensity} stopInterval={3} />}
+        {activeGame === "guessing" && <GuessingGame width={width} height={height} roughness={roughness} />}
         {activeGame === "whatsyourname" && (
-          <WhatsYourNameGame
-            width={width}
-            height={height}
-            wallDensity={wallDensity}
-            robotCount={robotCount}
-          />
+          <WhatsYourNameGame width={width} height={height} wallDensity={wallDensity} robotCount={robotCount} />
         )}
         {activeGame === "tag" && <BeeHiveSimulation />}
         {activeGame === "multivalued" && <MultiValuedItemCollector />}
         {activeGame === "rogue" && <MonsterCards />}
+
+        {/* ── OTHER APPS HUB ──────────────────────────────────────────────── */}
         {activeGame === "other-apps" && (
           <div className="flex flex-col items-center gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button
-                onClick={() => setActiveGame("wss-prototype")}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-medium col-span-2"
-              >
-                WSS Prototype (Assignment 1)
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-xl">
+
+              {/* Return to main sim */}
               <button
                 onClick={() => setActiveGame("combat")}
-                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium"
+                className="px-6 py-4 bg-red-900 text-red-100 rounded-lg hover:bg-red-800 transition-colors text-lg font-bold col-span-2 border border-red-700 flex items-center justify-center gap-2"
               >
-                Combat
+                ◈ A Forgotten Place — WSS2 (Phase 2)
               </button>
+
+              {/* WSS1 */}
+              <button
+                onClick={() => setActiveGame("wss-prototype")}
+                className="px-6 py-3 bg-green-700 text-white rounded-lg hover:bg-green-600 transition-colors text-base font-medium col-span-2 flex items-center justify-center gap-2"
+              >
+                🌲 WSS1 — Wilderness Survival (Sprint 1 Prototype)
+              </button>
+
               <button
                 onClick={() => setActiveGame("replit")}
                 className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-lg font-medium"
               >
-                WIP
+                WIP Scenes
               </button>
-              
-              {/* Toggle button for WebSocket buttons visibility */}
+
               <button
                 onClick={() => setShowWebSocketButtons(!showWebSocketButtons)}
-                className={`px-6 py-3 ${showWebSocketButtons ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-800'} rounded-lg hover:opacity-90 transition-colors text-lg font-medium flex items-center justify-center col-span-2`}
+                className={`px-6 py-3 ${showWebSocketButtons ? "bg-indigo-100 text-indigo-800" : "bg-gray-100 text-gray-800"} rounded-lg hover:opacity-90 transition-colors text-lg font-medium flex items-center justify-center`}
               >
-                <ArrowIcon 
-                  size={18} 
-                  color={showWebSocketButtons ? '#4f46e5' : '#4b5563'} 
-                  className={showWebSocketButtons ? 'rotate-90 transition-transform mr-2' : 'rotate-0 transition-transform mr-2'} 
+                <ArrowIcon
+                  size={18}
+                  color={showWebSocketButtons ? "#4f46e5" : "#4b5563"}
+                  className={showWebSocketButtons ? "rotate-90 transition-transform mr-2" : "rotate-0 transition-transform mr-2"}
                   isActive={showWebSocketButtons}
                   isButton={false}
                 />
-                <span>{showWebSocketButtons ? '' : ''}</span> {/*//Hide WebSocket Buttons //Show WebSocket Buttons*/}
+                WebSocket Tools
               </button>
-              
-              {/* WebSocket buttons visible only when showWebSocketButtons is true and showWebSocketComponents is false */}
+
               {showWebSocketButtons && !showWebSocketComponents && (
                 <>
                   <button
@@ -555,44 +374,19 @@ function App() {
                   </button>
                 </>
               )}
-              
-              {/* Toggle WebSocket panel button (shown when showWebSocketButtons is true) */}
-              {showWebSocketButtons && showWebSocketComponents && (
-                <button
-                  onClick={() => setShowWebSocketComponents(false)}
-                  className="px-6 py-3 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors text-lg font-medium flex items-center justify-center col-span-2"
-                >
-                  <ArrowIcon 
-                    size={18} 
-                    color="#1d4ed8" 
-                    className="rotate-90 transition-transform mr-2" 
-                    isActive={true}
-                    isButton={false}
-                  />
-                  <span>Hide WebSocket Panel</span>
-                </button>
-              )}
             </div>
           </div>
         )}
-        {activeGame === "combat" && <Combat />}
+
         {activeGame === "replit" && <ReplitScene />}
-        {/* WebSocket components are rendered based on activeGame and showWebSocketComponents state */}
         {showWebSocketComponents && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <h3 className="text-xl font-semibold text-gray-800 mb-3">WebSocket Chat</h3>
-              <WebSocketChat />
-            </div>
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <h3 className="text-xl font-semibold text-gray-800 mb-3">Collaborative Drawing</h3>
-              <CollaborativeDrawing />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <WebSocketChat />
+            <CollaborativeDrawing />
           </div>
         )}
-        {!showWebSocketComponents && activeGame === "wss-chat" && <WebSocketChat />}
-        {!showWebSocketComponents && activeGame === "wss-drawing" && <CollaborativeDrawing />}
-        
+        {activeGame === "wss-chat" && !showWebSocketComponents && <WebSocketChat />}
+        {activeGame === "wss-drawing" && !showWebSocketComponents && <CollaborativeDrawing />}
       </div>
     </div>
   );

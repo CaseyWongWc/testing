@@ -60,7 +60,7 @@ Preferred communication style: Simple, everyday language.
 - **Component Structure**: Each game/simulation is a self-contained component with its own interfaces, state, and logic. There is no shared global state store.
 
 ### Application Layout
-- `src/App.tsx` — Main router/switcher. Uses a `useState` to toggle between ~20 different game/simulation views. Default view is `wss-prototype`.
+- `src/App.tsx` — Main router/switcher. Uses a `useState` to toggle between ~20 different game/simulation views. **Default view is `combat`** (A Forgotten Place / WSS2 Phase 2 — the landing page). WSS1 prototype is accessible via Other Apps hub. A small floating "☰ WSS Components" button (z-[200]) overlays the full-screen game to escape to the component hub.
 - `src/components/` — General-purpose game components (MazeGame, TerrainGame, FruitCollector, FollowMeGame, GuessingGame, MultiGoalRobot, DarkGame, TagGame, RGBTerrainNavigator, RobotTrading, MonsterCards, CollaborativeDrawing, WebSocketChat, WSSPrototype, etc.)
 - `src/combat/` — Combat-related simulations (Combat.tsx as sub-router, **WSSPhase3** [A Forgotten Place Phase 3 — default], WSSPhase2, WSSPhase1, WSSPhase0, ZombiesAhh, EmptyClassroom, RogueLikeGame, WSSRogueHDraft, WSSTwo)
 - `src/replit/` — Additional simulation scenes (ReplitScene as sub-router, Priority, WeightedDecisions, Pathfinder, BeeHiveSimulation, AIEcosystem, Spawner, MultiValuedItemCollector, Scene7, Scene8)
