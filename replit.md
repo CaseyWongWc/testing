@@ -18,9 +18,10 @@ Preferred communication style: Simple, everyday language.
 - **State Management**: React useState/useEffect hooks
 
 ### Application Layout
-- `src/App.tsx`: Main router/switcher; default view is `combat` (WSS2 Phase 2). A floating button provides access to other components.
+- `src/App.tsx`: Main router/switcher; default view is `combat` (WSS2 Phase 3). A floating button provides access to other components.
 - `src/components/`: General-purpose game components.
-- `src/combat/`: Combat-related simulations, including `WSSPhase3` (A Forgotten Place Phase 3 - default development target), `WSSPhase2` (stable demo), and `WSSPhase1`.
+- `src/combat/`: Combat-related simulations. `WSSPhase3` is the active default (Phase 3 with expanded objectives, grading, escalation). `WSSPhase2` is the stable Phase 2 backup. `WSSPhase1` and `WSSPhase0` are earlier iterations.
+- `src/combat/Combat.tsx`: Scene switcher for combat views; defaults to `wssphase3`.
 - `src/replit/`: Additional simulation scenes (e.g., Pathfinder, BeeHiveSimulation).
 
 ### Backend Architecture
@@ -40,13 +41,22 @@ Preferred communication style: Simple, everyday language.
 - **Movement**: Hybrid grid-based world with smooth entity movement and AI pathfinding on grid.
 - **Combat**: Real-time 60 ticks/sec, 3 weapon classes, noise mechanic, armor, simultaneous group combat, cover system, friendly fire enabled.
 - **Spawners**: Corruption Nests (enemy spawners), Rift Portals (exit goals), Placeables (survivor-built).
-- **Objectives**: 6 types (ActivateSwitch, Survive, Extract, DestroyNests, Collect, Rescue); progressive HUD reveal.
-- **Difficulty**: Static within maps, adaptive between maps (roguelike escalation), Charms/Lucky Items for bonuses.
+- **Objectives (Phase 3)**: 5 types randomly assigned per map:
+  - **ActivateSwitch**: Hold position near a switch to activate it.
+  - **DestroyNests**: Destroy N corruption nests (only generated when nestCount >= 2).
+  - **Survive**: Survive for N ticks (progress only counts while active).
+  - **Collect**: Collect N supply items (counted from activation).
+  - **Rescue**: Rescue N stranded survivors (SOS beacons on map, hold position to rescue).
+  - Extract is implicit (portal unseals after all objectives complete; evacuate to win).
+  - Each objective tracks progress independently from its activation tick.
+- **Grading (Phase 3)**: S/A/B/C/D/F based on evacuation rate, survival rate, objectives completed, kills, and time efficiency.
+- **Escalation (Phase 3)**: Every 400 ticks, enemies escalate — zombie HP +8%, damage +5%, nest spawn speed +6% per level. New zombies spawn at higher tiers with increased stats and armor.
+- **Difficulty**: Static within maps, adaptive between maps (roguelike escalation), Charms/Lucky Items for bonuses (planned).
 - **Run Structure**: Sequential maps (e.g., Map 1 → Rift Portal → Survivor Market → Map 2) with S/A/B/C/D/F grading.
 - **Camera**: Observer Grid, Survivor Cam, Free Cam, Free Zoom.
-- **Visuals**: Modular sprite pieces (paper-doll, 5 layers) for humanoids.
-- **AI Brains**: 5 personality types, availability-based revive, compass navigation, hybrid tick-based + event-driven decision making.
-- **Loot**: Clustered in buildings, random scatter, pre-placed + enemy drops, no rarity tiers, difficulty-driven quality, themed containers, respawning.
+- **AI Brains**: 5 personality types (balanced, aggressive, cautious, survivalist, money), compass navigation with distance readout, hybrid tick-based + event-driven decision making. New AI states: rescuing (for Rescue objectives), scavenging priority for Collect objectives.
+- **Loot (Phase 3)**: 4 types — health packs, ammo crates, armor plates, stimpacks. Clustered near structures, random scatter, nest drops. Respawning every 400 ticks when below cap.
+- **HUD (Phase 3)**: Top bar with round counter (R:N), live score, escalation level indicator, objective type icons. Right overlay with active objective description + progress, portal status, world stats (kills, score). Sidebar with detailed objective cards with progress bars, survivor cards with armor display.
 
 ## External Dependencies
 

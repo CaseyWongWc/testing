@@ -15,7 +15,7 @@ type Scene =
   | "zombies" | "classroom" | "rogue" | "wssrogue" | "wsstwo";
 
 const Combat: React.FC = () => {
-  const [activeScene, setActiveScene] = useState<Scene>("wssphase2");
+  const [activeScene, setActiveScene] = useState<Scene>("wssphase3");
 
   if (activeScene === "wssphase2") {
     return (
