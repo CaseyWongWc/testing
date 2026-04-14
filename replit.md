@@ -58,6 +58,9 @@ Preferred communication style: Simple, everyday language.
 - **Loot (Phase 3)**: 4 types — health packs, ammo crates, armor plates, stimpacks. Clustered near structures, random scatter, nest drops. Respawning every 400 ticks when below cap.
 - **HUD (Phase 3)**: Top bar with round counter (R:N), live score, escalation level indicator, objective type icons. Right overlay with active objective description + progress, portal status, world stats (kills, score). Sidebar with detailed objective cards with progress bars, survivor cards with armor display.
 
+### Upcoming Work (DO NOT build until Casey requests)
+- **Zombie AI Brainstorm**: Casey added a ZOMBIE AI BRAINSTORM section to the Notion Source of Truth page (page ID: 30a0e51f-71de-8149-af72-cd8ce49b0fda). Covers smarter zombie behavior — line of sight, wandering, losing interest, etc. When Casey asks to work on this, pull the full spec from Notion first and build incrementally in a **sandbox file** (not WSSPhase3.tsx). Stability over features — Phase 3 is stable and should not be destabilized by experimental work.
+
 ## External Dependencies
 
 ### NPM Dependencies (Runtime)
