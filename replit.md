@@ -45,6 +45,82 @@ All design docs live in `wss(full game ideas)/`:
 - `systems/win-conditions.md` — Portal evacuation, scoring, grading
 - `systems/god-system.md` — God System (LLM-Assisted Asynchronous Director) — UNSTABLE, post-Phase 4
 
+## Current Build Status (as of April 2026)
+
+### What Is Built (Phase 2 — Stable Demo)
+- **WSSPhase2.tsx** — the stable, demo-ready build. This is what was presented for Sprint 2.
+- **WSSPhase3.tsx** — currently **code-identical** to Phase 2. This is the workspace file for Phase 3 development. All new features go here.
+- Features complete in Phase 2:
+  - Voronoi biome generation with seeded PRNG, fog of war (unexplored/seen/visible)
+  - 5 AI brain types: Balanced (pistol), Aggressive (shotgun), Cautious (knife), Survivalist (bat), Money-Driven (rifle)
+  - Full combat engine: melee + ranged, armor, reload, noise mechanic, friendly fire
+  - Corruption Nests spawning zombies, zombie aggro radius (9 tiles)
+  - 3 sequential objectives (ActivateSwitch) with compass arrows, hold-to-activate
+  - Rift Portal evacuation with pulse animation
+  - Win/loss grading (S/A/B/C/D/F)
+  - Finite ammo, loot spawning/scavenging, nest destruction, damage log
+  - Observer UI: Observer Grid, Survivor Cam, Free Cam, zoom controls
+  - Settings panel: seed input, map size (30/40/60), speed (1x-8x)
+
+### Key Game Constants (Phase 2)
+| Constant | Value | Notes |
+|---|---|---|
+| SURVIVOR_BASE_HP | 80 | Reduced from 100 for higher tension |
+| ZOMBIE_DAMAGE | 20 | High base, offset by armor |
+| VISION_RADIUS | 6 | Tiles, shared team fog |
+| ZOMBIE_ALERT | 9 | Detection radius in tiles |
+| PER_NEST_MAX | 4 | Max zombies per nest |
+| NEST_COOLDOWN | 320 | Ticks between spawns |
+| HOLD_REQUIRED | 60 | Ticks to activate a switch |
+| EVAC_RADIUS | 1.6 | Tiles, portal evacuation range |
+| MAX_LOG | 120 | Damage log entries |
+| Loot respawn | 500 ticks | Ground item respawn interval |
+| Armor values | cautious:8, aggressive:5, survivalist:6, others:3 | Per brain type |
+| Zombie speed | 0.028 | Tiles per tick |
+
+### What Is NOT Built Yet (Phase 3+ Targets)
+From `wss(full game ideas)/ROADMAP.md` and system design docs:
+
+**Phase 3 — Day/Night Cycle + Survivor Market:**
+- Day/Night cycle: vision drops to 70% at night, enemies more aggressive, sky color shifts, HUD clock, "Sunrise Buy Window"
+- Survivor Market: safe zone between maps (Map 1 → Portal → Market → Map 2), buy/sell gear with gold, Neutral Faction NPCs
+- Charms/Lucky Items: passive bonuses with 3 scopes (Personal, Team, World)
+- AI Trading: agents evaluate trade offers based on personality and current needs
+
+**Phase 4 — God System (Director AI):**
+- LLM-assisted asynchronous game director (modeled after Left 4 Dead / RimWorld)
+- Monitors runs and adjusts difficulty in real time
+- Marked UNSTABLE in design docs — post-Phase 4
+
+**Locked decisions not yet implemented in code:**
+- Smooth sub-tile entity movement (currently grid-snapped)
+- Building Stamp Library (12-20 templates, biome-weighted dressing)
+- Humanoid combat unification (enemies = hostile survivors with different brains)
+- Help/Revive system (availability-based, not personality-based)
+- Additional objective types beyond ActivateSwitch (Survive, Extract, DestroyNests, Collect, Rescue)
+- Themed loot containers (hospital=medical, military=weapons, etc.)
+- Enemy drops (weapons, ammo, armor, food, currency, clothes, backpacks)
+- Paper-doll modular sprite system (5 layers)
+
+### Development Workflow
+- Phase 2 file (`WSSPhase2.tsx`) is frozen — do not modify unless fixing critical bugs
+- Phase 3 file (`WSSPhase3.tsx`) is the active development workspace
+- `Combat.tsx` is the sub-router inside `src/combat/`; its default view points to WSSPhase3
+- Always test with seed 12345 on a 30x30 map as the golden regression test
+- Design docs in `wss(full game ideas)/systems/` are the source of truth for feature specs
+
+### Notion Reference (for cross-tool context)
+- **Source of Truth**: `30a0e51f-71de-8149-af72-cd8ce49b0fda`
+- **Progress Log**: `3280e51f-71de-81ef-89f0-c3f37564110f`
+- **ROADMAP**: `30c0e51f-71de-811f-ba7e-f7dc24251b6a`
+- **WSS Presentation Page**: `5202894b96414b94938d0d68a17bb166`
+- **Speaker Notes**: `33c0e51f-71de-8016-a41c-c29589903adb`
+
+### Known Issues / Gotchas
+- Port conflicts: if the app won't start, run `pkill -f "node server.js"` then restart the "Run" workflow
+- WSSPhase2.tsx and WSSPhase3.tsx are each ~2,600+ lines — monolithic by design (self-contained simulation)
+- The `arrow` workflow (`node server.js`) is an alternative entry point; the primary workflow is `Run` (`npm run dev`)
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
