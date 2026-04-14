@@ -543,10 +543,14 @@ function chooseSurvivorAI(
       if (nearestNest) return { state: "fighting", target: { ...nearestNest.pos } };
     }
     if (activeObj.type === "Collect") {
-      const lootTarget = nearestLoot(s, allEntities);
-      if (lootTarget) return { state: "scavenging", target: lootTarget };
-      const anyLoot = allEntities.find(e => e.kind === "loot" && !e.dead);
-      if (anyLoot) return { state: "scavenging", target: { ...anyLoot.pos } };
+      let nearestAnyLoot: Vec2 | null = null;
+      let nearestAnyDist = Infinity;
+      for (const le of allEntities) {
+        if (le.kind !== "loot" || le.dead) continue;
+        const ld = Math.hypot(le.pos.x - s.pos.x, le.pos.y - s.pos.y);
+        if (ld < nearestAnyDist) { nearestAnyDist = ld; nearestAnyLoot = { ...le.pos }; }
+      }
+      if (nearestAnyLoot) return { state: "scavenging", target: nearestAnyLoot };
     }
     if (activeObj.type === "ActivateSwitch" && currentObjPos && !portalOpen) {
       return { state:"activating", target:{ ...currentObjPos } };
@@ -588,7 +592,7 @@ function tickSurvivor(
     }
   }
 
-  if (s.targetPos && (aiState !== "fighting" || s.weapon.range <= 1.5)) {
+  if (s.targetPos && (aiState !== "fighting" || s.weapon.range <= 1.5 || Math.hypot(s.targetPos.x - s.pos.x, s.targetPos.y - s.pos.y) > s.weapon.range * 0.85)) {
     const dx = s.targetPos.x - s.pos.x;
     const dy = s.targetPos.y - s.pos.y;
     const dist = Math.hypot(dx, dy);
@@ -1222,7 +1226,7 @@ function renderWorld(
   const switches = state.entities.filter(e=>e.kind==="switch") as ObjectiveSwitch[];
   const currentSwitch = activeObj?.type === "ActivateSwitch" ? switches.find(s => s.idx === activeObj.idx && !s.activated) : undefined;
 
-  if (currentSwitch || portalOpen || (activeObj && (activeObj.type === "DestroyNests" || activeObj.type === "Rescue"))) {
+  if (currentSwitch || portalOpen || (activeObj && (activeObj.type === "DestroyNests" || activeObj.type === "Rescue" || activeObj.type === "Collect"))) {
     for (const e of state.entities) {
       if (e.kind!=="survivor"||e.dead) continue;
       const s=e as Survivor;
@@ -1247,6 +1251,12 @@ function renderWorld(
           .reduce<AnyEntity | null>((best, ne) =>
             !best || Math.hypot(ne.pos.x - s.pos.x, ne.pos.y - s.pos.y) < Math.hypot(best.pos.x - s.pos.x, best.pos.y - s.pos.y) ? ne : best, null);
         if (nearestRT) drawCompassArrow(ctx, e.pos, nearestRT.pos, camX, camY, ts, "#ff8844", "SOS");
+      } else if (activeObj?.type === "Collect") {
+        const nearestLootE = state.entities
+          .filter(ne => ne.kind === "loot" && !ne.dead)
+          .reduce<AnyEntity | null>((best, ne) =>
+            !best || Math.hypot(ne.pos.x - s.pos.x, ne.pos.y - s.pos.y) < Math.hypot(best.pos.x - s.pos.x, best.pos.y - s.pos.y) ? ne : best, null);
+        if (nearestLootE) drawCompassArrow(ctx, e.pos, nearestLootE.pos, camX, camY, ts, "#22cc55", "LOOT");
       }
     }
   }
@@ -1885,6 +1895,27 @@ const WSSPhase3: React.FC = () => {
                 <div className="text-gray-500 text-xs mb-4">
                   Tick {tick.toLocaleString()} | Escalation Lv.{escalation.level} | Nests destroyed: {stateRef.current.nestsDestroyed}
                 </div>
+                {allSurvivorsForStats.length > 0 && (
+                  <div className="mb-4">
+                    <div className="text-gray-500 text-xs mb-2 uppercase tracking-wider">Survivor Breakdown</div>
+                    <div className="grid gap-1.5">
+                      {allSurvivorsForStats.map(s => (
+                        <div key={s.id} className="flex items-center gap-2 bg-gray-800/80 rounded px-3 py-1.5 text-xs">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: BRAIN_COLOR[s.brain] }} />
+                          <span className="text-gray-200 font-bold w-12 text-left">{s.name}</span>
+                          <span className="text-red-400">{s.kills}k</span>
+                          <span className="text-green-400">{s.itemsCollected}i</span>
+                          {s.rescuesMade > 0 && <span className="text-orange-400">{s.rescuesMade}r</span>}
+                          <span className="text-yellow-400 ml-auto">{s.damageDealt}dmg</span>
+                          <span className="text-gray-500">|</span>
+                          <span className={s.dead ? "text-red-500" : s.evacuated ? "text-cyan-400" : "text-gray-400"}>
+                            {s.dead ? "KIA" : s.evacuated ? "EVAC" : "ALIVE"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <button onClick={handleReset} className="px-8 py-3 bg-cyan-800 hover:bg-cyan-700 border border-cyan-400 rounded-lg text-cyan-100 font-bold text-sm transition-colors">Play Again</button>
               </div>
             </div>
@@ -1915,6 +1946,25 @@ const WSSPhase3: React.FC = () => {
                     <div className="text-gray-500 text-xs">Escalation</div>
                   </div>
                 </div>
+                {allSurvivorsForStats.length > 0 && (
+                  <div className="mb-4">
+                    <div className="text-gray-500 text-xs mb-2 uppercase tracking-wider">Survivor Breakdown</div>
+                    <div className="grid gap-1.5">
+                      {allSurvivorsForStats.map(s => (
+                        <div key={s.id} className="flex items-center gap-2 bg-gray-800/80 rounded px-3 py-1.5 text-xs">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: BRAIN_COLOR[s.brain] }} />
+                          <span className="text-gray-200 font-bold w-12 text-left">{s.name}</span>
+                          <span className="text-red-400">{s.kills}k</span>
+                          <span className="text-green-400">{s.itemsCollected}i</span>
+                          {s.rescuesMade > 0 && <span className="text-orange-400">{s.rescuesMade}r</span>}
+                          <span className="text-yellow-400 ml-auto">{s.damageDealt}dmg</span>
+                          <span className="text-gray-500">|</span>
+                          <span className="text-red-500">KIA</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <button onClick={handleReset} className="px-8 py-3 bg-red-900 hover:bg-red-800 border border-red-500 rounded-lg text-red-100 font-bold text-sm transition-colors">Play Again</button>
               </div>
             </div>
