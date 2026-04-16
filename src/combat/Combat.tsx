@@ -8,11 +8,13 @@ import WSSPhase0 from "./WSSPhase0";
 import WSSPhase1 from "./WSSPhase1";
 import WSSPhase2 from "./WSSPhase2";
 import WSSPhase3 from "./WSSPhase3";
-import { Wifi, Compass, Map, FlaskConical } from "lucide-react";
+import ZombieAISandbox from "./ZombieAISandbox";
+import { Wifi, Compass, Map, FlaskConical, Bug } from "lucide-react";
 
 type Scene =
   | "wssphase2" | "wssphase3" | "wssphase1" | "wssphase0"
-  | "zombies" | "classroom" | "rogue" | "wssrogue" | "wsstwo";
+  | "zombies" | "classroom" | "rogue" | "wssrogue" | "wsstwo"
+  | "zombieai";
 
 const Combat: React.FC = () => {
   const [activeScene, setActiveScene] = useState<Scene>("wssphase3");
@@ -89,6 +91,24 @@ const Combat: React.FC = () => {
     );
   }
 
+  if (activeScene === "zombieai") {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col">
+        <div className="shrink-0 bg-gray-950 border-b border-gray-700 px-3 py-1 flex gap-2">
+          <button
+            onClick={() => setActiveScene("zombies")}
+            className="text-xs text-gray-500 hover:text-gray-300 px-2 py-1 rounded hover:bg-gray-800 transition-colors"
+          >
+            ← Other Simulations
+          </button>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <ZombieAISandbox />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8">
       <div className="flex flex-wrap gap-4 mb-8">
@@ -115,6 +135,12 @@ const Combat: React.FC = () => {
           className="px-4 py-2 rounded transition-colors flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-500"
         >
           <Map className="w-4 h-4" /> Phase 0 (Foundation)
+        </button>
+        <button
+          onClick={() => setActiveScene("zombieai")}
+          className="px-4 py-2 rounded transition-colors flex items-center gap-2 bg-green-900 hover:bg-green-800 text-green-100 border border-green-600"
+        >
+          <Bug className="w-4 h-4" /> Zombie AI Sandbox
         </button>
         <button
           onClick={() => setActiveScene("zombies")}

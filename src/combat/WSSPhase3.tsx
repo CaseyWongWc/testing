@@ -14,6 +14,7 @@ type EntityKind    = "survivor" | "zombie" | "nest" | "portal" | "switch" | "loo
 type WeaponClass   = "fists" | "melee" | "gun";
 type LootType      = "health" | "ammo" | "armor" | "stimpack";
 type AIState       = "fighting" | "fleeing" | "activating" | "evacuating" | "scavenging" | "rescuing";
+type ZombieAIState = "wandering" | "chasing" | "investigating" | "returning";
 type WinState      = "playing" | "won" | "lost";
 type ObjectiveType = "ActivateSwitch" | "DestroyNests" | "Survive" | "Collect" | "Rescue";
 type GradeType     = "S" | "A" | "B" | "C" | "D" | "F";
@@ -56,6 +57,11 @@ interface Zombie extends BaseEntity {
   alertedByNoise: boolean; noiseTarget: Vec2 | null;
   nestId: number;
   tier: number;
+  zombieState: ZombieAIState;
+  chaseTicks: number;
+  patrolTarget: Vec2 | null;
+  homePos: Vec2;
+  lastSeenTarget: Vec2 | null;
 }
 
 interface CorruptionNest extends BaseEntity {
@@ -150,6 +156,13 @@ const ESCALATION_INTERVAL = 400;
 const ESCALATION_HP_MULT  = 0.08;
 const ESCALATION_DMG_MULT = 0.05;
 const ESCALATION_SPEED_MULT = 0.06;
+
+const ZOMBIE_PATROL_RADIUS = 8;
+const ZOMBIE_PATROL_SPEED_MULT = 0.6;
+const ZOMBIE_PATROL_PAUSE_MIN = 30;
+const ZOMBIE_PATROL_PAUSE_MAX = 80;
+const ZOMBIE_CHASE_LOSE_TICKS = 120;
+const ZOMBIE_FOREST_LOS_RANGE = 5;
 
 const TERRAIN_COLORS: Record<TerrainType, string> = {
   plains: "#5a8c3a", forest: "#2a5e2a", mountain: "#7a6a5a",
@@ -408,18 +421,21 @@ function spawnEntities(settings: GameSettings, rand: () => number, objectives: O
   for (let i = 0; i < zombieCount; i++) {
     const angle = rand() * Math.PI * 2;
     const r = Math.max(minSpawnDist, Math.min(size * 0.48, minSpawnDist + rand() * (size * 0.5 - minSpawnDist - 2)));
+    const zPos = {
+      x: Math.max(1, Math.min(size - 1, half + Math.cos(angle) * r)),
+      y: Math.max(1, Math.min(size - 1, half + Math.sin(angle) * r)),
+    };
     entities.push({
       id: nextId++, kind: "zombie", faction: "HOSTILE", dead: false, armor: 0,
-      pos: {
-        x: Math.max(1, Math.min(size - 1, half + Math.cos(angle) * r)),
-        y: Math.max(1, Math.min(size - 1, half + Math.sin(angle) * r)),
-      },
+      pos: { ...zPos },
       health: 65 + Math.floor(rand() * 25), maxHealth: 90,
       vel: { x: 0, y: 0 }, alertRadius: ZOMBIE_ALERT,
       ticksUntilMove: Math.floor(rand() * 30),
       attackCooldown: 0, alertedByNoise: false, noiseTarget: null,
       nestId: nestIds[Math.floor(rand() * Math.max(1, nestIds.length))] ?? 0,
       tier: 0,
+      zombieState: "wandering", chaseTicks: 0, patrolTarget: null,
+      homePos: { ...zPos }, lastSeenTarget: null,
     } as Zombie);
   }
 
@@ -620,45 +636,145 @@ function tickSurvivor(
   return s;
 }
 
-function tickZombie(z: Zombie, state: GameState): Zombie {
-  z = { ...z, pos:{...z.pos}, vel:{...z.vel} };
+function hasLineOfSight(from: Vec2, to: Vec2, tiles: Tile[][], size: number): boolean {
+  const dx = to.x - from.x, dy = to.y - from.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 0.5) return true;
+  const steps = Math.ceil(dist * 2);
+  for (let i = 1; i < steps; i++) {
+    const t = i / steps;
+    const cx = from.x + dx * t, cy = from.y + dy * t;
+    const tx = Math.floor(cx), ty = Math.floor(cy);
+    if (tx < 0 || tx >= size || ty < 0 || ty >= size) return false;
+    const terrain = tiles[ty][tx].terrain;
+    if (terrain === "mountain" || terrain === "ruins") return false;
+    if (terrain === "forest" && dist > ZOMBIE_FOREST_LOS_RANGE) return false;
+  }
+  return true;
+}
+
+function pickPatrolTarget(home: Vec2, size: number): Vec2 {
+  const angle = Math.random() * Math.PI * 2;
+  const r = 2 + Math.random() * (ZOMBIE_PATROL_RADIUS - 2);
+  return {
+    x: Math.max(1, Math.min(size - 1, home.x + Math.cos(angle) * r)),
+    y: Math.max(1, Math.min(size - 1, home.y + Math.sin(angle) * r)),
+  };
+}
+
+function tickZombie(z: Zombie, state: GameState, addLog: (text: string, type: LogEntry["type"]) => void): Zombie {
+  z = { ...z, pos:{...z.pos}, vel:{...z.vel}, homePos:{...z.homePos} };
+  if (z.patrolTarget) z.patrolTarget = { ...z.patrolTarget };
+  if (z.noiseTarget) z.noiseTarget = { ...z.noiseTarget };
+  if (z.lastSeenTarget) z.lastSeenTarget = { ...z.lastSeenTarget };
   if (z.dead) return z;
   const size = state.settings.mapSize;
   if (z.ticksUntilMove > 0) { z.ticksUntilMove--; return z; }
   z.ticksUntilMove = 1;
 
+  const prevState = z.zombieState;
+
   if (!z.alertedByNoise) {
     for (const n of state.noiseEvents) {
       if (Math.hypot(n.pos.x - z.pos.x, n.pos.y - z.pos.y) < n.radius) {
-        z.alertedByNoise = true; z.noiseTarget = { ...n.pos }; break;
+        z.alertedByNoise = true;
+        z.noiseTarget = { ...n.pos };
+        if (z.zombieState === "wandering") {
+          z.zombieState = "investigating";
+        }
+        break;
       }
     }
   }
 
   let nearest: AnyEntity | null = null, nearestDist = Infinity;
   for (const e of state.entities) {
-    if (e.dead || e.kind !== "survivor") continue;
+    if (e.dead || e.kind !== "survivor" || (e as Survivor).evacuated) continue;
     const dist = Math.hypot(e.pos.x - z.pos.x, e.pos.y - z.pos.y);
-    if (dist < z.alertRadius && dist < nearestDist) { nearestDist = dist; nearest = e; }
+    if (dist < z.alertRadius && dist < nearestDist) {
+      if (hasLineOfSight(z.pos, e.pos, state.tiles, size)) {
+        nearestDist = dist;
+        nearest = e;
+      }
+    }
   }
 
+  const chaseThreshold = ZOMBIE_CHASE_LOSE_TICKS + z.tier * 30;
   const speed = 0.028 + state.escalation.level * 0.002;
+
   if (nearest) {
-    z.alertedByNoise = false; z.noiseTarget = null;
+    z.zombieState = "chasing";
+    z.chaseTicks = 0;
+    z.alertedByNoise = false;
+    z.noiseTarget = null;
+    z.patrolTarget = null;
+    z.lastSeenTarget = { ...nearest.pos };
     const dx = nearest.pos.x - z.pos.x, dy = nearest.pos.y - z.pos.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 0.4) { z.pos.x += (dx / dist) * speed; z.pos.y += (dy / dist) * speed; }
+  } else if (z.zombieState === "chasing") {
+    z.chaseTicks++;
+    if (z.chaseTicks >= chaseThreshold) {
+      z.zombieState = "returning";
+      z.chaseTicks = 0;
+      z.patrolTarget = { ...z.homePos };
+      z.lastSeenTarget = null;
+    } else if (z.lastSeenTarget) {
+      const dx = z.lastSeenTarget.x - z.pos.x, dy = z.lastSeenTarget.y - z.pos.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 0.5) {
+        z.pos.x += (dx / dist) * speed * 0.7;
+        z.pos.y += (dy / dist) * speed * 0.7;
+      }
+    }
   } else if (z.alertedByNoise && z.noiseTarget) {
+    z.zombieState = "investigating";
     const dx = z.noiseTarget.x - z.pos.x, dy = z.noiseTarget.y - z.pos.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 0.5) { z.pos.x += (dx / dist) * speed; z.pos.y += (dy / dist) * speed; }
-    else { z.alertedByNoise = false; z.noiseTarget = null; }
+    else { z.alertedByNoise = false; z.noiseTarget = null; z.zombieState = "wandering"; }
+  } else if (z.zombieState === "returning") {
+    const dx = z.homePos.x - z.pos.x, dy = z.homePos.y - z.pos.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 1.5) {
+      z.pos.x += (dx / dist) * speed * ZOMBIE_PATROL_SPEED_MULT;
+      z.pos.y += (dy / dist) * speed * ZOMBIE_PATROL_SPEED_MULT;
+    } else {
+      z.zombieState = "wandering";
+      z.patrolTarget = null;
+    }
   } else {
-    z.vel.x += (Math.random() - 0.5) * 0.14;
-    z.vel.y += (Math.random() - 0.5) * 0.14;
-    const vlen = Math.hypot(z.vel.x, z.vel.y);
-    if (vlen > 0.04) { z.vel.x = (z.vel.x/vlen)*0.04; z.vel.y = (z.vel.y/vlen)*0.04; }
-    z.pos.x += z.vel.x; z.pos.y += z.vel.y;
+    z.zombieState = "wandering";
+    if (!z.patrolTarget) {
+      z.patrolTarget = pickPatrolTarget(z.homePos, size);
+      z.ticksUntilMove = ZOMBIE_PATROL_PAUSE_MIN + Math.floor(Math.random() * (ZOMBIE_PATROL_PAUSE_MAX - ZOMBIE_PATROL_PAUSE_MIN));
+      z.pos.x = Math.max(0.5, Math.min(size-0.5, z.pos.x));
+      z.pos.y = Math.max(0.5, Math.min(size-0.5, z.pos.y));
+      return z;
+    }
+    const dx = z.patrolTarget.x - z.pos.x, dy = z.patrolTarget.y - z.pos.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 0.5) {
+      const patrolSpeed = speed * ZOMBIE_PATROL_SPEED_MULT;
+      z.pos.x += (dx / dist) * patrolSpeed;
+      z.pos.y += (dy / dist) * patrolSpeed;
+    } else {
+      z.patrolTarget = null;
+    }
+  }
+
+  if (z.zombieState !== prevState) {
+    if (z.zombieState === "chasing" && prevState !== "chasing") {
+      addLog("Zombie spotted a survivor!", "combat");
+    } else if (z.zombieState === "investigating" && prevState !== "investigating") {
+      addLog("Zombie investigating noise", "info");
+    } else if (z.zombieState === "returning" && prevState === "chasing") {
+      addLog("Zombie lost interest and gave up chase", "info");
+    } else if (z.zombieState === "wandering" && prevState === "returning") {
+      addLog("Zombie returned to patrol", "info");
+    } else if (z.zombieState === "wandering" && prevState === "investigating") {
+      addLog("Zombie found nothing, resuming patrol", "info");
+    }
   }
 
   z.pos.x = Math.max(0.5, Math.min(size-0.5, z.pos.x));
@@ -681,9 +797,10 @@ function tickNest(nest: CorruptionNest, state: GameState): [CorruptionNest, Zomb
       const r = 0.8 + Math.random() * 1.5;
       const tier = state.escalation.level;
       const baseHp = 65 + tier * 10;
+      const spawnPos = { x:nest.pos.x+Math.cos(angle)*r, y:nest.pos.y+Math.sin(angle)*r };
       return [nest, {
         id: state.nextId, kind:"zombie", faction:"HOSTILE", dead:false, armor: Math.floor(tier * 1.5),
-        pos:{ x:nest.pos.x+Math.cos(angle)*r, y:nest.pos.y+Math.sin(angle)*r },
+        pos:{ ...spawnPos },
         health: Math.floor(baseHp * state.escalation.zombieHpMult),
         maxHealth: Math.floor(baseHp * state.escalation.zombieHpMult),
         vel:{x:0,y:0},
@@ -691,6 +808,8 @@ function tickNest(nest: CorruptionNest, state: GameState): [CorruptionNest, Zomb
         ticksUntilMove:3,
         attackCooldown:0, alertedByNoise:false, noiseTarget:null,
         nestId:nest.id, tier,
+        zombieState: "wandering", chaseTicks: 0, patrolTarget: null,
+        homePos: { ...nest.pos }, lastSeenTarget: null,
       } as Zombie];
     }
   }
@@ -1069,7 +1188,7 @@ function runTick(state: GameState): GameState {
         y: portalEntity?.pos.y ?? 15,
       }, portalOpen));
     } else if (e.kind === "zombie") {
-      moved.push(tickZombie(e as Zombie, stateForTick));
+      moved.push(tickZombie(e as Zombie, stateForTick, addLog));
     } else if (e.kind === "nest") {
       const [newNest, spawned] = tickNest(e as CorruptionNest, {...stateForTick, nextId});
       moved.push(newNest);
