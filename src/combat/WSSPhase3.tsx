@@ -19,6 +19,36 @@ type WinState      = "playing" | "won" | "lost";
 type ObjectiveType = "ActivateSwitch" | "DestroyNests" | "Survive" | "Collect" | "Rescue";
 type GradeType     = "S" | "A" | "B" | "C" | "D" | "F";
 
+export type MarketLoadout = {
+  extraSurvivors: number;
+  startingPistols: number;
+  startingShotguns: number;
+  startingMeds: number;
+};
+
+export type RunResult = {
+  win: boolean;
+  grade: GradeType;
+  score: number;
+  kills: number;
+  evacuated: number;
+  totalSurvivors: number;
+  evacRate: number;
+  survivalRate: number;
+  scrapEarned: number;
+  scrapBreakdown: {
+    base: number;
+    perKill: number;
+    perEvac: number;
+    gradeBonus: number;
+  };
+  ticks: number;
+};
+
+export const EMPTY_LOADOUT: MarketLoadout = {
+  extraSurvivors: 0, startingPistols: 0, startingShotguns: 0, startingMeds: 0,
+};
+
 interface Vec2 { x: number; y: number; }
 
 interface Weapon {
@@ -79,6 +109,7 @@ interface ObjectiveSwitch extends BaseEntity {
 
 interface LootItem extends BaseEntity {
   kind: "loot"; lootType: LootType; amount: number;
+  weaponKey?: string;
 }
 
 interface RescueTarget extends BaseEntity {
@@ -346,8 +377,47 @@ function spawnRescueTargets(size: number, rand: () => number, startId: number, c
   return targets;
 }
 
-function spawnEntities(settings: GameSettings, rand: () => number, objectives: Objective[]): [AnyEntity[], number] {
-  const { mapSize: size, survivorCount, zombieCount, nestCount } = settings;
+function spawnLoadoutItems(size: number, startId: number, loadout: MarketLoadout): LootItem[] {
+  const half = size / 2;
+  const items: LootItem[] = [];
+  let id = startId;
+  const place = (i: number, total: number, ringR: number) => {
+    const angle = (i / Math.max(1, total)) * Math.PI * 2 + 0.4;
+    return {
+      x: Math.max(1.5, Math.min(size - 1.5, half + Math.cos(angle) * ringR)),
+      y: Math.max(1.5, Math.min(size - 1.5, half + Math.sin(angle) * ringR)),
+    };
+  };
+  const totalNear = loadout.startingPistols + loadout.startingShotguns + loadout.startingMeds;
+  let idx = 0;
+  for (let i = 0; i < loadout.startingPistols; i++, idx++) {
+    items.push({
+      id: id++, kind: "loot", faction: "NEUTRAL", dead: false, armor: 0,
+      pos: place(idx, totalNear, 2.5), health: 1, maxHealth: 1,
+      lootType: "ammo", amount: 15, weaponKey: "pistol",
+    } as LootItem);
+  }
+  for (let i = 0; i < loadout.startingShotguns; i++, idx++) {
+    items.push({
+      id: id++, kind: "loot", faction: "NEUTRAL", dead: false, armor: 0,
+      pos: place(idx, totalNear, 2.5), health: 1, maxHealth: 1,
+      lootType: "ammo", amount: 8, weaponKey: "shotgun",
+    } as LootItem);
+  }
+  for (let i = 0; i < loadout.startingMeds; i++, idx++) {
+    items.push({
+      id: id++, kind: "loot", faction: "NEUTRAL", dead: false, armor: 0,
+      pos: place(idx, totalNear, 2.5), health: 1, maxHealth: 1,
+      lootType: "health", amount: 50,
+    } as LootItem);
+  }
+  return items;
+}
+
+function spawnEntities(settings: GameSettings, rand: () => number, objectives: Objective[], loadout: MarketLoadout): [AnyEntity[], number] {
+  const effectiveSurvivorCount = Math.min(8, settings.survivorCount + loadout.extraSurvivors);
+  const eff: GameSettings = { ...settings, survivorCount: effectiveSurvivorCount };
+  const { mapSize: size, survivorCount, zombieCount, nestCount } = eff;
   const half = size / 2;
   const entities: AnyEntity[] = [];
   let nextId = 1;
@@ -442,6 +512,10 @@ function spawnEntities(settings: GameSettings, rand: () => number, objectives: O
   const loot = spawnLoot(size, rand, nextId);
   nextId += loot.length;
   entities.push(...loot);
+
+  const loadoutItems = spawnLoadoutItems(size, nextId, loadout);
+  nextId += loadoutItems.length;
+  entities.push(...loadoutItems);
 
   return [entities, nextId];
 }
@@ -939,7 +1013,29 @@ function resolvePickups(
           s.health = Math.min(s.maxHealth, s.health + loot.amount);
           addLog(`${s.name} picked up HealthPack (+${loot.amount} HP)`, "loot");
         } else if (loot.lootType === "ammo") {
-          if (s.primaryWeapon !== null && s.primaryWeapon.class === "gun") {
+          const newWeapon = loot.weaponKey && WEAPONS[loot.weaponKey] ? WEAPONS[loot.weaponKey] : null;
+          if (newWeapon) {
+            const currentDmg = s.weapon.class === "fists" ? 0 : s.weapon.damage;
+            const primaryDmg = s.primaryWeapon ? s.primaryWeapon.damage : 0;
+            const bestExisting = Math.max(currentDmg, primaryDmg);
+            const hasGun = s.weapon.class === "gun" || (s.primaryWeapon && s.primaryWeapon.class === "gun");
+            if (newWeapon.damage > bestExisting) {
+              s.weapon = { ...newWeapon, ammo: newWeapon.maxAmmo };
+              s.primaryWeapon = null;
+              addLog(`${s.name} picked up a ${newWeapon.name}!`, "loot");
+            } else if (hasGun) {
+              if (s.weapon.class === "gun" && s.weapon.ammo !== null) {
+                s.weapon = { ...s.weapon, ammo: Math.min(s.weapon.maxAmmo!, s.weapon.ammo + loot.amount) };
+              } else if (s.primaryWeapon && s.primaryWeapon.class === "gun") {
+                s.primaryWeapon = { ...s.primaryWeapon, ammo: Math.min(s.primaryWeapon.maxAmmo!, (s.primaryWeapon.ammo ?? 0) + loot.amount) };
+              }
+              addLog(`${s.name} salvaged ammo from ${newWeapon.name} (+${loot.amount})`, "loot");
+            } else {
+              s.weapon = { ...newWeapon, ammo: newWeapon.maxAmmo };
+              s.primaryWeapon = null;
+              addLog(`${s.name} equipped a ${newWeapon.name}!`, "loot");
+            }
+          } else if (s.primaryWeapon !== null && s.primaryWeapon.class === "gun") {
             s.weapon = {
               ...s.primaryWeapon,
               ammo: Math.min(s.primaryWeapon.maxAmmo!, s.primaryWeapon.ammo! + loot.amount),
@@ -1567,11 +1663,11 @@ function renderWorld(
   }
 }
 
-function initGame(settings: GameSettings): GameState {
+function initGame(settings: GameSettings, loadout: MarketLoadout = EMPTY_LOADOUT): GameState {
   const rand = makePRNG(settings.seed);
   const tiles = generateMap(settings);
   const objectives = generateObjectives(rand, settings.nestCount);
-  const [entities, nextId] = spawnEntities(settings, rand, objectives);
+  const [entities, nextId] = spawnEntities(settings, rand, objectives, loadout);
   const objLabels = objectives.map((o, i) => `${i + 1}. ${o.label}`).join(", ");
   return {
     tick: 0, tiles, entities,
@@ -1594,9 +1690,46 @@ const DEFAULT: GameSettings = {
   seed: 12345, mapSize: 30, survivorCount: 3, zombieCount: 8, nestCount: 3, speed: 1,
 };
 
-const WSSPhase3: React.FC = () => {
+const GRADE_BONUS: Record<GradeType, number> = { S: 50, A: 30, B: 15, C: 5, D: 0, F: 0 };
+
+function computeRunResult(state: GameState): RunResult {
+  const allSurvivors = state.entities.filter(e => e.kind === "survivor") as Survivor[];
+  const evacuated = allSurvivors.filter(s => s.evacuated).length;
+  const alive = allSurvivors.filter(s => !s.dead).length;
+  const totalKills = allSurvivors.reduce((a, s) => a + s.kills, 0);
+  const grade = calculateGrade(state);
+  const base = Math.floor(state.score / 10);
+  const perKill = totalKills;
+  const perEvac = evacuated * 15;
+  const gradeBonus = GRADE_BONUS[grade];
+  return {
+    win: state.winState === "won",
+    grade,
+    score: state.score,
+    kills: totalKills,
+    evacuated,
+    totalSurvivors: allSurvivors.length,
+    evacRate: evacuated / Math.max(1, allSurvivors.length),
+    survivalRate: alive / Math.max(1, allSurvivors.length),
+    scrapEarned: base + perKill + perEvac + gradeBonus,
+    scrapBreakdown: { base, perKill, perEvac, gradeBonus },
+    ticks: state.tick,
+  };
+}
+
+interface WSSPhase3Props {
+  loadout?: MarketLoadout;
+  onRunComplete?: (result: RunResult) => void;
+}
+
+const WSSPhase3: React.FC<WSSPhase3Props> = ({ loadout = EMPTY_LOADOUT, onRunComplete }) => {
   const canvasRef   = useRef<HTMLCanvasElement>(null);
-  const stateRef    = useRef<GameState>(initGame(DEFAULT));
+  const loadoutRef  = useRef<MarketLoadout>(loadout);
+  const onRunCompleteRef = useRef<typeof onRunComplete>(onRunComplete);
+  const completeFiredRef = useRef<boolean>(false);
+  useEffect(() => { loadoutRef.current = loadout; }, [loadout]);
+  useEffect(() => { onRunCompleteRef.current = onRunComplete; }, [onRunComplete]);
+  const stateRef    = useRef<GameState>(initGame(DEFAULT, loadout));
   const cameraRef   = useRef({ x: 6, y: 6, zoom: 1.0, mode: "observer" as CameraMode, followId: null as number | null });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const animRef     = useRef<number>(0);
@@ -1648,6 +1781,11 @@ const WSSPhase3: React.FC = () => {
     setPortalOpen(portal ? !portal.sealed : false);
     if (s.winState !== "playing") {
       setGrade(calculateGrade(s));
+      if (!completeFiredRef.current && onRunCompleteRef.current) {
+        completeFiredRef.current = true;
+        const result = computeRunResult(s);
+        onRunCompleteRef.current(result);
+      }
     }
   }, []);
 
@@ -1696,8 +1834,9 @@ const WSSPhase3: React.FC = () => {
   };
   const handleReset = () => {
     stopLoop(); setIsRunning(false); setGrade(null);
+    completeFiredRef.current = false;
     const s: GameSettings = { ...settings, seed: parseInt(seedInput) || settings.seed };
-    const g = initGame(s); stateRef.current = g; setSettings(s);
+    const g = initGame(s, loadoutRef.current); stateRef.current = g; setSettings(s);
     const half = s.mapSize / 2;
     const canvas = canvasRef.current;
     const ts = TILE_SIZE * cameraRef.current.zoom;
