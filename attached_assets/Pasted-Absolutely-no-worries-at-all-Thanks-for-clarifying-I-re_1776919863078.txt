@@ -1,0 +1,80 @@
+Absolutely — no worries at all. Thanks for clarifying.
+
+I reviewed your WSS2 materials and code organization without making any new code changes.
+
+1) Short summary of the current project structure
+App shell + scene router: App.tsx uses "combat" as the default landing route, and Combat.tsx then routes between Phase 0/1/2/3 scenes and legacy simulations/components. 
+
+Current implementation reality: WSS2-related behavior still appears in large src/combat/* components (including WSSTwo.tsx) rather than the clean src/wss2/ target described in ADR docs. 
+
+Architecture intent: Your docs define a layered architecture with a fixed 60 TPS loop and Sense→Decide→Act phase flow, plus a Brain interface and multiple brain personalities. 
+
+Roadmap constraints: The roadmap is phased and explicit (Phase 0 Foundation → Phase 1 Core Simulation → …), with many locked decisions already set (real-time combat, hybrid movement, objective model, faction model). {line_range_start=53 line_range_end=60 path=wss(full game ideas)/ROADMAP.md git_url="https://github.com/CaseyWongWc/testing/blob/wss2/wss(full game ideas)/ROADMAP.md#L53-L60"}{line_range_start=63 line_range_end=80 path=wss(full game ideas)/ROADMAP.md git_url="https://github.com/CaseyWongWc/testing/blob/wss2/wss(full game ideas)/ROADMAP.md#L63-L80"}{line_range_start=5 line_range_end=19 path=wss(full game ideas)/ROADMAP.md git_url="https://github.com/CaseyWongWc/testing/blob/wss2/wss(full game ideas)/ROADMAP.md#L5-L19"}
+
+2) Best design pattern recommendation
+✅ State Pattern (for AI decision state / intent lifecycle)
+3) Why it fits this project
+Your architecture already uses a tick-based loop and “Brain decides intent each tick,” which naturally maps to explicit AI states (e.g., Scavenge, Engage, Flee, Trade, Recover) with controlled transitions. 
+
+WSSTwo.tsx shows complex conditional decision logic per brain type; State helps reduce branching complexity by moving transition rules into modular state classes/objects while preserving behavior. 
+
+It aligns with your roadmap and ADRs because it improves internal organization, not architecture direction (still fixed timestep, still Sense→Decide→Act, still Brain interface concept). {line_range_start=53 line_range_end=60 path=wss(full game ideas)/ROADMAP.md git_url="https://github.com/CaseyWongWc/testing/blob/wss2/wss(full game ideas)/ROADMAP.md#L53-L60"}
+
+4) Where it should be applied
+Apply first to brain decision lifecycle, not to rendering/combat/map generation:
+
+Primary target: decision code currently centralized in calculateBrainMoveByType(...) in WSSTwo.tsx. 
+
+Model mapping: map existing intents/behaviors into states that can transition by resource pressure, threat, progress, and visibility.
+
+Phase-aligned path: start in the current phase component layer (src/combat) as an internal refactor, then migrate the same state objects into future src/wss2/ modules later (matches ADR-001 intent). 
+
+5) Minimal integration plan (no full redesign)
+Define a tiny AIState interface (e.g., name, evaluateTransition(ctx), chooseAction(ctx)).
+
+Create 3–4 initial states only (ex: AdvanceEast, Resupply, Trade, Recover) based on existing heuristics.
+
+Wrap existing branching logic into those states incrementally (no behavior tuning yet).
+
+Keep existing BrainType selection intact; each brain can prefer different transition thresholds/weights.
+
+Add a transition trace string to preserve current reasoning UI output.
+
+Roll out in one scene first (WSSTwo), then optionally phase components (WSSPhase1/2/3) after parity checks.
+
+This keeps systems intact and follows roadmap constraints by limiting scope to AI decision orchestration.
+
+6) Optional alternatives
+Behavior Tree (BT): very expressive for complex AI, but heavier than needed right now for your current phase and “minimal change” requirement.
+
+Utility AI: great for tunable scoring-based choices; good later for advanced AI phases, but can be overkill before state modularization.
+
+Command Pattern for intents: useful adjunct pattern (for queued/resolved actions per tick), but less directly impactful today than State for decision complexity.
+
+Assumptions (clearly marked)
+I assume your “WSS2 project” currently refers to the active src/combat implementation path used by App.tsx/Combat.tsx, even though ADR-001 targets src/wss2/ for clean architecture long-term. 
+
+I assume you want maximum roadmap safety and therefore a pattern that can be layered in without changing tick loop, combat model, or rendering systems. {line_range_start=7 line_range_end=15 path=wss(full game ideas)/ROADMAP.md git_url="https://github.com/CaseyWongWc/testing/blob/wss2/wss(full game ideas)/ROADMAP.md#L7-L15"}
+
+Checks I ran
+✅ nl -ba src/App.tsx | sed -n '1,140p'
+
+✅ nl -ba src/combat/Combat.tsx | sed -n '1,240p'
+
+✅ nl -ba src/combat/WSSTwo.tsx | sed -n '90,130p'
+
+✅ nl -ba src/combat/WSSTwo.tsx | sed -n '1340,1425p'
+
+✅ nl -ba src/combat/WSSTwo.tsx | sed -n '1668,1755p'
+
+✅ nl -ba docs/decisions/ADR-001-new-engine-transplanted-logic.md | sed -n '1,120p'
+
+✅ nl -ba docs/decisions/ADR-005-game-loop-fixed-timestep.md | sed -n '1,140p'
+
+✅ nl -ba docs/decisions/ADR-008-brain-architecture.md | sed -n '1,140p'
+
+✅ nl -ba cs4800/exercise-4-architecture.md | sed -n '1,240p'
+
+✅ nl -ba 'wss(full game ideas)/ROADMAP.md' | sed -n '1,220p'
+
+If you want, next I can draft a tiny, concrete State interface and folder layout (still no code changes) so you can approve before implementation.

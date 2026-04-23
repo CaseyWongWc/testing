@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#005030">
+  
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="apple-itunes-app" content="app-id=480883488"><link rel="manifest" href="/web-app-manifest/manifest.json">
+  <meta name="sentry-trace" content="0149103d62ef498c88ef931366722bf8-bb675a8b242b41b6-0"/>
+  <title>In Class Exercise - 7: CS 4800.03 (S26-Regular) Software Engineering</title>
+
+  <link rel="preload" href="https://du11hjcvx0uqb.cloudfront.net/dist/fonts/lato/extended/Lato-Regular-bd03a2cc27.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="preload" href="https://du11hjcvx0uqb.cloudfront.net/dist/fonts/lato/extended/Lato-Bold-cccb897485.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="preload" href="https://du11hjcvx0uqb.cloudfront.net/dist/fonts/lato/extended/Lato-Italic-4eb103b4d1.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/no_variables/bundles/fonts-eb4a10fb18.css" media="screen" />
+  <link rel="stylesheet" href="https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/ed591ae6bc473d4c8980ca2b511db809/variables-9dec371ad57e3dd0396f0b2eddb63479.css" media="all" />
+  <script type="text/javascript">
+    window.CANVAS_COOKIE_CONSENT_STATE = true;
+  </script>
+  <link rel="stylesheet" href="https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/new_styles_normal_contrast/bundles/common-485922d15e.css" media="all" />
+  <link rel="stylesheet" href="https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/new_styles_normal_contrast/bundles/quizzes-0d394857b2.css" media="screen" /><link rel="stylesheet" href="https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/new_styles_normal_contrast/bundles/learning_outcomes-9835bfce9b.css" media="screen" /><link rel="stylesheet" href="https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/new_styles_normal_contrast/bundles/new_user_tutorials-6b15f87caf.css" media="screen" />
+  <link rel="apple-touch-icon" href="https://du11hjcvx0uqb.cloudfront.net/dist/images/apple-touch-icon-585e5d997d.png" />
+  <link rel="icon" type="image/x-icon" href="https://du11hjcvx0uqb.cloudfront.net/dist/images/favicon-e10d657a73.ico" />
+
+  <link rel="stylesheet" href="https://instructure-uploads-pdx.s3.us-west-2.amazonaws.com/account_187260000000000001/attachments/11198165/cpp_canvas_custom.css" media="all" />
+  
+  <script>if (navigator.userAgent.match(/(MSIE|Trident\/)/)) location.replace('/ie-is-not-supported.html')</script>
+  <script>
+    INST = {"environment":"production","allowMediaComments":true,"kalturaSettings":{"domain":"pdx.nv.instructuremedia.com","resource_domain":"pdx.nv.instructuremedia.com","rtmp_domain":"pdx.rtmp.instructuremedia.com","partner_id":3,"subpartner_id":0,"player_ui_conf":0,"kcw_ui_conf":0,"upload_ui_conf":0,"max_file_size_bytes":534773760,"js_uploader":"yes"},"logPageViews":true,"editorButtons":[{"name":"YouTube","id":2,"favorite":false,"url":"https://www.edu-apps.org/lti_public_resources/?tool_id=youtube","icon_url":"https://www.edu-apps.org/assets/lti_public_resources/youtube_icon.png","canvas_icon_class":null,"width":560,"height":600,"use_tray":false,"on_by_default":false,"description":"\u003cp\u003eSearch publicly available YouTube videos. A new icon will show up in your course rich editor letting you search YouTube and click to embed videos in your course material.\u003c/p\u003e\n"},{"name":"Vimeo","id":3,"favorite":false,"url":"https://www.edu-apps.org/lti_public_resources/?tool_id=vimeo","icon_url":"https://www.edu-apps.org/assets/lti_public_resources/vimeo_icon.png","canvas_icon_class":null,"width":560,"height":600,"use_tray":false,"on_by_default":false,"description":"\u003cp\u003eVimeo is a video sharing website on which users can upload, share, and view videos. The community of Vimeo includes indie, professional, and novice filmmakers.\u003c/p\u003e\n"},{"name":"Insert a Wiley Resource","id":154,"favorite":false,"url":"https://lti.education.wiley.com/wpng/api/v1/lti/resourcediscoverytool","icon_url":"https://education.wiley.com/assets/images/wp.svg","canvas_icon_class":null,"width":1160,"height":660,"use_tray":false,"on_by_default":false,"description":"\u003cp\u003eOutcomes-based learning.\u003c/p\u003e\n"},{"name":"Library Resources ","id":484,"favorite":true,"url":"https://cpp.libapps.com/libapps/lti1p3/launch/33636","icon_url":"https://libapps.s3.amazonaws.com/apps/libapps/images/favicon_lti.png","canvas_icon_class":"icon-lti","width":800,"height":400,"use_tray":false,"on_by_default":false,"description":"\u003cp\u003eConnect to content and services from the University Library. \u003c/p\u003e\n"},{"name":"Pearson Links","id":838,"favorite":false,"url":"https://interop.pearson.com/launch","icon_url":"https://www.pearson.com/us/content/dam/one-dot-com/one-dot-com/us/en/images/PearsonThumbprint-RGB-127x138.png/_jcr_content/renditions/cq5dam.web.1600.9600.png","canvas_icon_class":null,"width":800,"height":400,"use_tray":false,"on_by_default":false,"description":"\u003cp\u003eAccess Pearson\u003c/p\u003e\n"},{"name":"Kaltura - Embed Media","id":848,"favorite":false,"url":"https://2254351-3.kaf.kaltura.com","icon_url":"https://cdnsecakmi.kaltura.com/content/static/kalturalogo.png","canvas_icon_class":null,"width":800,"height":400,"use_tray":false,"on_by_default":false,"description":"\u003cp\u003eKaltura\u003c/p\u003e\n"},{"name":"LinkedIn Learning","id":1103,"favorite":true,"url":"https://www.linkedin.com/checkpoint/enterprise/lti/56973593/auth/61872489/7135016624335527936","icon_url":"https://static-exp1.licdn.com/sc/h/3dio89ba7ceqktt0kek3tla5w","canvas_icon_class":null,"width":1000,"height":800,"use_tray":false,"on_by_default":false,"description":"\u003cp\u003eLinkedIn Learning LTI 1.3\u003c/p\u003e\n"},{"name":"SAGE Vantage LTI 1.3 - editor_button","id":1206,"favorite":false,"url":"https://vantage.sagepub.com/lti1p3/tool/X9rkngxxiHZ1fuqx","icon_url":"https://vantage.sagepub.com/images/sagent/Bird-blue-right.svg","canvas_icon_class":null,"width":1000,"height":1000,"use_tray":false,"on_by_default":false,"description":"\u003cp\u003eSAGE Vantage 1.3 Tool\u003c/p\u003e\n"}]};
+    ENV = {"ASSET_HOST":"https://du11hjcvx0uqb.cloudfront.net","active_brand_config_json_url":"https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/ed591ae6bc473d4c8980ca2b511db809/variables-9dec371ad57e3dd0396f0b2eddb63479.json","active_brand_config":{"md5":"ed591ae6bc473d4c8980ca2b511db809","variables":{"ic-brand-primary":"#005030","ic-brand-font-color-dark":"#000000","ic-link-color":"#005030","ic-brand-button--secondary-bgd":"#ffb81c","ic-brand-button--secondary-text":"#121212","ic-brand-global-nav-bgd":"#005030","ic-brand-global-nav-ic-icon-svg-fill--active":"#00838a","ic-brand-global-nav-menu-item__badge-bgd":"#ffb81c","ic-brand-global-nav-menu-item__badge-text":"#121212","ic-brand-global-nav-logo-bgd":"#ffffff","ic-brand-header-image":"https://instructure-uploads-pdx.s3.us-west-2.amazonaws.com/account_187260000000000001/attachments/14545062/CPP_Abbreviated_2C_Green_RGB-300.png","ic-brand-watermark-opacity":"0.7","ic-brand-msapplication-tile-color":"#f2eee8","ic-brand-Login-body-bgd-image":"https://instructure-uploads-pdx.s3.us-west-2.amazonaws.com/account_187260000000000001/attachments/54176/Galloping%20Arabians1.jpg","ic-brand-Login-logo":"https://instructure-uploads-pdx.s3.us-west-2.amazonaws.com/account_187260000000000001/attachments/14545063/CPP_Primary_1C_Gold_RGB.svg","ic-brand-Login-Content-bgd-color":"#005030","ic-brand-Login-Content-border-color":"#005030","ic-brand-Login-Content-password-text-color":"#dddddd","ic-brand-Login-footer-link-color":"#dddddd","ic-brand-Login-footer-link-color-hover":"#cccccc","ic-brand-Login-instructure-logo":"#cccccc"},"share":false,"name":null,"created_at":"2025-10-30T23:35:02Z","js_overrides":"https://instructure-uploads-pdx.s3.us-west-2.amazonaws.com/account_187260000000000001/attachments/13627276/JavaScript-code.js","css_overrides":"https://instructure-uploads-pdx.s3.us-west-2.amazonaws.com/account_187260000000000001/attachments/11198165/cpp_canvas_custom.css","mobile_js_overrides":"https://instructure-uploads-pdx.s3.us-west-2.amazonaws.com/account_187260000000000001/attachments/3475930/BlueCanvasMobileConfig.js","mobile_css_overrides":"","parent_md5":null},"confetti_branding_enabled":false,"url_to_what_gets_loaded_inside_the_tinymce_editor_css":["https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/ed591ae6bc473d4c8980ca2b511db809/variables-9dec371ad57e3dd0396f0b2eddb63479.css","https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/new_styles_normal_contrast/bundles/what_gets_loaded_inside_the_tinymce_editor-a9d2316957.css","https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/no_variables/bundles/fonts-eb4a10fb18.css"],"url_for_high_contrast_tinymce_editor_css":["https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/default/variables-high_contrast-9dec371ad57e3dd0396f0b2eddb63479.css","https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/new_styles_high_contrast/bundles/what_gets_loaded_inside_the_tinymce_editor-97ab6cfd40.css","https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/no_variables/bundles/fonts-eb4a10fb18.css"],"captcha_site_key":"6LftyLgZAAAAAC10tel8XGucbApMIY8-uFB_yVcN","current_user_id":"81417","current_user_global_id":"187260000000081417","current_user_uuid":"oIJplA2bXw4iLBQx3Ys5W9pYqphigYzK2yl5IeAa","current_user_usage_metrics_id":"10872bda3d1d6865ca3a1f4d43b4678af267caa41b99533550b74e6c7c0c1ac6","current_user_roles":["user","student"],"current_user_is_student":true,"current_user_types":[],"current_user_disabled_inbox":false,"current_user_visited_tabs":null,"discussions_reporting":true,"files_domain":"cluster306.canvas-user-content.com","group_information":null,"DOMAIN_ROOT_ACCOUNT_ID":"187260000000000001","DOMAIN_ROOT_ACCOUNT_UUID":"BAs1mJj44yRFFFb3MXxyUj739TwML7YfDgsRbMUO","CAREER_THEME_URL":null,"CAREER_DARK_THEME_URL":null,"k12":false,"help_link_name":"Help","help_link_icon":"help","ADA_CHATBOT_ENABLED":false,"use_high_contrast":false,"auto_show_cc":false,"disable_celebrations":false,"disable_keyboard_shortcuts":false,"LTI_LAUNCH_FRAME_ALLOWANCES":["geolocation *","microphone *","camera *","midi *","encrypted-media *","autoplay *","clipboard-write *","display-capture *","fullscreen *"],"DEEP_LINKING_POST_MESSAGE_ORIGIN":"https://canvas.cpp.edu","comment_library_suggestions_enabled":false,"SETTINGS":{"open_registration":false,"collapse_global_nav":false,"release_notes_badge_disabled":false,"can_add_pronouns":true,"show_sections_in_course_tray":true,"enable_content_a11y_checker":false,"suppress_assignments":false},"RAILS_ENVIRONMENT":"production","use_dyslexic_font":false,"IN_PACED_COURSE":false,"SENTRY_FRONTEND":{"dsn":"https://355a1d96717e4038ac25aa852fa79a8f@relay-pdx.sentry.insops.net/388","org_slug":"instructure","base_url":"https://sentry.insops.net","normalized_route":"/courses/{course_id}/quizzes/{id}","errors_sample_rate":"0.005","traces_sample_rate":"0.005","url_deny_pattern":"instructure-uploads.*amazonaws.com","revision":"canvas-lms@20260422.384"},"DATA_COLLECTION_ENDPOINT":"https://canvas-frontend-data-pdx-prod.inscloudgate.net/submit","DOMAIN_ROOT_ACCOUNT_SFID":"001A000000AjXeMIAV","DIRECT_SHARE_ENABLED":false,"CAN_VIEW_CONTENT_SHARES":false,"FEATURES":{"account_level_blackout_dates":false,"assignment_edit_placement_not_on_announcements":false,"a11y_checker_ga2_features":true,"block_content_editor_toolbar_reorder":false,"commons_new_quizzes":true,"courses_popout_sisid":true,"create_external_apps_side_tray_overrides":false,"dashboard_graphql_integration":false,"developer_key_user_agent_alert":true,"disallow_threaded_replies_fix_alert":true,"disallow_threaded_replies_manage":true,"discussion_ai_survey_link":false,"discussion_checkpoints":false,"discussion_permalink":true,"enhanced_course_creation_account_fetching":false,"explicit_latex_typesetting":false,"feature_flag_ui_sorting":true,"files_a11y_rewrite":true,"files_a11y_rewrite_toggle":true,"files_a11y_folder_duplicates":true,"horizon_course_setting":false,"instui_for_import_page":true,"instui_header":false,"media_links_use_attachment_id":true,"multiselect_gradebook_filters":true,"new_quizzes_media_type":true,"new_quizzes_navigation_updates":true,"permanent_page_links":true,"rce_a11y_resize":true,"rce_find_replace":true,"render_both_to_do_lists":false,"scheduled_feedback_releases":true,"speedgrader_studio_media_capture":true,"student_access_token_management":true,"validate_call_to_action":false,"block_content_editor_ai_alt_text":true,"ux_list_concluded_courses_in_bp":true,"accessibility_automatic_scanning":false,"account_level_mastery_scales":false,"ams_root_account_integration":false,"ams_advanced_content_organization":false,"api_rate_limits":true,"buttons_and_icons_root_account":false,"canvas_apps_sub_account_access":true,"cookie_consent_necessary":false,"course_pace_allow_bulk_pace_assign":false,"course_pace_download_document":false,"course_pace_draft_state":false,"course_pace_pacing_status_labels":false,"course_pace_pacing_with_mastery_paths":false,"course_pace_time_selection":false,"course_pace_weighted_assignments":false,"course_paces_skip_selected_days":false,"create_course_subaccount_picker":true,"disable_iframe_sandbox_file_show":false,"extended_submission_state":false,"file_verifiers_for_quiz_links":true,"instui_nav":false,"login_registration_ui_identity":false,"lock_lti_registrations":false,"lti_apps_page_instructors":false,"lti_asset_processor":true,"lti_asset_processor_discussions":false,"lti_deactivate_registrations":false,"lti_link_to_apps_from_developer_keys":true,"lti_registrations_next":true,"lti_registrations_templates":false,"lti_registrations_usage_data":true,"lti_registrations_usage_data_dev":false,"lti_registrations_usage_data_low_usage":false,"lti_registrations_usage_tab":false,"lti_toggle_placements":true,"mobile_offline_mode":false,"modules_requirements_allow_percentage":false,"nav_menu_links":false,"non_scoring_rubrics":true,"pendo_extended":false,"product_tours":false,"rce_asr_captioning_improvements":false,"rce_lite_enabled_speedgrader_comments":true,"rce_transform_loaded_content":false,"react_discussions_post":true,"restrict_student_access":false,"rubric_criterion_range":true,"scheduled_page_publication":true,"send_usage_metrics":true,"top_navigation_placement":false,"youtube_migration":false,"educator_dashboard":false,"widget_dashboard":false,"account_survey_notifications":true,"embedded_release_notes":true,"canvas_k6_theme":false,"lti_asset_processor_course":false,"new_math_equation_handling":true,"youtube_overlay":false,"rce_studio_embed_improvements":true,"a11y_checker_ai_table_caption_generation":false,"a11y_checker_ai_alt_text_generation":false,"a11y_checker_close_issues":true,"a11y_checker_additional_resources":true,"peer_review_allocation_and_grading":false},"PRE_COOKIE_CONSENT":"true","PENDO_APP_ID":"1ca366f1-739e-4565-52d2-9e6f6a8d438f","current_user":{"id":"81417","anonymous_id":"1qtl","display_name":"Casey Wong","avatar_image_url":"https://canvas.cpp.edu/images/messages/avatar-50.png","html_url":"https://canvas.cpp.edu/about/81417","pronouns":null,"avatar_is_fallback":true,"email":"cwwong@cpp.edu"},"current_user_is_admin":false,"page_view_update_url":"/page_views/25a64ebb-1293-4e28-b52a-853dbc166cee?page_view_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpIjoiMjVhNjRlYmItMTI5My00ZTI4LWI1MmEtODUzZGJjMTY2Y2VlIiwidSI6MTg3MjYwMDAwMDAwMDgxNDE3LCJjIjoiMjAyNi0wNC0yM1QwNDoyMzoyOS4yN1oifQ.T55tnzWvdy_T14IxgVZwWm7HIBLLYaQTJDcetBsHY-A","context_asset_string":"course_132692","ping_url":"https://canvas.cpp.edu/api/v1/courses/132692/ping","TIMEZONE":"America/Los_Angeles","CONTEXT_TIMEZONE":"America/Los_Angeles","LOCALES":["en"],"BIGEASY_LOCALE":"en_US","FULLCALENDAR_LOCALE":"en","MOMENT_LOCALE":"en","rce_auto_save_max_age_ms":86400000,"K5_USER":false,"USE_CLASSIC_FONT":false,"K5_HOMEROOM_COURSE":false,"K5_SUBJECT_COURSE":false,"LOCALE_TRANSLATION_FILE":"https://du11hjcvx0uqb.cloudfront.net/dist/javascripts/translations/en-a011737ece.json","ACCOUNT_ID":"143","user_cache_key":"56922ba416da0847641cdc531af22ae9ab95e6b644ad40041563b53426ee276899877e749adcabac482b59c086adb14a36385f6b5ecb6e43782be2d4960f9db2","horizon_course":false,"HORIZON_ACCOUNT":false,"current_context":{"id":"132692","name":"CS 4800.03 (S26-Regular) Software Engineering","type":"Course","url":"https://canvas.cpp.edu/courses/132692"},"RICH_CONTENT_APP_HOST":"rich-content-pdx.inscloudgate.net","JWT":"ZXlKaGJHY2lPaUprYVhJaUxDSmxibU1pT2lKQk1qVTJSME5OSWl3aWNtVm5hVzl1SWpvaWRYTXRkMlZ6ZEMweUlpd2laVzUyYVhKdmJtMWxiblFpT2lKd2NtOWtkV04wYVc5dUluMC4uWnN2QnlnNDhOVEt5UEZkNi5lcWRrcEctaGhMWDQxNGljVVJPSFVDLTBSR1EtSTNySDFWanJwWkV5NUQ5WllEZWZPOUZtVjBKMmVjNFpWRVExRUZqSXY2eV9jWm9VQnRERy1obU9veFBRY19LcE5XM0EzSThYNHZLRXlhaTlKWHpuWC1HdnNTVEM2LW5VcHBLZGJ5N1lvZXNuVFBjX2trMVV2RW9YaHczVDN0MURkbExVOFlhZmRnXzVEdkZPRkRGcUk4X19kN0NoZ2NBUWpZSXZoU29rRUViaVAzZzg0SmxjdWx6UWg2anlqUU40NXhMNGlzUWtXVC04Tzl6RXMwaVBZdzdEYV96eXIwS2NscU9ia0wwOERMRHZwSmF5b1AwOV8zS0R1Sk1sNVdEUW5vM1BWMDhIY193SVpUODRPMW4wbEJXQTUweUNFMktEd2NoQ0wxTjBkb2pHeGxrZkEyRHVJR0ZXRlNEdDBvcmVkeWJaMzFXYnc4TW9oU3E5TDJQYmViclFELUJmVFlSS0NtWDlIbkkxOFROU2tyWm9DLTZ4bnN6Ukd4RmdQN3NaZjk1Mm12OVlmaG43eVZEaDN0MW5OdmVMekRkQmc3aFNlaXMxbG9rS3plRUVlM0NVTmlYbnM5bkRUdVo4RDN5X2pJWmFvaGV0c05rLWF1TGJ6Qm9OZHZjaEpOS0pQc0t2bXZGVGlVUThiODVZbzduc2FzRVF6N3MtMmNNTmtYcXdWTVgtMURYTndEeVRKV3FVb0NQcWtJQWE3aFRzbWdMQzR5WkM1bXF5aFM1N0pSZ1h2TXFhTEgwdHYzaEM5RTc4VlpiSGg4ckpYUXNyY1hxcjZBa0hwYmxmLWhJYVlYdDZTLTZzYmxlYmFJN0hkcGFkUXJxd1NhTzlDbGhWaXRnLXVQZmxiV0NKWGdxV2FKYWRkVXM5U3d0a1VrUThIMk14R1RVWTkzdjFHM1BnRFVxdHhIZnFmdk9vMzl6WlIwUmZsd3pDWEl4RWJ1QWJjWVVhWl9mSk9UeUJEc0tGeXpLNjdZSGJOa0dRVlF0c3JFMm83aUlUbkZvZ3hzU1ZVYkhkNGVvb3lwNk1SbzVTSnhNamU3Q1hHRTJPNnV2SUJOUlJSMzg2eFRUOUJrTGw5UVA1aWRwZ0xzUmdQUVFzbU13OVgyT3RkbHJXcy1Wd1RmeGdLbDMxYUN0bzdCSEFqSXpjd0dNaHlELUo5YzlIOF93Wk1WOFd3Y0pPV0pOQUR1WFJzVWQxOGQ5Q2ZBLmhLWkM5WmJtRHBQa1NhUWo5X1dFRGc=","RICH_CONTENT_CAN_UPLOAD_FILES":false,"RICH_CONTENT_CAN_EDIT_FILES":false,"RICH_CONTENT_FILES_TAB_DISABLED":false,"RICH_CONTENT_INST_RECORD_TAB_DISABLED":false,"RICH_CONTENT_AI_TEXT_TOOLS":false,"SUBMISSION_DOWNLOAD_DIALOG_TITLE":"Download All Quiz File Upload Submissions","UPLOAD_URL":"/api/v1/courses/132692/quizzes/335869/submissions/self/files","SUBMISSION_VERSIONS_URL":"https://canvas.cpp.edu/courses/132692/quizzes/335869/submission_versions","QUIZ_SUBMISSION_EVENTS_URL":"https://canvas.cpp.edu/api/v1/courses/132692/quizzes/335869/submissions/5568211/events","SECTION_LIST":[{"id":"138571","name":"CS 4800.03 (S26-Regular) Software Engineering","start_at":"2026-01-12T08:01:00Z","end_at":"2026-06-07T06:59:00Z","override_course_and_term_dates":true},{"id":"148759","name":"CS 4800.E03 (S26-Open U) Software Engineering","start_at":"2026-01-12T08:01:00Z","end_at":"2026-06-07T06:59:00Z","override_course_and_term_dates":true}],"ATTACHMENTS":{},"CONTEXT_ACTION_SOURCE":"quizzes","COURSE_ID":"132692","LOCKDOWN_BROWSER":false,"ALLOW_ASSIGN_TO_DIFFERENTIATION_TAGS":true,"CAN_MANAGE_DIFFERENTIATION_TAGS":false,"QUIZ":{"id":"335869","title":"In Class Exercise - 7","html_url":"https://canvas.cpp.edu/courses/132692/quizzes/335869","mobile_url":"https://canvas.cpp.edu/courses/132692/quizzes/335869?force_user=1\u0026persist_headless=1","description":"","quiz_type":"assignment","time_limit":null,"timer_autosubmit_disabled":false,"shuffle_answers":false,"show_correct_answers":true,"scoring_policy":"keep_highest","allowed_attempts":1,"one_question_at_a_time":false,"question_count":1,"points_possible":10.0,"cant_go_back":false,"ip_filter":null,"due_at":"2026-04-16T03:30:00Z","lock_at":"2026-04-16T03:30:00Z","unlock_at":"2026-04-16T02:00:00Z","published":true,"locked_for_user":true,"lock_info":{"lock_at":"2026-04-16T03:30:00Z","can_view":true,"asset_string":"quizzes:quiz_335869"},"lock_explanation":"This quiz was locked Apr 15 at 8:30pm.","hide_results":null,"show_correct_answers_at":null,"hide_correct_answers_at":null,"all_dates":[{"due_at":"2026-04-16T03:30:00Z","unlock_at":"2026-04-16T02:00:00Z","lock_at":"2026-04-16T03:30:00Z","title":"Everyone","base":true}],"can_update":false,"require_lockdown_browser":false,"require_lockdown_browser_for_results":false,"require_lockdown_browser_monitor":false,"lockdown_browser_monitor_data":null,"permissions":{"read":true,"create":false,"manage":false,"update":false,"submit":true,"preview":false,"delete":false,"read_statistics":false,"grade":false,"review_grades":false,"view_answer_audits":false,"manage_assign_to":false},"quiz_reports_url":"https://canvas.cpp.edu/api/v1/courses/132692/quizzes/335869/reports","quiz_statistics_url":"https://canvas.cpp.edu/api/v1/courses/132692/quizzes/335869/statistics","important_dates":false,"quiz_submission_versions_html_url":"https://canvas.cpp.edu/courses/132692/quizzes/335869/submission_versions","assignment_id":"1429341","one_time_results":false,"visible_to_everyone":true,"assignment_group_id":"239850","show_correct_answers_last_attempt":false,"version_number":3,"has_access_code":false,"post_to_sis":false,"migration_id":null,"in_paced_course":false},"QUIZ_DETAILS_URL":"https://canvas.cpp.edu/courses/132692/quizzes/335869/managed_quiz_data","QUIZZES_URL":"https://canvas.cpp.edu/courses/132692/quizzes","MAX_GROUP_CONVERSATION_SIZE":100,"VALID_DATE_RANGE":{"start_at":{"date":null,"date_context":"term"},"end_at":{"date":null,"date_context":"term"}},"HAS_GRADING_PERIODS":false,"DUE_DATE_REQUIRED_FOR_ACCOUNT":false,"PERMISSIONS":{"manage_rubrics":false},"CONDITIONAL_RELEASE_SERVICE_ENABLED":true,"CONDITIONAL_RELEASE_ENV":{"course_id":"132692","stats_url":"/api/v1/courses/132692/mastery_paths/stats","rule":null},"ASSIGNMENT_ID":"1429341","ASSIGNMENT_POINTS":10.0,"assigned_rubric":null,"rubric_association":null,"rubric_self_assessment_enabled":false,"can_update_rubric_self_assessment":false,"ACCOUNT_LEVEL_MASTERY_SCALES":false,"ai_rubrics_enabled":false,"rubric_self_assessment_ff_enabled":false,"ROOT_OUTCOME_GROUP":{"id":"44328","title":"CS 4800.03 (S26-Regular) Software Engineering","vendor_guid":null,"url":"/api/v1/courses/132692/outcome_groups/44328","subgroups_url":"/api/v1/courses/132692/outcome_groups/44328/subgroups","outcomes_url":"/api/v1/courses/132692/outcome_groups/44328/outcomes","can_edit":false,"import_url":"/api/v1/courses/132692/outcome_groups/44328/import","context_id":"132692","context_type":"Course","description":null},"context_rubric_associations_url":"/courses/132692/rubric_associations","IS_SURVEY":false,"badge_counts":{"submissions":1},"notices":[],"active_context_tab":"quizzes"};
+    BRANDABLE_CSS_HANDLEBARS_INDEX = [["new_styles_normal_contrast","new_styles_high_contrast","new_styles_normal_contrast_rtl","new_styles_high_contrast_rtl","new_styles_normal_contrast_dyslexic","new_styles_high_contrast_dyslexic","new_styles_normal_contrast_dyslexic_rtl","new_styles_high_contrast_dyslexic_rtl"],{"10":["908ffbc673",0,"d5c9044c6e",2,0,0,2,2],"15":["c8540c43a4",0,"0a2196be1d",2,0,0,2,2],"19":["df5777ed9c"],"61":["a59552c3a9","f422322d14","02f07b6f81","11cd014ca5",0,1,2,3],"67":["5ccf03149a",0,"8353320b7e",2,0,0,2,2],"71":["fbcc288ac6","a8457d691f","4d67034074","0af11e68eb",0,1,2,3],"06":["ba28819778",0,"96b99aafe5",2,0,0,2,2],"f0":["b349f31f5e",0,0,0,0,0,0,0],"c8":["e491a7fa98","a8dd47600a","7dea8eec45","7fa17eb83a",0,1,2,3],"1e":["a09f0d6787","4259d41d1d","980eba8f31","eebc7f4cb4",0,1,2,3],"0c":["4dae5befd2",0,"c18876be89",2,0,0,2,2],"da":["b5a7f9cd8f","6e65f5abf7","773390ae11","6481b459be",0,1,2,3],"1d":["2128789890",0,"e568085637",2,0,0,2,2],"08":["64bff5a97d"],"e2":["79d37f210d"],"9f":["d39b291ba6",0,0,0,0,0,0,0],"2b":["a296da0dea","ba8d07e773","b5215c2cd5","7534d3090c",0,1,2,3],"2c":["8a926fc28b",0,0,0,0,0,0,0],"c2":["402203a2ae"],"9c":["15ece4dc59",0,"232d77deea",2,0,0,2,2],"c5":["b5d5bef953","09b4a0b487","27a133737e","2098769aea",0,1,2,3],"f2":["51574f9b13"]}]
+      REMOTES = {};
+  </script>
+  <script src="https://du11hjcvx0uqb.cloudfront.net/dist/brandable_css/ed591ae6bc473d4c8980ca2b511db809/variables-9dec371ad57e3dd0396f0b2eddb63479.js" defer="defer"></script><script src="https://du11hjcvx0uqb.cloudfront.net/dist/timezone/America/Los_Angeles-6699c54112.js" defer="defer"></script><script src="https://du11hjcvx0uqb.cloudfront.net/dist/timezone/America/Los_Angeles-6699c54112.js" defer="defer"></script><script src="https://du11hjcvx0uqb.cloudfront.net/dist/timezone/en_US-80a0ce259b.js" defer="defer"></script>
+  <script src="https://du11hjcvx0uqb.cloudfront.net/dist/webpack-production/react-entry-be1bde4765d8e661.js" crossorigin="anonymous" defer="defer"></script><script src="https://du11hjcvx0uqb.cloudfront.net/dist/webpack-production/main-entry-bc4ceb0a27a121a2.js" crossorigin="anonymous" defer="defer"></script>
+<script>
+//<![CDATA[
+(window.bundles || (window.bundles = [])).push('quiz_show');
+(window.bundles || (window.bundles = [])).push('quiz_submission');
+(window.bundles || (window.bundles = [])).push('navigation_header');
+//]]>
+</script>
+  
+</head>
+
+<body class="with-left-side course-menu-expanded with-right-side quizzes primary-nav-expanded full-width context-course_132692 responsive_student_grades_page">
+
+<noscript>
+  <div role="alert" class="ic-flash-static ic-flash-error">
+    <div class="ic-flash__icon" aria-hidden="true">
+      <i class="icon-warning"></i>
+    </div>
+    <h1>You need to have JavaScript enabled in order to access this site.</h1>
+  </div>
+</noscript>
+
+
+
+
+<div id="flash_message_holder"></div>
+<div id="flash_screenreader_holder"></div>
+
+<div id="application" class="ic-app ">
+  
+
+
+
+
+<header id="mobile-header" class="no-print">
+  <button type="button" class="Button Button--icon-action-rev Button--large mobile-header-hamburger">
+    <i class="icon-solid icon-hamburger"></i>
+    <span id="mobileHeaderInboxUnreadBadge" class="menu-item__badge" style="min-width: 0; top: 12px; height: 12px; right: 6px; display:none;"></span>
+    <span class="screenreader-only">Global Navigation Menu</span>
+  </button>
+  <div class="mobile-header-space"></div>
+    <a class="mobile-header-title expandable" href="/courses/132692" role="button" aria-controls="mobileContextNavContainer">
+      <div>26S_CS4800.03-1</div>
+        <div>In Class Exercise - 7</div>
+    </a>
+
+  <div id="nutrition_facts_mobile_container"></div>
+
+
+    <div class="mobile-header-space"></div>
+    <button type="button" class="Button Button--icon-action-rev Button--large mobile-header-arrow" aria-label="Navigation Menu">
+      <i class="icon-arrow-open-down" id="mobileHeaderArrowIcon"></i>
+    </button>
+</header>
+<nav id="mobileContextNavContainer"></nav>
+
+<header id="header" class="ic-app-header no-print " aria-label="Global Header">
+  <a href="#content" id="skip_navigation_link">Skip To Content</a>
+  <div role="region" class="ic-app-header__main-navigation" aria-label="Global Navigation">
+      <div class="ic-app-header__logomark-container">
+        <a href="https://canvas.cpp.edu/" class="ic-app-header__logomark">
+          <span class="screenreader-only">Dashboard</span>
+        </a>
+      </div>
+    <ul id="menu" class="ic-app-header__menu-list">
+        <li class="menu-item ic-app-header__menu-list-item ">
+          <a id="global_nav_profile_link" role="button" href="/profile/settings" class="ic-app-header__menu-list-link">
+            <div class="menu-item-icon-container">
+              <div aria-hidden="true" class="fs-exclude ic-avatar ">
+                <img src="https://canvas.cpp.edu/images/messages/avatar-50.png" alt="Casey Wong" />
+              </div>
+              <span class="menu-item__badge"></span>
+            </div>
+            <div class="menu-item__text">
+              Account
+            </div>
+          </a>
+        </li>
+      <li class="ic-app-header__menu-list-item ">
+        <a id="global_nav_dashboard_link" href="https://canvas.cpp.edu/" class="ic-app-header__menu-list-link">
+          <div class="menu-item-icon-container" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="ic-icon-svg ic-icon-svg--dashboard" version="1.1" x="0" y="0" viewBox="0 0 280 200" enable-background="new 0 0 280 200" xml:space="preserve"><path d="M273.09,180.75H197.47V164.47h62.62A122.16,122.16,0,1,0,17.85,142a124,124,0,0,0,2,22.51H90.18v16.29H6.89l-1.5-6.22A138.51,138.51,0,0,1,1.57,142C1.57,65.64,63.67,3.53,140,3.53S278.43,65.64,278.43,142a137.67,137.67,0,0,1-3.84,32.57ZM66.49,87.63,50.24,71.38,61.75,59.86,78,76.12Zm147,0L202,76.12l16.25-16.25,11.51,11.51ZM131.85,53.82v-23h16.29v23Zm15.63,142.3a31.71,31.71,0,0,1-28-16.81c-6.4-12.08-15.73-72.29-17.54-84.25a8.15,8.15,0,0,1,13.58-7.2c8.88,8.21,53.48,49.72,59.88,61.81a31.61,31.61,0,0,1-27.9,46.45ZM121.81,116.2c4.17,24.56,9.23,50.21,12,55.49A15.35,15.35,0,1,0,161,157.3C158.18,152,139.79,133.44,121.81,116.2Z" /></svg>
+
+          </div>
+          <div class="menu-item__text">
+            Dashboard
+          </div>
+        </a>
+      </li>
+        <li class="menu-item ic-app-header__menu-list-item ic-app-header__menu-list-item--active">
+          <a id="global_nav_courses_link" role="button" href="/courses" class="ic-app-header__menu-list-link">
+            <div class="menu-item-icon-container" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="ic-icon-svg ic-icon-svg--courses" version="1.1" x="0" y="0" viewBox="0 0 280 259" enable-background="new 0 0 280 259" xml:space="preserve"><path d="M73.31,198c-11.93,0-22.22,8-24,18.73a26.67,26.67,0,0,0-.3,3.63v.3a22,22,0,0,0,5.44,14.65,22.47,22.47,0,0,0,17.22,8H200V228.19h-134V213.08H200V198Zm21-105.74h90.64V62H94.3ZM79.19,107.34V46.92H200v60.42Zm7.55,30.21V122.45H192.49v15.11ZM71.65,16.71A22.72,22.72,0,0,0,49,39.36V190.88a41.12,41.12,0,0,1,24.32-8h157V16.71ZM33.88,39.36A37.78,37.78,0,0,1,71.65,1.6H245.36V198H215.15v45.32h22.66V258.4H71.65a37.85,37.85,0,0,1-37.76-37.76Z"/></svg>
+
+            </div>
+            <div class="menu-item__text">
+              Courses
+            </div>
+          </a>
+        </li>
+        <li class="menu-item ic-app-header__menu-list-item ">
+          <a id="global_nav_groups_link" role="button" href="/groups" class="ic-app-header__menu-list-link">
+            <div class="menu-item-icon-container" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" class="ic-icon-svg ic-icon-svg--groups" viewBox="0 0 200 135"><path d="M134.5 129.4c0-1.1 0-19.8-6.2-31.1-4.5-8.5-16.4-12.4-35-19.2-1.7-.6-3.4-1.1-5.1-1.7v-8.5c5.6-5.1 8.5-12.4 8.5-20.3V29.4C96.6 13 83.6 0 67.2 0S37.9 13 37.9 29.4v19.2c0 7.3 3.4 14.7 8.5 20.3v8.5c-1.7.6-3.4 1.1-5.1 1.7-18.6 6.2-30.5 10.7-35 19.2C0 109.6 0 128.8 0 129.4c0 3.4 2.3 5.6 5.6 5.6h123.7c3.5 0 5.7-2.3 5.2-5.6zm-123.2-5.7c.6-5.6 1.7-14.7 3.4-19.8C17 98.8 30 94.3 43.5 89.8c2.8-1.1 5.6-2.3 9-3.4 2.3-.6 4-2.8 4-5.1V66.7c0-1.7-.6-3.4-1.7-4.5-4-3.4-6.2-8.5-6.2-13.6V29.4c0-10.2 7.9-18.1 18.1-18.1s18.1 7.9 18.1 18.1v19.2c0 5.1-2.3 10.2-6.2 13.6-1.1 1.1-1.7 2.8-1.7 4.5v14.7c0 2.3 1.7 4.5 4 5.1 2.8 1.1 6.2 2.3 9 3.4 13.6 5.1 26.6 9.6 28.8 14.1 2.8 5.1 4 13.6 4.5 19.8H11.3zM196 79.1c-2.8-6.2-11.3-9.6-22.6-13.6l-1.7-.6v-3.4c4.5-4 6.8-9.6 6.8-15.8V35c0-12.4-9.6-22-22-22s-22 10.2-22 22v10.7c0 6.2 2.3 11.9 6.8 15.8V65l-1.7.6c-7.3 2.8-13 4.5-16.9 7.3-1.7 1.1-2.3 2.8-2.3 5.1.6 1.7 1.7 3.4 3.4 4.5 7.9 4 12.4 7.3 14.1 10.7 2.3 4.5 4 10.2 5.1 18.1.6 2.3 2.8 4.5 5.6 4.5h45.8c3.4 0 5.6-2.8 5.6-5.1 0-3.9 0-24.3-4-31.6zm-42.9 25.4c-1.1-6.8-2.8-12.4-5.1-16.9-1.7-4-5.1-6.8-9.6-10.2 1.7-1.1 3.4-1.7 5.1-2.3l5.6-2.3c1.7-.6 3.4-2.8 3.4-5.1v-9.6c0-1.7-.6-3.4-2.3-4.5-2.8-1.7-4.5-5.1-4.5-8.5V34.5c0-6.2 4.5-10.7 10.7-10.7s10.7 5.1 10.7 10.7v10.7c0 3.4-1.7 6.2-4.5 8.5-1.1 1.1-2.3 2.8-2.3 4.5v10.2c0 2.3 1.1 4.5 3.4 5.1l5.6 2.3c6.8 2.3 15.3 5.6 16.4 7.9 1.7 2.8 2.8 12.4 2.8 20.9h-35.4z"/></svg>
+
+            </div>
+            <div class="menu-item__text">
+              Groups
+            </div>
+          </a>
+        </li>
+      <li class="menu-item ic-app-header__menu-list-item ">
+        <a id="global_nav_calendar_link" href="/calendar" class="ic-app-header__menu-list-link">
+          <div class="menu-item-icon-container" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="ic-icon-svg ic-icon-svg--calendar" version="1.1" x="0" y="0" viewBox="0 0 280 280" enable-background="new 0 0 280 280" xml:space="preserve"><path d="M197.07,213.38h16.31V197.07H197.07Zm-16.31,16.31V180.76h48.92v48.92Zm-48.92-16.31h16.31V197.07H131.85Zm-16.31,16.31V180.76h48.92v48.92ZM66.62,213.38H82.93V197.07H66.62ZM50.32,229.68V180.76H99.24v48.92Zm146.75-81.53h16.31V131.85H197.07Zm-16.31,16.31V115.54h48.92v48.92Zm-48.92-16.31h16.31V131.85H131.85Zm-16.31,16.31V115.54h48.92v48.92ZM66.62,148.15H82.93V131.85H66.62ZM50.32,164.46V115.54H99.24v48.92ZM34,262.29H246V82.93H34ZM246,66.62V42.16A8.17,8.17,0,0,0,237.84,34H213.38v8.15a8.15,8.15,0,1,1-16.31,0V34H82.93v8.15a8.15,8.15,0,0,1-16.31,0V34H42.16A8.17,8.17,0,0,0,34,42.16V66.62Zm-8.15-48.92a24.49,24.49,0,0,1,24.46,24.46V278.6H17.71V42.16A24.49,24.49,0,0,1,42.16,17.71H66.62V9.55a8.15,8.15,0,0,1,16.31,0v8.15H197.07V9.55a8.15,8.15,0,1,1,16.31,0v8.15Z"/></svg>
+
+          </div>
+          <div class="menu-item__text">
+            Calendar
+          </div>
+        </a>
+      </li>
+      <li class="menu-item ic-app-header__menu-list-item ">
+      <!-- TODO: Add back global search when available -->
+        <a id="global_nav_conversations_link" href="/conversations" class="ic-app-header__menu-list-link">
+          <div class="menu-item-icon-container">
+            <span aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" class="ic-icon-svg ic-icon-svg--inbox" version="1.1" x="0" y="0" viewBox="0 0 280 280" enable-background="new 0 0 280 280" xml:space="preserve"><path d="M91.72,120.75h96.56V104.65H91.72Zm0,48.28h80.47V152.94H91.72Zm0-96.56h80.47V56.37H91.72Zm160.94,34.88H228.52V10.78h-177v96.56H27.34A24.17,24.17,0,0,0,3.2,131.48V244.14a24.17,24.17,0,0,0,24.14,24.14H252.66a24.17,24.17,0,0,0,24.14-24.14V131.48A24.17,24.17,0,0,0,252.66,107.34Zm0,16.09a8.06,8.06,0,0,1,8,8v51.77l-32.19,19.31V123.44ZM67.58,203.91v-177H212.42v177ZM27.34,123.44H51.48v79.13L19.29,183.26V131.48A8.06,8.06,0,0,1,27.34,123.44ZM252.66,252.19H27.34a8.06,8.06,0,0,1-8-8V202l30,18H230.75l30-18v42.12A8.06,8.06,0,0,1,252.66,252.19Z"/></svg>
+</span>
+            <span class="menu-item__badge"></span>
+          </div>
+          <div class="menu-item__text">
+            Inbox
+          </div>
+        </a>
+      </li>
+        <li class="menu-item ic-app-header__menu-list-item" >
+          <a id="global_nav_history_link" role="button" href="#" class="ic-app-header__menu-list-link">
+            <div class="menu-item-icon-container" aria-hidden="true">
+              <svg viewBox="0 0 1920 1920" class="ic-icon-svg menu-item__icon svg-icon-history" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <path d="M960 112.941c-467.125 0-847.059 379.934-847.059 847.059 0 467.125 379.934 847.059 847.059 847.059 467.125 0 847.059-379.934 847.059-847.059 0-467.125-379.934-847.059-847.059-847.059M960 1920C430.645 1920 0 1489.355 0 960S430.645 0 960 0s960 430.645 960 960-430.645 960-960 960m417.905-575.955L903.552 988.28V395.34h112.941v536.47l429.177 321.77-67.765 90.465z" stroke="none" stroke-width="1" fill-rule="evenodd"/>
+</svg>
+            </div>
+            <div class="menu-item__text">
+              History
+            </div>
+          </a>
+        </li>
+        
+    <li id="context_external_tool_848_menu_item" data-tool-id="kaltura---my-media-848" class="globalNavExternalTool menu-item ic-app-header__menu-list-item">
+      <a class='ic-app-header__menu-list-link' href="/accounts/1/external_tools/848?launch_type=global_navigation&amp;toolId=kaltura---my-media-848" target="">
+          <img src="https://cdnsecakmi.kaltura.com/content/static/canvas/my_media.png" alt="Kaltura" class="lti_tool_icon_large"/>
+        <div class="menu-item__text">
+          Kaltura - My Media
+        </div>
+      </a>
+    </li>
+
+      <li class="ic-app-header__menu-list-item">
+        <a id="global_nav_help_link" role="button" class="ic-app-header__menu-list-link" data-track-category="help system" data-track-label="help button" href="#">
+          <div class="menu-item-icon-container" role="presentation">
+              <svg xmlns="http://www.w3.org/2000/svg" class="ic-icon-svg menu-item__icon svg-icon-help" version="1.1" x="0" y="0" viewBox="0 0 200 200" enable-background="new 0 0 200 200" xml:space="preserve" fill="currentColor"><path d="M100,127.88A11.15,11.15,0,1,0,111.16,139,11.16,11.16,0,0,0,100,127.88Zm8.82-88.08a33.19,33.19,0,0,1,23.5,23.5,33.54,33.54,0,0,1-24,41.23,3.4,3.4,0,0,0-2.74,3.15v9.06H94.42v-9.06a14.57,14.57,0,0,1,11.13-14,22.43,22.43,0,0,0,13.66-10.27,22.73,22.73,0,0,0,2.31-17.37A21.92,21.92,0,0,0,106,50.59a22.67,22.67,0,0,0-19.68,3.88,22.18,22.18,0,0,0-8.65,17.64H66.54a33.25,33.25,0,0,1,13-26.47A33.72,33.72,0,0,1,108.82,39.8ZM100,5.2A94.8,94.8,0,1,0,194.8,100,94.91,94.91,0,0,0,100,5.2m0,178.45A83.65,83.65,0,1,1,183.65,100,83.73,83.73,0,0,1,100,183.65" transform="translate(-5.2 -5.2)"/></svg>
+
+            <span class="menu-item__badge"></span>
+          </div>
+          <div class="menu-item__text">
+            Help
+          </div>
+</a>      </li>
+    </ul>
+  </div>
+  <div class="ic-app-header__secondary-navigation">
+    <ul class="ic-app-header__menu-list">
+      <li class="menu-item ic-app-header__menu-list-item">
+        <a
+          id="primaryNavToggle"
+          role="button"
+          href="#"
+          class="ic-app-header__menu-list-link ic-app-header__menu-list-link--nav-toggle"
+          aria-label="Minimize global navigation"
+          title="Minimize global navigation"
+        >
+          <div class="menu-item-icon-container" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" class="ic-icon-svg ic-icon-svg--navtoggle" version="1.1" x="0" y="0" width="40" height="32" viewBox="0 0 40 32" xml:space="preserve">
+  <path d="M39.5,30.28V2.48H37.18v27.8Zm-4.93-13.9L22.17,4,20.53,5.61l9.61,9.61H.5v2.31H30.14l-9.61,9.61,1.64,1.64Z"/>
+</svg>
+
+          </div>
+        </a>
+      </li>
+    </ul>
+  </div>
+  <div id="global_nav_tray_container"></div>
+  <div id="global_nav_tour"></div>
+</header>
+
+
+  <div id="instructure_ajax_error_box">
+    <div style="text-align: right; background-color: #fff;"><a href="#" class="close_instructure_ajax_error_box_link">Close</a></div>
+    <iframe id="instructure_ajax_error_result" src="about:blank" style="border: 0;" title="Error"></iframe>
+  </div>
+
+  <div id="wrapper" class="ic-Layout-wrapper">
+        <div class="ic-app-nav-toggle-and-crumbs no-print">
+            <button type="button" id="courseMenuToggle" class="Button Button--link ic-app-course-nav-toggle" aria-live="polite" aria-label="Hide Courses Navigation Menu">
+              <i class="icon-hamburger" aria-hidden="true"></i>
+            </button>
+
+          <div class="ic-app-crumbs ic-app-crumbs-enhanced-rubrics">
+              <nav id="breadcrumbs" role="navigation" aria-label="breadcrumbs"><ol><li class="home"><a href="/"><span class="ellipsible"><i class="icon-home" title="My Dashboard"><span class="screenreader-only">My Dashboard</span></i></span></a></li><li><a href="/courses/132692"><span class="ellipsible">26S_CS4800.03-1</span></a></li><li><a href="/courses/132692/quizzes"><span class="ellipsible">Quizzes</span></a></li><li aria-current="page"><a href="/courses/132692/quizzes/335869"><span class="ellipsible">In Class Exercise - 7</span></a></li></ol></nav>
+          </div>
+
+
+          <div id="nutrition_facts_container"></div>
+          <div class="right-of-crumbs right-of-crumbs-no-reverse">
+              <div class="TutorialToggleHolder"></div>
+            <div id="ai-information-mount"></div>
+          </div>
+
+        </div>
+    <div id="main" class="ic-Layout-columns">
+        <div class="ic-Layout-watermark" aria-hidden="true"></div>
+        <div id="left-side"
+          class="ic-app-course-menu ic-sticky-on list-view"
+          style="display: block"
+          >
+          <div id="sticky-container" class="ic-sticky-frame">
+              <span id="section-tabs-header-subtitle" class="ellipsis">Spring Semester 2026</span>
+            <nav role="navigation" aria-label="Courses Navigation Menu"><ul id="section-tabs"><li class="section"><a id="home-link" href="/courses/132692" class="home">Home</a></li><li class="section"><a id="announcements-link" href="/courses/132692/announcements" class="announcements">Announcements</a></li><li class="section"><a id="assignments-link" href="/courses/132692/assignments" class="assignments">Assignments</a></li><li class="section"><a id="discussions-link" href="/courses/132692/discussion_topics" class="discussions">Discussions</a></li><li class="section"><a id="grades-link" href="/courses/132692/grades" class="grades">Grades</a></li><li class="section"><a id="people-link" href="/courses/132692/users" class="people">People</a></li><li class="section"><a id="pages-link" href="/courses/132692/wiki" class="pages">Pages</a></li><li class="section"><a id="files-link" href="/courses/132692/files" class="files">Files</a></li><li class="section"><a id="syllabus-link" href="/courses/132692/assignments/syllabus" class="syllabus">Syllabus</a></li><li class="section"><a id="quizzes-link" href="/courses/132692/quizzes" aria-current="page" class="quizzes active">Quizzes</a></li><li class="section"><a id="modules-link" href="/courses/132692/modules" class="modules">Modules</a></li><li class="section"><a id="bigbluebutton-link" href="/courses/132692/conferences" class="conferences">BigBlueButton</a></li><li class="section"><a id="collaborations-link" href="/courses/132692/collaborations" class="collaborations">Collaborations</a></li><li class="section"><a id="context_external_tool_5-link" href="/courses/132692/external_tools/5" class="context_external_tool_5">Chat</a></li><li class="section"><a id="context_external_tool_465-link" href="/courses/132692/external_tools/465" class="context_external_tool_465">Library Resources</a></li><li class="section"><a id="context_external_tool_599-link" href="/courses/132692/external_tools/599" class="context_external_tool_599">Course Evaluations</a></li><li class="section"><a id="context_external_tool_727-link" href="/courses/132692/external_tools/727" class="context_external_tool_727">Zoom LTI Integration</a></li><li class="section"><a id="context_external_tool_848-link" href="/courses/132692/external_tools/848" class="context_external_tool_848">Kaltura Media</a></li><li class="section"><a id="context_external_tool_982-link" href="/courses/132692/external_tools/982" class="context_external_tool_982">Namecoach</a></li><li class="section"><a id="context_external_tool_1272-link" href="/courses/132692/external_tools/1272" class="context_external_tool_1272">Instant Access Complete</a></li><li class="section"><a id="context_external_tool_1404-link" href="/courses/132692/external_tools/1404" class="context_external_tool_1404">Parchment Badges</a></li></ul></nav>
+          </div>
+        </div>
+      <div id="not_right_side" class="ic-app-main-content">
+        <div id="content-wrapper" class="ic-Layout-contentWrapper">
+          
+          <div id="content" class="ic-Layout-contentMain" role="main">
+            
+
+
+
+
+
+<div id="quiz_show">
+
+  <header class="quiz-header">
+
+
+    <h1 id="quiz_title">
+      In Class Exercise - 7
+    </h1>
+
+
+    <div class="row-fluid">
+        <div id="quiz_details_wrapper" data-submitted-count=""></div>
+    </div>
+    <div class="row-fluid">
+        
+
+<base target="_top" />
+<ul id="quiz_student_details">
+  <li>
+    <span class="title">Due</span>
+    <span class="value">
+        <span data-tooltip data-html-tooltip-title="Apr 15 at 8:30pm">
+          Apr 15 at 8:30pm
+        </span>
+    </span>
+  </li>
+
+  <li style="">
+    <span class="title">Points</span>
+    <span class="value">10</span>
+  </li>
+
+  <li>
+    <span class="title">Questions</span>
+    <span class="value">1</span>
+  </li>
+  
+  <li>
+    <span class="title">Available</span>
+    <span class="value">
+        Apr 15 at 7pm - Apr 15 at 8:30pm
+          <span style="font-size: 0.8em;">1 hour and 30 minutes</span>
+    </span>
+  </li>
+
+  <li>
+    <span class="title">Time Limit</span>
+    <span class="value">
+        None
+    </span>
+  </li>
+
+
+</ul>
+
+    <h2>Instructions</h2>
+    <div class="description user_content" role="region" aria-label="Quiz Instructions">
+      <p>Use Codex to recommend and add a Software Design Pattern to your Class Project.&nbsp;</p>
+<p>Use CPP ChatGPT EDU Account to download Codex.</p>
+<p>You can use following URL:</p>
+<p><a class="external" href="https://chatgpt.com/codex/get-started" target="_blank"><span>https://chatgpt.com/codex/get-started</span><span class="external_link_icon" role="presentation"><span class="screenreader-only">Links to an external site.</span></span></a></p>
+<p><strong>Preparation:</strong> Include your code base, or ask Codex to generate a new Application based on your requirements document.&nbsp;</p>
+<p><strong>Prompt 1:</strong> Can you recommend a Software Design Pattern to &lt;Project Name&gt;?</p>
+<p><strong>Prompt 2:</strong> Can you modify the code to add this Software Design Pattern to the &lt;Project Name&gt;?</p>
+<p>&nbsp;</p>
+<p>Note: There is $100 Credit also available for Students</p>
+<p><a class="external" href="https://chatgpt.com/codex/students" target="_blank"><span>https://chatgpt.com/codex/students</span><span class="external_link_icon" role="presentation"><span class="screenreader-only">Links to an external site.</span></span></a></p>
+<p>&nbsp;</p>
+    </div>
+
+    </div>
+
+
+          <div class="lock_explanation">
+            This quiz was locked Apr 15 at 8:30pm.
+          </div>
+
+    <div id="quiz-submission-version-table"></div>
+
+  </header>
+
+  <div id="direct-share-mount-point"></div>
+  <div id="assign-to-mount-point"></div>
+
+    
+  <div class="quiz-submission ">
+
+
+<div class="quiz_score" style="">
+    Score for this quiz:
+  <span class="score_value">10</span> out of 10
+  
+    </div>
+<div>
+  Submitted Apr 15 at 7:35pm
+</div>
+<div class="quiz_duration" style="">
+  This attempt took less than 1 minute.
+</div>
+<div id="questions" class="assessment_results  show_correct_answers">
+  
+<div role="region" aria-label="Question" class="quiz_sortable question_holder " id="" style="" data-group-id="">
+  <div style="display: block; height: 1px; overflow: hidden;">&nbsp;</div>
+  <a name="question_5300179"></a>
+  <div class="display_question question short_answer_question  correct   " id="question_5300179">
+    
+<div class="move">
+  <a tabindex="0" class="draggable-handle" role="button">
+    <i class="icon-drag-handle">
+      <span class="screenreader-only">Move To...</span>
+      <span class="accessibility-warning screenreader-only">
+        This element is a more accessible alternative to drag &amp; drop reordering. Press Enter or Space to move this question.
+      </span>
+    </i>
+  </a>
+</div>
+
+
+    <div class="header" >
+      <span class="name question_name" role="heading" aria-level="2">Question 1</span>
+      <span class="question_points_holder" style="">
+        <div class="user_points" >
+                10
+          <span class="points question_points"> / 10</span> pts
+        </div>
+    </span>
+    </div>
+      <div class="links" style="display: none;">
+        <a href="#" class="edit_question_link no-hover" title="Edit this Question"><i class="icon-edit standalone-icon"><span class="screenreader-only">Edit this Question</span></i></a>
+          <a href="#" class="delete_question_link no-hover" title="Delete this Question"><i class="icon-end standalone-icon"><span class="screenreader-only">Delete this Question</span></i></a>
+      </div>
+    <div style="display: none;">
+      <span class="regrade_option"></span>
+      <span class="regrade_disabled">0</span>
+      <span class="question_type">short_answer_question</span>
+      <span class="answer_selection_type"></span>
+        <a href="/courses/132692/quizzes/335869/questions/5300179" class="update_question_url">&nbsp;</a>
+      <span class="assessment_question_id">7713543</span>
+    </div>
+    <div class="text">
+      <div class="original_question_text" style="display: none;">
+        <textarea disabled style="display: none;" name="text_after_answers" class="textarea_text_after_answers"></textarea>
+        <textarea disabled style="display: none;" name="question_text" class="textarea_question_text">&lt;p&gt;Enter Code provided in class&lt;/p&gt;</textarea>
+      </div>
+      <div id="question_5300179_question_text" class="question_text user_content">
+          <p>Enter Code provided in class</p>
+      </div>
+      <div class="answers">
+              <div>
+                  <div class='answer selected_answer correct_answer no_answer'>
+                    
+<div class="form-control text-box-question-holder">
+  <input type="text" name="question_5300179" value="65" class="question_input" autocomplete='off' readonly=&quot;readonly&quot; aria-label="Fill in the blank answer" />
+
+</div>
+
+                  </div>
+              </div>
+                <div class="answers_wrapper">
+                  
+    <div class="answer answer_for_
+         
+         
+         
+         
+          correct_answer"
+       id="answer_5685"
+       style=""
+      title="65. This was the correct answer.">
+
+
+      <span class='hidden id'>5685</span>
+
+    <div class="select_answer answer_type" >
+      <label for="answer-5685">
+        <div class="answer_text" >65</div>
+        <div class="answer_html"></div>
+      </label>
+    </div>
+    <div class="answer_type short_answer" style='display:none;'>
+      <input name="answer_text" type="text" style="width: 200px; margin-bottom: 5px; color: #000;" disabled="true" value="65"/>
+    </div>
+    <div class="answer_match matching_answer answer_type" style='display:none;'>
+      <div class="answer_match_left" >65</div>
+      <div class="answer_match_left_html" style='display:none;'></div>
+      <div class="answer_match_middle">&nbsp;</div>
+      <div class="answer_match_right">
+              
+      </div>
+      <div class="clear"></div>
+    </div>
+    <div style="display: none;">
+      <span class="numerical_answer_type">exact_answer</span>
+      <span class="blank_id">none</span>
+      <span class="question_id">5300179</span>
+      <span class="id">5685</span>
+      <span class="match_id"></span>
+    </div>
+      <div class="numerical_exact_answer answer_type" style='display:none;'>
+        <span class="answer_exact">0</span> (with margin: <span class="answer_error_margin">0</span>)
+      </div>
+      <div class="numerical_precision_answer answer_type" style='display:none;'>
+        <span class="answer_approximate">
+          0
+        </span> (with precision: <span class="answer_precision">10</span>)
+      </div>
+      <div class="numerical_range_answer answer_type" style='display:none;'>
+        Between <span class="answer_range_start">0</span> and <span class="answer_range_end">0</span>
+      </div>
+    <div class="numerical_range_answer answer_type" style='display:none;'>
+      <span class="answer_equation"></span>
+      <span class="margin" style="display: none;">
+        margin of error
+        <span style="font-size: 0.8em;">
+          +/-
+        </span>
+        <span class="answer_tolerance"></span>
+      </span>
+    </div>
+      <span class="answer_weight" style="display: none;">100</span>
+
+    <div class="clear"></div>
+  </div>
+
+    <div class="clear"></div>
+
+                </div>
+      </div>
+      <div class="after_answers">
+      </div>
+    </div>
+      
+    <div class="clear"></div>
+  </div>
+</div>
+
+</div>
+  <div id="update_scores">
+
+
+<div class="quiz_score" style="text-align: right; font-size: 1.2em; ">
+    Quiz Score:
+  <span class="score_value">10</span> out of 10
+</div>
+</div> <!-- #speed_update_scores || #update_scores -->
+</div>
+
+
+
+
+  <div id="assignment_external_tools"><script>
+//<![CDATA[
+(window.prefetched_xhrs = (window.prefetched_xhrs || {}))["/api/v1/courses/132692/lti_apps/launch_definitions?placements%5B%5D=assignment_view"] = fetch("/api/v1/courses/132692/lti_apps/launch_definitions?placements%5B%5D=assignment_view", {"credentials":"same-origin","headers":{"Accept":"application/json+canvas-string-ids, application/json","X-Requested-With":"XMLHttpRequest"}})
+//]]>
+</script></div>
+
+  <div id="module_sequence_footer"></div>
+
+</div>
+
+          </div>
+        </div>
+        <div id="right-side-wrapper" class="ic-app-main-content__secondary">
+          <aside id="right-side" role="complementary">
+                <div id="sidebar_content" class="rs-margin-bottom">
+      <ul class="page-action-list" style="display:none;">
+        <h2>Related Items</h2>
+
+
+
+      </ul>
+    </div>
+
+        
+  <div>
+    <div style="border-bottom: 1px solid #888; font-size: 1.1em; font-weight: bold;">
+        Submission Details:
+    </div>
+    <div>
+    <table class="summary" style="font-size: 1.1em;">
+      <tbody>
+        <tr>
+          <th>Time:</th>
+          <td>less than 1 minute</td>
+        </tr>
+        <tr style="">
+          <th>Current Score:</th>
+          <td>10 out of 10
+</td>
+        </tr>
+        <tr style="">
+          <th>Kept Score:</th>
+          <td>10 out of 10</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+    <div style="display:none;"><!-- Everything inside of this should always stay hidden -->
+        <div id="page_view_id">25a64ebb-1293-4e28-b52a-853dbc166cee</div>
+    </div>
+  <div id='aria_alerts' class='hide-text affix' role="alert" aria-live="assertive"></div>
+  <div id='StudentTray__Container'></div>
+    <div class="NewUserTutorialTray__Container"></div>
+  <div id="react-router-portals"></div>
+
+
+  
+
+  <iframe src="https://sso.canvaslms.com/post_message_forwarding?rev=e6aca5e55d-87e5fa8c76e8ef76&amp;token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJwYXJlbnRfZG9tYWluIjoiY2FudmFzLmNwcC5lZHUifQ.Bf0asSuUQH0ak7rpZ4_KpZJN0ReWqBC7_kk8dRBdMhfwU6fYxK3oqqXRb2nKnDvCzM0DHyoajaB4wEoYhDHWCw" name="post_message_forwarding" title="post_message_forwarding" id="post_message_forwarding" sandbox="allow-scripts allow-same-origin" style="display:none;"></iframe>
+
+
+  <script>
+    Object.assign(
+      ENV,
+      {}
+    )
+  </script>
+
+<script>
+//<![CDATA[
+(window.deferredBundles || (window.deferredBundles = [])).push('usage_metrics');
+(window.bundles || (window.bundles = [])).push('inst_fs_service_worker');
+//]]>
+</script>
+<script src="https://instructure-uploads-pdx.s3.us-west-2.amazonaws.com/account_187260000000000001/attachments/13627276/JavaScript-code.js" defer="defer"></script>
+
+
+</div> <!-- #application -->
+</body>
+</html>
