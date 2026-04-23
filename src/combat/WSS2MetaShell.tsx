@@ -138,7 +138,7 @@ const WSS2MetaShell: React.FC = () => {
         m.bestGrade === null || GRADE_RANK[result.grade] > GRADE_RANK[m.bestGrade]
           ? result.grade : m.bestGrade;
       return {
-        currency: m.currency + result.scrapEarned,
+        currency: Math.max(0, m.currency + Math.floor(Number(result.scrapEarned) || 0)),
         runCount: m.runCount + 1,
         bestGrade: newBest,
         lastResult: result,
