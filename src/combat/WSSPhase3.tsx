@@ -270,6 +270,14 @@ const WEAPONS: Record<string, Weapon> = {
 };
 const brainWeapon = (b: BrainType): Weapon => ({ ...WEAPONS[{ aggressive:"shotgun", balanced:"pistol", cautious:"knife", survivalist:"bat", money:"rifle" }[b]] });
 
+let _nightOverlayCanvas: HTMLCanvasElement | null = null;
+function getNightOverlayCanvas(w: number, h: number): HTMLCanvasElement {
+  if (!_nightOverlayCanvas) _nightOverlayCanvas = document.createElement("canvas");
+  if (_nightOverlayCanvas.width !== w) _nightOverlayCanvas.width = w;
+  if (_nightOverlayCanvas.height !== h) _nightOverlayCanvas.height = h;
+  return _nightOverlayCanvas;
+}
+
 function makePRNG(seed: number) {
   let s = seed >>> 0;
   return (): number => {
@@ -1687,8 +1695,33 @@ function renderWorld(
 
   const nf = nightFactor(state.tick);
   if (nf > 0.001) {
-    ctx.fillStyle = `rgba(20, 30, 80, ${0.5 * nf})`;
-    ctx.fillRect(0, 0, canvasW, canvasH);
+    const off = getNightOverlayCanvas(canvasW, canvasH);
+    const octx = off.getContext("2d");
+    if (octx) {
+      octx.fillStyle = `rgba(20, 30, 80, ${0.5 * nf})`;
+      octx.fillRect(0, 0, canvasW, canvasH);
+      octx.globalCompositeOperation = "destination-out";
+      const lightRadiusPx = 7 * ts;
+      for (const e of state.entities) {
+        if (e.kind !== "survivor") continue;
+        const s = e as Survivor;
+        if (s.dead || s.evacuated) continue;
+        const lx = (s.pos.x - camX) * ts;
+        const ly = (s.pos.y - camY) * ts;
+        if (lx < -lightRadiusPx || lx > canvasW + lightRadiusPx) continue;
+        if (ly < -lightRadiusPx || ly > canvasH + lightRadiusPx) continue;
+        const grad = octx.createRadialGradient(lx, ly, 0, lx, ly, lightRadiusPx);
+        grad.addColorStop(0,    `rgba(0,0,0, ${0.95 * nf})`);
+        grad.addColorStop(0.55, `rgba(0,0,0, ${0.55 * nf})`);
+        grad.addColorStop(1,    "rgba(0,0,0, 0)");
+        octx.fillStyle = grad;
+        octx.fillRect(lx - lightRadiusPx, ly - lightRadiusPx, lightRadiusPx * 2, lightRadiusPx * 2);
+      }
+      ctx.drawImage(off, 0, 0);
+    } else {
+      ctx.fillStyle = `rgba(20, 30, 80, ${0.5 * nf})`;
+      ctx.fillRect(0, 0, canvasW, canvasH);
+    }
   }
 
   const evacuatedCount = state.entities.filter(e => e.kind === "survivor" && !e.dead && (e as Survivor).evacuated).length;
