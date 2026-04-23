@@ -262,6 +262,52 @@ function cyclePos(tick: number): number {
 function isNightTick(tick: number): boolean {
   return cyclePos(tick) >= DAY_LENGTH;
 }
+// ───────────────────────────────────────────────────────────────────────────
+// NIGHT-BONUS MATH (single source of truth)
+// Kills count 1 scrap, evacs count 5 scrap, both must have happened during
+// night (nightFactor > 0.5). Then the player's Scrap-Magnet perk multiplier
+// is applied. Negative inputs are clamped to 0 so corrupted save data can't
+// produce a refund.
+//
+// Locked in by a dev-time self-test below — if you change this formula,
+// update the test cases too or the dev console will throw on reload.
+// ───────────────────────────────────────────────────────────────────────────
+export function computeNightBonus(
+  nightKills: number,
+  nightEvacuations: number,
+  scrapMultiplier: number,
+): number {
+  const k = Math.max(0, nightKills);
+  const e = Math.max(0, nightEvacuations);
+  const raw = k * 1 + e * 5;
+  return Math.round(raw * scrapMultiplier);
+}
+
+if (import.meta.env.DEV) {
+  type Case = { k: number; e: number; m: number; want: number; why: string };
+  const cases: Case[] = [
+    { k: 0,   e: 0,   m: 1.0, want: 0,   why: "no night activity → 0 bonus" },
+    { k: 5,   e: 0,   m: 1.0, want: 5,   why: "5 night kills × 1 = 5" },
+    { k: 0,   e: 3,   m: 1.0, want: 15,  why: "3 night evacs × 5 = 15" },
+    { k: 4,   e: 2,   m: 1.0, want: 14,  why: "4 kills + 2 evacs = 4 + 10" },
+    { k: 10,  e: 4,   m: 1.3, want: 39,  why: "(10 + 20) × 1.3 = 39 with Scrap Magnet" },
+    { k: -7,  e: -2,  m: 1.0, want: 0,   why: "negative inputs clamp to 0" },
+    { k: 100, e: 100, m: 0,   want: 0,   why: "zero multiplier → 0 bonus" },
+  ];
+  for (const c of cases) {
+    const got = computeNightBonus(c.k, c.e, c.m);
+    if (got !== c.want) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[WSSPhase3] computeNightBonus regression: ` +
+        `(${c.k}, ${c.e}, ${c.m}) → ${got}, expected ${c.want}. ` +
+        `Case: ${c.why}`,
+      );
+      throw new Error("Night-bonus formula has changed without test update.");
+    }
+  }
+}
+
 function nightFactor(tick: number): number {
   const t = cyclePos(tick);
   if (t < DAY_LENGTH - PHASE_FADE) return 0;
@@ -1865,13 +1911,12 @@ function computeRunResult(state: GameState): RunResult {
   const gradeBonusRaw = GRADE_BONUS[grade];
   const nightKills = Math.max(0, state.nightKills);
   const nightEvacuations = Math.max(0, state.nightEvacuations);
-  const nightBonusRaw = Math.max(0, nightKills * 1 + nightEvacuations * 5);
   const mult = 1 + state.perks.scrapMagnet * PERK_SCRAP_PER_LEVEL;
   const base = Math.round(baseRaw * mult);
   const perKill = Math.round(perKillRaw * mult);
   const perEvac = Math.round(perEvacRaw * mult);
   const gradeBonus = Math.round(gradeBonusRaw * mult);
-  const nightBonus = Math.round(nightBonusRaw * mult);
+  const nightBonus = computeNightBonus(nightKills, nightEvacuations, mult);
   return {
     win: state.winState === "won",
     grade,
@@ -2066,6 +2111,28 @@ const WSSPhase3: React.FC<WSSPhase3Props> = ({ loadout = EMPTY_LOADOUT, perks = 
             <span className={`text-xs font-bold ${night ? "text-indigo-300" : "text-amber-300"}`}>
               {night ? "🌙 NIGHT" : "☀ DAY"} ({remain})
             </span>
+          );
+        })()}
+        {(() => {
+          const s = stateRef.current;
+          const nk = Math.max(0, s.nightKills | 0);
+          const ne = Math.max(0, s.nightEvacuations | 0);
+          if (nk === 0 && ne === 0) return null;
+          const mult = 1 + s.perks.scrapMagnet * PERK_SCRAP_PER_LEVEL;
+          const live = computeNightBonus(nk, ne, mult);
+          const isNight = isNightTick(tick);
+          return (
+            <>
+              <span className="text-gray-700">|</span>
+              <span
+                title={`Earned during night so far: ${nk} kill(s) ×1 + ${ne} evac(s) ×5${mult > 1 ? ` (×${mult.toFixed(2)} Scrap Magnet)` : ""}`}
+                className={`text-xs font-bold px-1.5 py-0.5 rounded border ${isNight
+                  ? "text-indigo-100 bg-indigo-900/60 border-indigo-500 animate-pulse"
+                  : "text-indigo-300 bg-indigo-950/50 border-indigo-700"}`}
+              >
+                🌙+{live} <span className="text-indigo-300/70 font-normal">({nk}k·{ne}e)</span>
+              </span>
+            </>
           );
         })()}
         <span className="text-gray-700">|</span>
