@@ -68,8 +68,11 @@ Preferred communication style: Simple, everyday language.
 ### Active Drafts (NOT building until Casey activates)
 - **Task #8 — Apply Strategy/State pattern to a future Phase's AI**: Draft plan at `.local/tasks/strategy-pattern-future-phase.md`. Mirrors the In-Class Exercise 7 sandbox into the active phase if/when Casey decides. Do NOT auto-build.
 
+### Sandbox Experiments (NOT in Phase 3 yet)
+- **Zombie Variants — Walker / Runner / Brute (sandbox only)**: Three zombie types prototyped in `src/combat/ZombieAISandbox.tsx`. Each has its own `speedMult`, `alertRadius`, `chaseBonusTicks`, `patrolSpeedMult`, body radius, and accent ring color. Walker is the baseline (spd×1.0, sight 9). Runner is fast & twitchy (spd×1.6, sight 7, gives up sooner). Brute is slow & relentless (spd×0.55, sight 12, never lets go). Renders with a colored outer accent ring + inner state-colored body, log entries are tagged `[Walker]`/`[Runner]`/`[Brute]`. **Phase 3 is unchanged** — Casey can ship variants to Phase 3 in a follow-up task when ready.
+
 ### Upcoming Work (DO NOT build until Casey requests)
-- **Zombie AI Brainstorm**: Casey added a ZOMBIE AI BRAINSTORM section to the Notion Source of Truth page (page ID: 30a0e51f-71de-8149-af72-cd8ce49b0fda). Covers smarter zombie behavior — line of sight, wandering, losing interest, etc. When Casey asks to work on this, pull the full spec from Notion first and build incrementally in a **sandbox file** (not WSSPhase3.tsx). Stability over features — Phase 3 is stable and should not be destabilized by experimental work.
+- **Zombie AI Brainstorm**: Notion source-of-truth page (30a0e51f-71de-8149-af72-cd8ce49b0fda) has a ZOMBIE AI BRAINSTORM section. Baseline behaviors (wandering, LOS detection, lose interest, investigate noise) are already shipped in Phase 3. The variants prototype above is the next step toward the brainstorm's "different zombie types" idea — but it lives in the sandbox and has not been promoted to Phase 3.
 
 ### In-Class Exercise 7 — Design Pattern (Strategy)
 - For CS 4800 In-Class Exercise 7, a Strategy-pattern brain dispatcher was added to **`src/combat/WSSTwo.tsx`** (legacy file). It introduces a `BrainDecisionStrategy` interface and a `brainStrategies` map keyed by `BrainType`, replacing direct branching with a strategy lookup. Each strategy delegates to the existing `calculateBrainMoveByType(brain)` function, so behavior is unchanged.

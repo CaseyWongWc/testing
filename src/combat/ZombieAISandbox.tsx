@@ -3,6 +3,7 @@ import { Play, Pause, RotateCcw, Eye, Skull, Activity } from "lucide-react";
 
 type TerrainType = "plains" | "forest" | "mountain" | "ruins";
 type ZombieAIState = "wandering" | "chasing" | "investigating" | "returning";
+type ZombieVariant = "walker" | "runner" | "brute";
 
 interface Vec2 { x: number; y: number; }
 interface Tile { terrain: TerrainType; }
@@ -24,20 +25,52 @@ interface SandboxZombie {
   noiseTarget: Vec2 | null;
   tier: number;
   ticksUntilMove: number;
+  variant: ZombieVariant;
 }
+
+interface VariantStats {
+  label: string;
+  speedMult: number;
+  alertRadius: number;
+  chaseBonusTicks: number;
+  patrolSpeedMult: number;
+  bodyRadius: number;
+  accentColor: string;
+  blurb: string;
+}
+
+const VARIANT_STATS: Record<ZombieVariant, VariantStats> = {
+  walker: {
+    label: "Walker", speedMult: 1.0, alertRadius: 9, chaseBonusTicks: 0,
+    patrolSpeedMult: 0.6, bodyRadius: 8, accentColor: "#ffffff",
+    blurb: "Baseline. Average sight, average speed.",
+  },
+  runner: {
+    label: "Runner", speedMult: 1.6, alertRadius: 7, chaseBonusTicks: -40,
+    patrolSpeedMult: 0.8, bodyRadius: 6, accentColor: "#ffdd55",
+    blurb: "Fast & twitchy. Shorter sight, gives up sooner.",
+  },
+  brute: {
+    label: "Brute", speedMult: 0.55, alertRadius: 12, chaseBonusTicks: 90,
+    patrolSpeedMult: 0.4, bodyRadius: 11, accentColor: "#ff66ff",
+    blurb: "Slow & relentless. Long sight, never lets go.",
+  },
+};
 
 interface NoiseEvent { pos: Vec2; radius: number; ticksLeft: number; maxTicks: number; }
 interface LogEntry { tick: number; text: string; }
 
 const MAP_SIZE = 20;
 const TILE_PX = 28;
-const ZOMBIE_ALERT = 9;
 const PATROL_RADIUS = 8;
-const PATROL_SPEED_MULT = 0.6;
 const CHASE_LOSE_TICKS = 120;
 const FOREST_LOS_RANGE = 5;
 const PATROL_PAUSE_MIN = 30;
 const PATROL_PAUSE_MAX = 80;
+
+function chaseThresholdFor(z: SandboxZombie): number {
+  return Math.max(30, CHASE_LOSE_TICKS + z.tier * 30 + VARIANT_STATS[z.variant].chaseBonusTicks);
+}
 
 const TERRAIN_COLORS: Record<TerrainType, string> = {
   plains: "#5a8c3a", forest: "#2a5e2a", mountain: "#7a6a5a", ruins: "#5a5a5a",
@@ -103,25 +136,19 @@ function createInitialState(): SandboxState {
     { id: 1, pos: { x: 3, y: 3 }, dead: false, speed: 0.04, targetPos: null },
     { id: 2, pos: { x: 16, y: 16 }, dead: false, speed: 0.035, targetPos: null },
   ];
+  const makeZombie = (id: number, pos: Vec2, variant: ZombieVariant): SandboxZombie => ({
+    id, pos: { ...pos }, dead: false, vel: { x: 0, y: 0 },
+    alertRadius: VARIANT_STATS[variant].alertRadius,
+    zombieState: "wandering", chaseTicks: 0,
+    patrolTarget: null, homePos: { ...pos }, lastSeenTarget: null,
+    alertedByNoise: false, noiseTarget: null,
+    tier: variant === "brute" ? 2 : variant === "runner" ? 1 : 0,
+    ticksUntilMove: 0, variant,
+  });
   const zombies: SandboxZombie[] = [
-    {
-      id: 10, pos: { x: 10, y: 10 }, dead: false, vel: { x: 0, y: 0 },
-      alertRadius: ZOMBIE_ALERT, zombieState: "wandering", chaseTicks: 0,
-      patrolTarget: null, homePos: { x: 10, y: 10 }, lastSeenTarget: null,
-      alertedByNoise: false, noiseTarget: null, tier: 0, ticksUntilMove: 0,
-    },
-    {
-      id: 11, pos: { x: 5, y: 15 }, dead: false, vel: { x: 0, y: 0 },
-      alertRadius: ZOMBIE_ALERT, zombieState: "wandering", chaseTicks: 0,
-      patrolTarget: null, homePos: { x: 5, y: 15 }, lastSeenTarget: null,
-      alertedByNoise: false, noiseTarget: null, tier: 0, ticksUntilMove: 0,
-    },
-    {
-      id: 12, pos: { x: 17, y: 4 }, dead: false, vel: { x: 0, y: 0 },
-      alertRadius: ZOMBIE_ALERT + 2, zombieState: "wandering", chaseTicks: 0,
-      patrolTarget: null, homePos: { x: 17, y: 4 }, lastSeenTarget: null,
-      alertedByNoise: false, noiseTarget: null, tier: 2, ticksUntilMove: 0,
-    },
+    makeZombie(10, { x: 10, y: 10 }, "walker"),
+    makeZombie(11, { x: 5, y: 15 }, "runner"),
+    makeZombie(12, { x: 17, y: 4 }, "brute"),
   ];
   return { tick: 0, tiles, survivors, zombies, noiseEvents: [], log: [], paused: true, showLOS: true };
 }
@@ -189,8 +216,9 @@ function tickSandbox(state: SandboxState): SandboxState {
       }
     }
 
-    const chaseThreshold = CHASE_LOSE_TICKS + z.tier * 30;
-    const speed = 0.028;
+    const vs = VARIANT_STATS[z.variant];
+    const chaseThreshold = chaseThresholdFor(z);
+    const speed = 0.028 * vs.speedMult;
 
     if (nearest) {
       z.zombieState = "chasing";
@@ -227,8 +255,8 @@ function tickSandbox(state: SandboxState): SandboxState {
       const dx = z.homePos.x - z.pos.x, dy = z.homePos.y - z.pos.y;
       const dist = Math.hypot(dx, dy);
       if (dist > 1.5) {
-        z.pos.x += (dx / dist) * speed * PATROL_SPEED_MULT;
-        z.pos.y += (dy / dist) * speed * PATROL_SPEED_MULT;
+        z.pos.x += (dx / dist) * speed * vs.patrolSpeedMult;
+        z.pos.y += (dy / dist) * speed * vs.patrolSpeedMult;
       } else {
         z.zombieState = "wandering";
         z.patrolTarget = null;
@@ -245,7 +273,7 @@ function tickSandbox(state: SandboxState): SandboxState {
       const dx = z.patrolTarget.x - z.pos.x, dy = z.patrolTarget.y - z.pos.y;
       const dist = Math.hypot(dx, dy);
       if (dist > 0.5) {
-        const patrolSpeed = speed * PATROL_SPEED_MULT;
+        const patrolSpeed = speed * vs.patrolSpeedMult;
         z.pos.x += (dx / dist) * patrolSpeed;
         z.pos.y += (dy / dist) * patrolSpeed;
       } else {
@@ -254,16 +282,17 @@ function tickSandbox(state: SandboxState): SandboxState {
     }
 
     if (z.zombieState !== prevState) {
+      const tag = `[${vs.label}]`;
       if (z.zombieState === "chasing" && prevState !== "chasing") {
-        addLog(`Z${z.id} spotted a survivor!`);
+        addLog(`${tag} Z${z.id} spotted a survivor!`);
       } else if (z.zombieState === "investigating" && prevState !== "investigating") {
-        addLog(`Z${z.id} investigating noise`);
+        addLog(`${tag} Z${z.id} investigating noise`);
       } else if (z.zombieState === "returning" && prevState === "chasing") {
-        addLog(`Z${z.id} lost interest, gave up chase`);
+        addLog(`${tag} Z${z.id} lost interest, gave up chase`);
       } else if (z.zombieState === "wandering" && prevState === "returning") {
-        addLog(`Z${z.id} returned to patrol`);
+        addLog(`${tag} Z${z.id} returned to patrol`);
       } else if (z.zombieState === "wandering" && prevState === "investigating") {
-        addLog(`Z${z.id} found nothing, resuming patrol`);
+        addLog(`${tag} Z${z.id} found nothing, resuming patrol`);
       }
     }
 
@@ -391,9 +420,14 @@ const ZombieAISandbox: React.FC = () => {
 
     for (const z of state.zombies) {
       if (z.dead) continue;
+      const vs = VARIANT_STATS[z.variant];
       const px = z.pos.x * TILE_PX, py = z.pos.y * TILE_PX;
       ctx.beginPath();
-      ctx.arc(px, py, 8, 0, Math.PI * 2);
+      ctx.arc(px, py, vs.bodyRadius + 2, 0, Math.PI * 2);
+      ctx.fillStyle = vs.accentColor;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px, py, vs.bodyRadius, 0, Math.PI * 2);
       ctx.fillStyle = STATE_COLORS[z.zombieState];
       ctx.fill();
       ctx.strokeStyle = "#000";
@@ -403,10 +437,10 @@ const ZombieAISandbox: React.FC = () => {
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.fillStyle = "#fff";
-      ctx.fillText(z.zombieState.slice(0, 3).toUpperCase(), px, py - 10);
+      ctx.fillText(vs.label[0] + z.zombieState[0].toUpperCase(), px, py - vs.bodyRadius - 2);
       if (z.zombieState === "chasing") {
         ctx.fillStyle = "#ffaaaa";
-        ctx.fillText(`${z.chaseTicks}/${CHASE_LOSE_TICKS + z.tier * 30}`, px, py - 19);
+        ctx.fillText(`${z.chaseTicks}/${chaseThresholdFor(z)}`, px, py - vs.bodyRadius - 11);
       }
 
       ctx.beginPath();
@@ -473,20 +507,41 @@ const ZombieAISandbox: React.FC = () => {
         <div className="w-72 shrink-0 border-l border-gray-700 flex flex-col overflow-hidden">
           <div className="p-3 border-b border-gray-700">
             <div className="text-xs font-bold mb-2 flex items-center gap-1"><Skull className="w-3 h-3" /> Zombies</div>
-            {state.zombies.map(z => (
-              <div key={z.id} className="text-xs mb-1 p-1.5 bg-gray-800 rounded flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full inline-block" style={{ background: STATE_COLORS[z.zombieState] }} />
-                <span>Z{z.id} T{z.tier}</span>
-                <span className="font-mono" style={{ color: STATE_COLORS[z.zombieState] }}>
-                  {z.zombieState}
-                </span>
-                {z.zombieState === "chasing" && (
-                  <span className="text-red-400 ml-auto">
-                    {z.chaseTicks}/{CHASE_LOSE_TICKS + z.tier * 30}
-                  </span>
-                )}
-              </div>
-            ))}
+            {state.zombies.map(z => {
+              const vs = VARIANT_STATS[z.variant];
+              const threshold = chaseThresholdFor(z);
+              return (
+                <div key={z.id} className="text-xs mb-1 p-1.5 bg-gray-800 rounded flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full inline-block ring-1" style={{ background: STATE_COLORS[z.zombieState], boxShadow: `0 0 0 1px ${vs.accentColor}` }} />
+                  <span>Z{z.id}</span>
+                  <span className="font-mono" style={{ color: vs.accentColor }}>{vs.label}</span>
+                  <span className="font-mono text-gray-400">{z.zombieState}</span>
+                  {z.zombieState === "chasing" && (
+                    <span className="text-red-400 ml-auto">
+                      {z.chaseTicks}/{threshold}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="p-3 border-b border-gray-700">
+            <div className="text-xs font-bold mb-2">Variants</div>
+            <div className="space-y-1.5 text-xs">
+              {(Object.entries(VARIANT_STATS) as [ZombieVariant, VariantStats][]).map(([k, vs]) => (
+                <div key={k} className="p-1.5 bg-gray-800 rounded">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: vs.accentColor }} />
+                    <span className="font-bold" style={{ color: vs.accentColor }}>{vs.label}</span>
+                    <span className="text-gray-500 font-mono ml-auto">
+                      spd×{vs.speedMult.toFixed(2)} · sight {vs.alertRadius}
+                    </span>
+                  </div>
+                  <div className="text-gray-400 mt-0.5">{vs.blurb}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="p-3 border-b border-gray-700">
