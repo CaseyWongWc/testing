@@ -61,6 +61,11 @@ Preferred communication style: Simple, everyday language.
 ### Upcoming Work (DO NOT build until Casey requests)
 - **Zombie AI Brainstorm**: Casey added a ZOMBIE AI BRAINSTORM section to the Notion Source of Truth page (page ID: 30a0e51f-71de-8149-af72-cd8ce49b0fda). Covers smarter zombie behavior — line of sight, wandering, losing interest, etc. When Casey asks to work on this, pull the full spec from Notion first and build incrementally in a **sandbox file** (not WSSPhase3.tsx). Stability over features — Phase 3 is stable and should not be destabilized by experimental work.
 
+### In-Class Exercise 7 — Design Pattern (Strategy)
+- For CS 4800 In-Class Exercise 7, a Strategy-pattern brain dispatcher was added to **`src/combat/WSSTwo.tsx`** (legacy file). It introduces a `BrainDecisionStrategy` interface and a `brainStrategies` map keyed by `BrainType`, replacing direct branching with a strategy lookup. Each strategy delegates to the existing `calculateBrainMoveByType(brain)` function, so behavior is unchanged.
+- This work is **kept as its own sandbox fork** in WSSTwo.tsx — it does NOT affect Phase 2, Phase 3, or the WSS2 Market loop. Phase 3 remains the production path.
+- If we ever want to mirror the same idea into Phase 3 (e.g., a strategy map keyed by zombie state: wandering / chasing / lost-interest), open it as a separate task — do not piggyback on unrelated work.
+
 ## External Dependencies
 
 ### NPM Dependencies (Runtime)
