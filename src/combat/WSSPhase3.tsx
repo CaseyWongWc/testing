@@ -101,17 +101,57 @@ interface Survivor extends BaseEntity {
   damageDealt: number; damageTaken: number;
 }
 
+type ZombieVariant = "walker" | "runner" | "brute";
+
+interface ZombieVariantStats {
+  label: string;
+  speedMult: number;
+  alertRadius: number;
+  chaseBonusTicks: number;
+  patrolSpeedMult: number;
+  bodyRadiusMult: number;
+  accentColor: string;
+  hpMult: number;
+}
+
+const VARIANT_STATS: Record<ZombieVariant, ZombieVariantStats> = {
+  walker: { label: "Walker", speedMult: 1.00, alertRadius: 9,  chaseBonusTicks:   0, patrolSpeedMult: 0.60, bodyRadiusMult: 1.00, accentColor: "#ffffff", hpMult: 1.00 },
+  runner: { label: "Runner", speedMult: 1.55, alertRadius: 7,  chaseBonusTicks: -40, patrolSpeedMult: 0.95, bodyRadiusMult: 0.85, accentColor: "#ffd84a", hpMult: 0.75 },
+  brute:  { label: "Brute",  speedMult: 0.55, alertRadius: 12, chaseBonusTicks:  90, patrolSpeedMult: 0.45, bodyRadiusMult: 1.30, accentColor: "#ff6ad8", hpMult: 1.60 },
+};
+
 interface Zombie extends BaseEntity {
   kind: "zombie"; vel: Vec2;
   alertRadius: number; ticksUntilMove: number; attackCooldown: number;
   alertedByNoise: boolean; noiseTarget: Vec2 | null;
   nestId: number;
   tier: number;
+  variant: ZombieVariant;
   zombieState: ZombieAIState;
   chaseTicks: number;
   patrolTarget: Vec2 | null;
   homePos: Vec2;
   lastSeenTarget: Vec2 | null;
+}
+
+function pickInitialVariant(rand: () => number, escalationLevel: number): ZombieVariant {
+  const runnerChance = Math.min(0.35, 0.10 + escalationLevel * 0.04);
+  const bruteChance  = Math.min(0.25, 0.05 + escalationLevel * 0.03);
+  const r = rand();
+  if (r < runnerChance) return "runner";
+  if (r < runnerChance + bruteChance) return "brute";
+  return "walker";
+}
+
+function pickNestVariant(tier: number, rand: () => number = Math.random): ZombieVariant {
+  let runnerW: number, bruteW: number;
+  if (tier >= 2)      { runnerW = 0.30; bruteW = 0.35; }
+  else if (tier >= 1) { runnerW = 0.35; bruteW = 0.20; }
+  else                { runnerW = 0.20; bruteW = 0.10; }
+  const r = rand();
+  if (r < runnerW) return "runner";
+  if (r < runnerW + bruteW) return "brute";
+  return "walker";
 }
 
 interface CorruptionNest extends BaseEntity {
@@ -238,7 +278,6 @@ function ticksUntilPhaseFlip(tick: number): number {
 }
 
 const ZOMBIE_PATROL_RADIUS = 8;
-const ZOMBIE_PATROL_SPEED_MULT = 0.6;
 const ZOMBIE_PATROL_PAUSE_MIN = 30;
 const ZOMBIE_PATROL_PAUSE_MAX = 80;
 const ZOMBIE_CHASE_LOSE_TICKS = 120;
@@ -553,15 +592,18 @@ function spawnEntities(settings: GameSettings, rand: () => number, objectives: O
       x: Math.max(1, Math.min(size - 1, half + Math.cos(angle) * r)),
       y: Math.max(1, Math.min(size - 1, half + Math.sin(angle) * r)),
     };
+    const variant = pickInitialVariant(rand, 0);
+    const vs = VARIANT_STATS[variant];
+    const baseHp = 65 + Math.floor(rand() * 25);
     entities.push({
       id: nextId++, kind: "zombie", faction: "HOSTILE", dead: false, armor: 0,
       pos: { ...zPos },
-      health: 65 + Math.floor(rand() * 25), maxHealth: 90,
-      vel: { x: 0, y: 0 }, alertRadius: ZOMBIE_ALERT,
+      health: Math.floor(baseHp * vs.hpMult), maxHealth: Math.floor(90 * vs.hpMult),
+      vel: { x: 0, y: 0 }, alertRadius: vs.alertRadius,
       ticksUntilMove: Math.floor(rand() * 30),
       attackCooldown: 0, alertedByNoise: false, noiseTarget: null,
       nestId: nestIds[Math.floor(rand() * Math.max(1, nestIds.length))] ?? 0,
-      tier: 0,
+      tier: 0, variant,
       zombieState: "wandering", chaseTicks: 0, patrolTarget: null,
       homePos: { ...zPos }, lastSeenTarget: null,
     } as Zombie);
@@ -835,8 +877,9 @@ function tickZombie(z: Zombie, state: GameState, addLog: (text: string, type: Lo
     }
   }
 
-  const chaseThreshold = ZOMBIE_CHASE_LOSE_TICKS + z.tier * 30;
-  const speed = 0.028 + state.escalation.level * 0.002;
+  const vs = VARIANT_STATS[z.variant];
+  const chaseThreshold = Math.max(30, ZOMBIE_CHASE_LOSE_TICKS + z.tier * 30 + vs.chaseBonusTicks);
+  const speed = (0.028 + state.escalation.level * 0.002) * vs.speedMult;
 
   if (nearest) {
     z.zombieState = "chasing";
@@ -873,8 +916,8 @@ function tickZombie(z: Zombie, state: GameState, addLog: (text: string, type: Lo
     const dx = z.homePos.x - z.pos.x, dy = z.homePos.y - z.pos.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 1.5) {
-      z.pos.x += (dx / dist) * speed * ZOMBIE_PATROL_SPEED_MULT;
-      z.pos.y += (dy / dist) * speed * ZOMBIE_PATROL_SPEED_MULT;
+      z.pos.x += (dx / dist) * speed * vs.patrolSpeedMult;
+      z.pos.y += (dy / dist) * speed * vs.patrolSpeedMult;
     } else {
       z.zombieState = "wandering";
       z.patrolTarget = null;
@@ -891,7 +934,7 @@ function tickZombie(z: Zombie, state: GameState, addLog: (text: string, type: Lo
     const dx = z.patrolTarget.x - z.pos.x, dy = z.patrolTarget.y - z.pos.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 0.5) {
-      const patrolSpeed = speed * ZOMBIE_PATROL_SPEED_MULT;
+      const patrolSpeed = speed * vs.patrolSpeedMult;
       z.pos.x += (dx / dist) * patrolSpeed;
       z.pos.y += (dy / dist) * patrolSpeed;
     } else {
@@ -934,16 +977,19 @@ function tickNest(nest: CorruptionNest, state: GameState): [CorruptionNest, Zomb
       const tier = state.escalation.level;
       const baseHp = 65 + tier * 10;
       const spawnPos = { x:nest.pos.x+Math.cos(angle)*r, y:nest.pos.y+Math.sin(angle)*r };
+      const variant = pickNestVariant(tier);
+      const vs = VARIANT_STATS[variant];
+      const hp = Math.floor(baseHp * state.escalation.zombieHpMult * vs.hpMult);
       return [nest, {
         id: state.nextId, kind:"zombie", faction:"HOSTILE", dead:false, armor: Math.floor(tier * 1.5),
         pos:{ ...spawnPos },
-        health: Math.floor(baseHp * state.escalation.zombieHpMult),
-        maxHealth: Math.floor(baseHp * state.escalation.zombieHpMult),
+        health: hp,
+        maxHealth: hp,
         vel:{x:0,y:0},
-        alertRadius: ZOMBIE_ALERT + Math.min(3, tier * 0.5),
+        alertRadius: vs.alertRadius + Math.min(3, tier * 0.5),
         ticksUntilMove:3,
         attackCooldown:0, alertedByNoise:false, noiseTarget:null,
-        nestId:nest.id, tier,
+        nestId:nest.id, tier, variant,
         zombieState: "wandering", chaseTicks: 0, patrolTarget: null,
         homePos: { ...nest.pos }, lastSeenTarget: null,
       } as Zombie];
@@ -1685,8 +1731,11 @@ function renderWorld(
 
     } else if (e.kind === "zombie") {
       const z = e as Zombie;
-      const r = ts * 0.35;
+      const vs = VARIANT_STATS[z.variant];
+      const r = ts * 0.35 * vs.bodyRadiusMult;
       const tierColor = z.tier >= 3 ? "#ff2222" : z.tier >= 2 ? "#dd4422" : z.tier >= 1 ? "#cc3333" : "#cc2222";
+      ctx.beginPath(); ctx.arc(px, py, r + 2.5, 0, Math.PI * 2);
+      ctx.strokeStyle = vs.accentColor; ctx.lineWidth = z.variant === "walker" ? 1 : 2; ctx.stroke();
       ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2);
       ctx.fillStyle = e.health / e.maxHealth > 0.5 ? tierColor : "#882222"; ctx.fill();
       ctx.strokeStyle = z.tier >= 2 ? "#ff6644" : "#ff4444"; ctx.lineWidth = z.tier >= 1 ? 1.5 : 1; ctx.stroke();
