@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Coins, Users, Crosshair, Heart, Play, RotateCcw, Trophy,
-  Plus, Minus, ChevronRight, Award
+  Plus, Minus, ChevronRight, Award, ShieldCheck, Magnet, Zap, Eye, Star, Lock
 } from "lucide-react";
-import WSSPhase3, { MarketLoadout, RunResult, EMPTY_LOADOUT } from "./WSSPhase3";
+import WSSPhase3, {
+  MarketLoadout, RunResult, EMPTY_LOADOUT,
+  Perks, EMPTY_PERKS,
+  PERK_HP_PER_LEVEL, PERK_SCRAP_PER_LEVEL, PERK_ATTACK_COOLDOWN_PER_LEVEL, PERK_MOVE_SPEED_PER_LEVEL,
+} from "./WSSPhase3";
 
 type GradeType = "S" | "A" | "B" | "C" | "D" | "F";
 type Phase = "market" | "running" | "results";
+type MarketTab = "gear" | "perks";
 
 interface MetaState {
   currency: number;
@@ -14,6 +19,7 @@ interface MetaState {
   bestGrade: GradeType | null;
   lastResult: RunResult | null;
   loadout: MarketLoadout;
+  perks: Perks;
 }
 
 const STORAGE_KEY = "wss2_meta_v1";
@@ -30,7 +36,66 @@ const DEFAULT_META: MetaState = {
   bestGrade: null,
   lastResult: null,
   loadout: { ...EMPTY_LOADOUT },
+  perks: { ...EMPTY_PERKS },
 };
+
+interface PerkDef {
+  key: keyof Perks;
+  label: string;
+  shortDesc: string;
+  longDesc: (level: number) => string;
+  costs: number[];
+  icon: React.ReactNode;
+  accent: string;
+}
+
+const PERK_CATALOG: PerkDef[] = [
+  {
+    key: "ironWill",
+    label: "Iron Will",
+    shortDesc: `+${Math.round(PERK_HP_PER_LEVEL * 100)}% survivor max HP per level`,
+    longDesc: (lvl) => `Survivors spawn with ${Math.round(lvl * PERK_HP_PER_LEVEL * 100)}% bonus max HP.`,
+    costs: [60, 130, 250],
+    icon: <ShieldCheck className="w-5 h-5" />,
+    accent: "border-red-700 bg-red-950/30 text-red-200",
+  },
+  {
+    key: "scrapMagnet",
+    label: "Scrap Magnet",
+    shortDesc: `+${Math.round(PERK_SCRAP_PER_LEVEL * 100)}% scrap earned per level`,
+    longDesc: (lvl) => `All scrap earned at run end is multiplied by ${(1 + lvl * PERK_SCRAP_PER_LEVEL).toFixed(2)}×.`,
+    costs: [80, 180, 360],
+    icon: <Magnet className="w-5 h-5" />,
+    accent: "border-yellow-700 bg-yellow-950/30 text-yellow-200",
+  },
+  {
+    key: "quickHands",
+    label: "Quick Hands",
+    shortDesc: `-${Math.round(PERK_ATTACK_COOLDOWN_PER_LEVEL * 100)}% attack cooldown per level`,
+    longDesc: (lvl) => `Survivors attack ${Math.round(lvl * PERK_ATTACK_COOLDOWN_PER_LEVEL * 100)}% faster.`,
+    costs: [90, 200, 400],
+    icon: <Zap className="w-5 h-5" />,
+    accent: "border-amber-700 bg-amber-950/30 text-amber-200",
+  },
+  {
+    key: "sharpSenses",
+    label: "Sharp Senses",
+    shortDesc: `+${Math.round(PERK_MOVE_SPEED_PER_LEVEL * 100)}% move speed & smarter retargeting`,
+    longDesc: (lvl) => `+${Math.round(lvl * PERK_MOVE_SPEED_PER_LEVEL * 100)}% movement speed and ${Math.round(lvl * 20)}% faster wandering retargets.`,
+    costs: [100, 240],
+    icon: <Eye className="w-5 h-5" />,
+    accent: "border-sky-700 bg-sky-950/30 text-sky-200",
+  },
+];
+
+function clampPerks(p: Perks): Perks {
+  const out: Perks = { ...EMPTY_PERKS };
+  for (const def of PERK_CATALOG) {
+    const v = Number(p[def.key]) || 0;
+    out[def.key] = Math.max(0, Math.min(def.costs.length, Math.floor(v)));
+  }
+  return out;
+}
 
 interface CatalogItem {
   key: keyof MarketLoadout;
@@ -98,6 +163,7 @@ function loadMeta(): MetaState {
       bestGrade: parsed.bestGrade ?? null,
       lastResult: parsed.lastResult ?? null,
       loadout: clampLoadout({ ...EMPTY_LOADOUT, ...(parsed.loadout ?? {}) }),
+      perks: clampPerks({ ...EMPTY_PERKS, ...(parsed.perks ?? {}) }),
     };
   } catch {
     return { ...DEFAULT_META };
@@ -128,6 +194,20 @@ const WSS2MetaShell: React.FC = () => {
     });
   };
 
+  const handleBuyPerk = (def: PerkDef) => {
+    setMeta(m => {
+      const lvl = m.perks[def.key];
+      if (lvl >= def.costs.length) return m;
+      const cost = def.costs[lvl];
+      if (m.currency < cost) return m;
+      return {
+        ...m,
+        currency: m.currency - cost,
+        perks: { ...m.perks, [def.key]: lvl + 1 },
+      };
+    });
+  };
+
   const handleStartRun = () => {
     setPhase("running");
   };
@@ -138,6 +218,7 @@ const WSS2MetaShell: React.FC = () => {
         m.bestGrade === null || GRADE_RANK[result.grade] > GRADE_RANK[m.bestGrade]
           ? result.grade : m.bestGrade;
       return {
+        ...m,
         currency: Math.max(0, m.currency + Math.floor(Number(result.scrapEarned) || 0)),
         runCount: m.runCount + 1,
         bestGrade: newBest,
@@ -151,13 +232,13 @@ const WSS2MetaShell: React.FC = () => {
   const handleContinueToMarket = () => setPhase("market");
 
   const handleHardReset = () => {
-    if (typeof window !== "undefined" && !window.confirm("Reset all meta progress? This clears scrap, run count, and best grade.")) return;
-    setMeta({ ...DEFAULT_META });
+    if (typeof window !== "undefined" && !window.confirm("Reset all meta progress? This clears scrap, run count, best grade, and all perks.")) return;
+    setMeta({ ...DEFAULT_META, perks: { ...EMPTY_PERKS }, loadout: { ...EMPTY_LOADOUT } });
     setPhase("market");
   };
 
   if (phase === "running") {
-    return <WSSPhase3 loadout={meta.loadout} onRunComplete={handleRunComplete} />;
+    return <WSSPhase3 loadout={meta.loadout} perks={meta.perks} onRunComplete={handleRunComplete} />;
   }
 
   if (phase === "results" && meta.lastResult) {
@@ -168,6 +249,7 @@ const WSS2MetaShell: React.FC = () => {
     <MarketScreen
       meta={meta}
       onBuy={handleBuy}
+      onBuyPerk={handleBuyPerk}
       onStart={handleStartRun}
       onHardReset={handleHardReset}
     />
@@ -177,13 +259,16 @@ const WSS2MetaShell: React.FC = () => {
 interface MarketScreenProps {
   meta: MetaState;
   onBuy: (item: CatalogItem) => void;
+  onBuyPerk: (def: PerkDef) => void;
   onStart: () => void;
   onHardReset: () => void;
 }
 
-const MarketScreen: React.FC<MarketScreenProps> = ({ meta, onBuy, onStart, onHardReset }) => {
+const MarketScreen: React.FC<MarketScreenProps> = ({ meta, onBuy, onBuyPerk, onStart, onHardReset }) => {
+  const [tab, setTab] = useState<MarketTab>("gear");
   const totalSpent = CATALOG.reduce((sum, item) => sum + meta.loadout[item.key] * item.cost, 0);
   const ownedAny = CATALOG.some(item => meta.loadout[item.key] > 0);
+  const perkLevels = PERK_CATALOG.reduce((sum, p) => sum + meta.perks[p.key], 0);
 
   return (
     <div className="flex flex-col h-screen bg-gray-950 text-gray-100 font-mono overflow-hidden">
@@ -216,46 +301,140 @@ const MarketScreen: React.FC<MarketScreenProps> = ({ meta, onBuy, onStart, onHar
         <div className="max-w-5xl mx-auto grid lg:grid-cols-3 gap-6">
 
           <div className="lg:col-span-2">
-            <div className="text-gray-400 text-xs uppercase tracking-wider mb-3">Catalog</div>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {CATALOG.map(item => {
-                const owned = meta.loadout[item.key];
-                const atMax = owned >= item.max;
-                const canAfford = meta.currency >= item.cost;
-                const disabled = atMax || !canAfford;
-                return (
-                  <div key={item.key} className={`rounded-lg border-2 p-4 ${item.accent} ${disabled ? "opacity-60" : ""}`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      {item.icon}
-                      <div className="font-bold">{item.label}</div>
-                      <div className="ml-auto text-xs bg-black/40 rounded px-1.5 py-0.5">
-                        {owned}/{item.max}
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-400 mb-3 leading-snug min-h-[2.5em]">
-                      {item.description}
-                    </div>
-                    <button
-                      onClick={() => onBuy(item)}
-                      disabled={disabled}
-                      data-testid={`button-buy-${item.key}`}
-                      className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-bold border transition-colors ${
-                        disabled
-                          ? "border-gray-700 bg-gray-800 text-gray-600 cursor-not-allowed"
-                          : "border-yellow-600 bg-yellow-900/30 text-yellow-200 hover:bg-yellow-900/50"
-                      }`}
-                    >
-                      {atMax ? "MAX" : !canAfford ? "Not enough scrap" : (
-                        <>
-                          <Plus className="w-3 h-3" />
-                          Buy <Coins className="w-3 h-3" /> {item.cost}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
+            <div className="flex items-center gap-1 mb-3 border-b border-gray-800">
+              <button
+                onClick={() => setTab("gear")}
+                data-testid="tab-gear"
+                className={`px-4 py-2 text-xs uppercase tracking-wider font-bold border-b-2 transition-colors ${
+                  tab === "gear"
+                    ? "border-yellow-500 text-yellow-300"
+                    : "border-transparent text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                Gear (per run)
+              </button>
+              <button
+                onClick={() => setTab("perks")}
+                data-testid="tab-perks"
+                className={`px-4 py-2 text-xs uppercase tracking-wider font-bold border-b-2 transition-colors flex items-center gap-1.5 ${
+                  tab === "perks"
+                    ? "border-purple-500 text-purple-300"
+                    : "border-transparent text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                <Star className="w-3 h-3" />
+                Perks (permanent)
+                {perkLevels > 0 && (
+                  <span className="ml-1 bg-purple-900/60 border border-purple-700 rounded px-1.5 py-0.5 text-[10px] text-purple-200">
+                    {perkLevels}
+                  </span>
+                )}
+              </button>
             </div>
+
+            {tab === "gear" && (
+              <div className="grid sm:grid-cols-2 gap-3">
+                {CATALOG.map(item => {
+                  const owned = meta.loadout[item.key];
+                  const atMax = owned >= item.max;
+                  const canAfford = meta.currency >= item.cost;
+                  const disabled = atMax || !canAfford;
+                  return (
+                    <div key={item.key} className={`rounded-lg border-2 p-4 ${item.accent} ${disabled ? "opacity-60" : ""}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        {item.icon}
+                        <div className="font-bold">{item.label}</div>
+                        <div className="ml-auto text-xs bg-black/40 rounded px-1.5 py-0.5">
+                          {owned}/{item.max}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-400 mb-3 leading-snug min-h-[2.5em]">
+                        {item.description}
+                      </div>
+                      <button
+                        onClick={() => onBuy(item)}
+                        disabled={disabled}
+                        data-testid={`button-buy-${item.key}`}
+                        className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-bold border transition-colors ${
+                          disabled
+                            ? "border-gray-700 bg-gray-800 text-gray-600 cursor-not-allowed"
+                            : "border-yellow-600 bg-yellow-900/30 text-yellow-200 hover:bg-yellow-900/50"
+                        }`}
+                      >
+                        {atMax ? "MAX" : !canAfford ? "Not enough scrap" : (
+                          <>
+                            <Plus className="w-3 h-3" />
+                            Buy <Coins className="w-3 h-3" /> {item.cost}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {tab === "perks" && (
+              <div>
+                <div className="text-xs text-gray-500 mb-3 italic">
+                  Perks persist forever — they apply to every future run.
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {PERK_CATALOG.map(def => {
+                    const lvl = meta.perks[def.key];
+                    const maxLvl = def.costs.length;
+                    const atMax = lvl >= maxLvl;
+                    const nextCost = atMax ? null : def.costs[lvl];
+                    const canAfford = nextCost !== null && meta.currency >= nextCost;
+                    const disabled = atMax || !canAfford;
+                    return (
+                      <div key={def.key} className={`rounded-lg border-2 p-4 ${def.accent} ${disabled ? "opacity-70" : ""}`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          {def.icon}
+                          <div className="font-bold">{def.label}</div>
+                          <div className="ml-auto text-xs bg-black/40 rounded px-1.5 py-0.5" data-testid={`perk-level-${def.key}`}>
+                            Lvl {lvl}/{maxLvl}
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-400 mb-2 leading-snug">
+                          {def.shortDesc}
+                        </div>
+                        <div className="text-[11px] text-gray-500 mb-3 leading-snug min-h-[2.2em]">
+                          {lvl > 0 ? `Active: ${def.longDesc(lvl)}` : "Not yet unlocked."}
+                        </div>
+                        <div className="flex gap-1 mb-3">
+                          {def.costs.map((_, i) => (
+                            <div
+                              key={i}
+                              className={`flex-1 h-1.5 rounded ${i < lvl ? "bg-purple-500" : "bg-gray-800"}`}
+                            />
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => onBuyPerk(def)}
+                          disabled={disabled}
+                          data-testid={`button-buy-perk-${def.key}`}
+                          className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-bold border transition-colors ${
+                            disabled
+                              ? "border-gray-700 bg-gray-800 text-gray-600 cursor-not-allowed"
+                              : "border-purple-600 bg-purple-900/30 text-purple-200 hover:bg-purple-900/50"
+                          }`}
+                        >
+                          {atMax ? (<><Lock className="w-3 h-3" /> MAX</>) : !canAfford ? (
+                            <>Need <Coins className="w-3 h-3" /> {nextCost}</>
+                          ) : (
+                            <>
+                              <Plus className="w-3 h-3" />
+                              Unlock Lvl {lvl + 1} <Coins className="w-3 h-3" /> {nextCost}
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-1">
@@ -297,6 +476,27 @@ const MarketScreen: React.FC<MarketScreenProps> = ({ meta, onBuy, onStart, onHar
                 Earn scrap from kills, evacuations, and final grade.
               </div>
             </div>
+
+            {perkLevels > 0 && (
+              <div className="mt-4 rounded-lg border border-purple-900/60 bg-purple-950/20 p-3" data-testid="active-perks">
+                <div className="text-purple-400 text-xs uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <Star className="w-3 h-3" /> Active Perks
+                </div>
+                <div className="space-y-1">
+                  {PERK_CATALOG.map(def => {
+                    const lvl = meta.perks[def.key];
+                    if (lvl === 0) return null;
+                    return (
+                      <div key={def.key} className="flex items-center gap-2 text-xs">
+                        <span className="text-purple-300">{def.icon}</span>
+                        <span className="text-gray-200 flex-1">{def.label}</span>
+                        <span className="text-purple-300 font-bold">Lvl {lvl}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {meta.lastResult && (
               <div className="mt-4 rounded-lg border border-gray-800 bg-gray-900/50 p-3 text-xs">

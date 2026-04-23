@@ -26,6 +26,22 @@ export type MarketLoadout = {
   startingMeds: number;
 };
 
+export type Perks = {
+  ironWill: number;
+  scrapMagnet: number;
+  quickHands: number;
+  sharpSenses: number;
+};
+
+export const EMPTY_PERKS: Perks = {
+  ironWill: 0, scrapMagnet: 0, quickHands: 0, sharpSenses: 0,
+};
+
+export const PERK_HP_PER_LEVEL = 0.10;
+export const PERK_SCRAP_PER_LEVEL = 0.10;
+export const PERK_ATTACK_COOLDOWN_PER_LEVEL = 0.08;
+export const PERK_MOVE_SPEED_PER_LEVEL = 0.05;
+
 export type RunResult = {
   win: boolean;
   grade: GradeType;
@@ -156,7 +172,7 @@ interface GameSettings {
 interface GameState {
   tick: number; tiles: Tile[][]; entities: AnyEntity[];
   noiseEvents: NoiseEvent[]; attackEffects: AttackEffect[]; log: LogEntry[];
-  nextId: number; settings: GameSettings;
+  nextId: number; settings: GameSettings; perks: Perks;
   objectives: Objective[];
   winState: WinState; winTick: number;
   escalation: EscalationState;
@@ -455,10 +471,11 @@ function spawnLoadoutItems(size: number, startId: number, loadout: MarketLoadout
   return items;
 }
 
-function spawnEntities(settings: GameSettings, rand: () => number, objectives: Objective[], loadout: MarketLoadout): [AnyEntity[], number] {
+function spawnEntities(settings: GameSettings, rand: () => number, objectives: Objective[], loadout: MarketLoadout, perks: Perks): [AnyEntity[], number] {
   const effectiveSurvivorCount = Math.min(8, settings.survivorCount + loadout.extraSurvivors);
   const eff: GameSettings = { ...settings, survivorCount: effectiveSurvivorCount };
   const { mapSize: size, survivorCount, zombieCount, nestCount } = eff;
+  const survivorMaxHp = Math.round(SURVIVOR_BASE_HP * (1 + perks.ironWill * PERK_HP_PER_LEVEL));
   const half = size / 2;
   const entities: AnyEntity[] = [];
   let nextId = 1;
@@ -475,7 +492,7 @@ function spawnEntities(settings: GameSettings, rand: () => number, objectives: O
     entities.push({
       id: nextId++, kind: "survivor", faction: "PLAYER_TEAM", dead: false,
       pos: { x: half + Math.cos(angle) * r, y: half + Math.sin(angle) * r },
-      health: SURVIVOR_BASE_HP, maxHealth: SURVIVOR_BASE_HP,
+      health: survivorMaxHp, maxHealth: survivorMaxHp,
       brain, name: SURVIVOR_NAMES[i % SURVIVOR_NAMES.length],
       stamina: 100, hunger: 100, thirst: 100,
       armor: brain === "cautious" ? 8 : brain === "aggressive" ? 5 : brain === "survivalist" ? 6 : 3,
@@ -719,7 +736,8 @@ function tickSurvivor(
         x: Math.max(1, Math.min(size-1, half + (Math.random()-0.5) * range * 2)),
         y: Math.max(1, Math.min(size-1, half + (Math.random()-0.5) * range * 2)),
       };
-      s.ticksUntilNewTarget = 80 + Math.floor(Math.random() * 120);
+      const retargetMult = Math.max(0.5, 1 - state.perks.sharpSenses * 0.2);
+      s.ticksUntilNewTarget = Math.floor((80 + Math.random() * 120) * retargetMult);
     }
   }
 
@@ -730,7 +748,8 @@ function tickSurvivor(
     const stopDist = (aiState === "activating" || aiState === "evacuating" || aiState === "scavenging" || aiState === "rescuing") ? 0.5 : 0.3;
     if (dist > stopDist) {
       const baseSpeed = aiState === "fleeing" ? 0.05 : aiState === "evacuating" ? 0.04 : 0.032;
-      const speed = s.stamina < 20 ? baseSpeed * 0.5 : baseSpeed;
+      const sensesMult = 1 + state.perks.sharpSenses * PERK_MOVE_SPEED_PER_LEVEL;
+      const speed = (s.stamina < 20 ? baseSpeed * 0.5 : baseSpeed) * sensesMult;
       s.pos.x += (dx / dist) * speed;
       s.pos.y += (dy / dist) * speed;
       s.stamina = Math.max(0, s.stamina - (aiState === "fleeing" ? 0.015 : 0.005));
@@ -957,7 +976,8 @@ function resolveCombat(
       if (d <= s.weapon.range && d < bestDist) { bestDist=d; best=t; }
     }
     if (best) {
-      s.attackCooldown = s.weapon.attackSpeedTicks;
+      const cooldownMult = Math.max(0.3, 1 - state.perks.quickHands * PERK_ATTACK_COOLDOWN_PER_LEVEL);
+      s.attackCooldown = Math.max(1, Math.round(s.weapon.attackSpeedTicks * cooldownMult));
       const dmg = Math.max(1, s.weapon.damage - best.armor);
       best.health -= dmg;
       s.damageDealt += dmg;
@@ -1753,18 +1773,18 @@ function renderWorld(
   }
 }
 
-function initGame(settings: GameSettings, loadout: MarketLoadout = EMPTY_LOADOUT): GameState {
+function initGame(settings: GameSettings, loadout: MarketLoadout = EMPTY_LOADOUT, perks: Perks = EMPTY_PERKS): GameState {
   const rand = makePRNG(settings.seed);
   const tiles = generateMap(settings);
   const objectives = generateObjectives(rand, settings.nestCount);
-  const [entities, nextId] = spawnEntities(settings, rand, objectives, loadout);
+  const [entities, nextId] = spawnEntities(settings, rand, objectives, loadout, perks);
   const objLabels = objectives.map((o, i) => `${i + 1}. ${o.label}`).join(", ");
   return {
     tick: 0, tiles, entities,
     noiseEvents: [], attackEffects: [],
     log: [{ tick: 0, text: `Map generated. Objectives: ${objLabels}. Complete all to unseal the portal.`, type: "info" }],
     nextId,
-    settings,
+    settings, perks,
     objectives,
     winState: "playing", winTick: 0,
     escalation: { level: 0, zombieHpMult: 1, zombieDamageMult: 1, nestSpeedMult: 1, lastEscalationTick: 0 },
@@ -1790,13 +1810,19 @@ function computeRunResult(state: GameState): RunResult {
   const alive = allSurvivors.filter(s => !s.dead).length;
   const totalKills = allSurvivors.reduce((a, s) => a + s.kills, 0);
   const grade = calculateGrade(state);
-  const base = Math.floor(state.score / 10);
-  const perKill = totalKills;
-  const perEvac = evacuated * 15;
-  const gradeBonus = GRADE_BONUS[grade];
+  const baseRaw = Math.floor(state.score / 10);
+  const perKillRaw = totalKills;
+  const perEvacRaw = evacuated * 15;
+  const gradeBonusRaw = GRADE_BONUS[grade];
   const nightKills = Math.max(0, state.nightKills);
   const nightEvacuations = Math.max(0, state.nightEvacuations);
-  const nightBonus = Math.max(0, nightKills * 1 + nightEvacuations * 5);
+  const nightBonusRaw = Math.max(0, nightKills * 1 + nightEvacuations * 5);
+  const mult = 1 + state.perks.scrapMagnet * PERK_SCRAP_PER_LEVEL;
+  const base = Math.round(baseRaw * mult);
+  const perKill = Math.round(perKillRaw * mult);
+  const perEvac = Math.round(perEvacRaw * mult);
+  const gradeBonus = Math.round(gradeBonusRaw * mult);
+  const nightBonus = Math.round(nightBonusRaw * mult);
   return {
     win: state.winState === "won",
     grade,
@@ -1817,17 +1843,20 @@ function computeRunResult(state: GameState): RunResult {
 
 interface WSSPhase3Props {
   loadout?: MarketLoadout;
+  perks?: Perks;
   onRunComplete?: (result: RunResult) => void;
 }
 
-const WSSPhase3: React.FC<WSSPhase3Props> = ({ loadout = EMPTY_LOADOUT, onRunComplete }) => {
+const WSSPhase3: React.FC<WSSPhase3Props> = ({ loadout = EMPTY_LOADOUT, perks = EMPTY_PERKS, onRunComplete }) => {
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const loadoutRef  = useRef<MarketLoadout>(loadout);
+  const perksRef    = useRef<Perks>(perks);
   const onRunCompleteRef = useRef<typeof onRunComplete>(onRunComplete);
   const completeFiredRef = useRef<boolean>(false);
   useEffect(() => { loadoutRef.current = loadout; }, [loadout]);
+  useEffect(() => { perksRef.current = perks; }, [perks]);
   useEffect(() => { onRunCompleteRef.current = onRunComplete; }, [onRunComplete]);
-  const stateRef    = useRef<GameState>(initGame(DEFAULT, loadout));
+  const stateRef    = useRef<GameState>(initGame(DEFAULT, loadout, perks));
   const cameraRef   = useRef({ x: 6, y: 6, zoom: 1.0, mode: "observer" as CameraMode, followId: null as number | null });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const animRef     = useRef<number>(0);
@@ -1934,7 +1963,7 @@ const WSSPhase3: React.FC<WSSPhase3Props> = ({ loadout = EMPTY_LOADOUT, onRunCom
     stopLoop(); setIsRunning(false); setGrade(null);
     completeFiredRef.current = false;
     const s: GameSettings = { ...settings, seed: parseInt(seedInput) || settings.seed };
-    const g = initGame(s, loadoutRef.current); stateRef.current = g; setSettings(s);
+    const g = initGame(s, loadoutRef.current, perksRef.current); stateRef.current = g; setSettings(s);
     const half = s.mapSize / 2;
     const canvas = canvasRef.current;
     const ts = TILE_SIZE * cameraRef.current.zoom;
