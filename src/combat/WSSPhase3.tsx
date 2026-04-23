@@ -41,7 +41,11 @@ export type RunResult = {
     perKill: number;
     perEvac: number;
     gradeBonus: number;
+    nightBonus: number;
   };
+  nightKills: number;
+  nightEvacuations: number;
+  nightBonus: number;
   ticks: number;
 };
 
@@ -161,6 +165,8 @@ interface GameState {
   totalCollected: number;
   totalRescued: number;
   mapRound: number;
+  nightKills: number;
+  nightEvacuations: number;
 }
 
 const TILE_SIZE      = 18;
@@ -930,13 +936,15 @@ function tickNest(nest: CorruptionNest, state: GameState): [CorruptionNest, Zomb
 function resolveCombat(
   state: GameState,
   addLog: (text:string, type:LogEntry["type"]) => void
-): { entities:AnyEntity[]; effects:AttackEffect[]; noiseEvents:NoiseEvent[]; droppedLoot:LootItem[]; nestsKilled:number; scoreGain:number } {
+): { entities:AnyEntity[]; effects:AttackEffect[]; noiseEvents:NoiseEvent[]; droppedLoot:LootItem[]; nestsKilled:number; scoreGain:number; nightKillsAdded:number } {
   const entities = state.entities.map(e=>({...e, pos:{...e.pos}})) as AnyEntity[];
   const effects: AttackEffect[]  = [...state.attackEffects];
   const noiseEvents: NoiseEvent[] = [...state.noiseEvents];
   const droppedLoot: LootItem[]   = [];
   let nestsKilled = 0;
   let scoreGain = 0;
+  let nightKillsAdded = 0;
+  const isNightish = nightFactor(state.tick) > 0.5;
 
   for (const e of entities) {
     if (e.kind !== "survivor" || e.dead) continue;
@@ -980,10 +988,12 @@ function resolveCombat(
         best.dead = true;
         if (best.kind === "zombie") {
           s.kills++;
+          if (isNightish) nightKillsAdded++;
           scoreGain += 10 + (best as Zombie).tier * 5;
           addLog(`${s.name} killed a zombie.`, "death");
         } else if (best.kind === "nest") {
           s.kills++;
+          if (isNightish) nightKillsAdded++;
           nestsKilled++;
           scoreGain += 50;
           addLog(`Nest destroyed! Loot dropped.`, "objective");
@@ -1026,7 +1036,7 @@ function resolveCombat(
     }
   }
 
-  return { entities, effects, noiseEvents, droppedLoot, nestsKilled, scoreGain };
+  return { entities, effects, noiseEvents, droppedLoot, nestsKilled, scoreGain, nightKillsAdded };
 }
 
 function resolvePickups(
@@ -1202,7 +1212,7 @@ function runTick(state: GameState): GameState {
     else addLog("Dawn breaks — the threat eases.", "objective");
   }
 
-  const {entities:postCombat, effects:newEffects, noiseEvents:newNoise, droppedLoot, nestsKilled, scoreGain} =
+  const {entities:postCombat, effects:newEffects, noiseEvents:newNoise, droppedLoot, nestsKilled, scoreGain, nightKillsAdded} =
     resolveCombat({...state, noiseEvents:noise, attackEffects:effects, escalation}, addLog);
 
   let nextId = state.nextId;
@@ -1337,12 +1347,15 @@ function runTick(state: GameState): GameState {
   }
 
   const finalPortal = moved.find(e=>e.kind==="portal") as RiftPortal;
+  let nightEvacuationsAdded = 0;
+  const isNightishForEvac = nightFactor(state.tick) > 0.5;
   if (finalPortal && !finalPortal.sealed) {
     for (const e of moved) {
       if (e.kind !== "survivor" || e.dead) continue;
       const s = e as Survivor;
       if (!s.evacuated && Math.hypot(s.pos.x - finalPortal.pos.x, s.pos.y - finalPortal.pos.y) < EVAC_RADIUS) {
         s.evacuated = true;
+        if (isNightishForEvac) nightEvacuationsAdded++;
         score += 200;
         addLog(`${s.name} evacuated through the portal!`, "objective");
       }
@@ -1397,6 +1410,8 @@ function runTick(state: GameState): GameState {
     totalCollected,
     totalRescued,
     mapRound: state.mapRound,
+    nightKills: state.nightKills + nightKillsAdded,
+    nightEvacuations: state.nightEvacuations + nightEvacuationsAdded,
   };
 }
 
@@ -1758,6 +1773,8 @@ function initGame(settings: GameSettings, loadout: MarketLoadout = EMPTY_LOADOUT
     totalCollected: 0,
     totalRescued: 0,
     mapRound: 1,
+    nightKills: 0,
+    nightEvacuations: 0,
   };
 }
 
@@ -1777,6 +1794,9 @@ function computeRunResult(state: GameState): RunResult {
   const perKill = totalKills;
   const perEvac = evacuated * 15;
   const gradeBonus = GRADE_BONUS[grade];
+  const nightKills = Math.max(0, state.nightKills);
+  const nightEvacuations = Math.max(0, state.nightEvacuations);
+  const nightBonus = Math.max(0, nightKills * 1 + nightEvacuations * 5);
   return {
     win: state.winState === "won",
     grade,
@@ -1786,8 +1806,11 @@ function computeRunResult(state: GameState): RunResult {
     totalSurvivors: allSurvivors.length,
     evacRate: evacuated / Math.max(1, allSurvivors.length),
     survivalRate: alive / Math.max(1, allSurvivors.length),
-    scrapEarned: base + perKill + perEvac + gradeBonus,
-    scrapBreakdown: { base, perKill, perEvac, gradeBonus },
+    scrapEarned: base + perKill + perEvac + gradeBonus + nightBonus,
+    scrapBreakdown: { base, perKill, perEvac, gradeBonus, nightBonus },
+    nightKills,
+    nightEvacuations,
+    nightBonus,
     ticks: state.tick,
   };
 }

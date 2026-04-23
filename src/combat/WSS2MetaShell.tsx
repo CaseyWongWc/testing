@@ -352,6 +352,12 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ result, onContinue }) => 
           <Row label={`Per kill (${result.kills} × 1)`} value={result.scrapBreakdown.perKill} />
           <Row label={`Per evac (${result.evacuated} × 15)`} value={result.scrapBreakdown.perEvac} />
           <Row label={`Grade bonus (${result.grade})`} value={result.scrapBreakdown.gradeBonus} />
+          {result.nightBonus > 0 && (
+            <Row
+              label={`Night bonus (${result.nightKills} kill·1 + ${result.nightEvacuations} evac·5)`}
+              value={result.scrapBreakdown.nightBonus}
+            />
+          )}
           <div className="border-t border-gray-700 pt-2 mt-2 flex items-center">
             <span className="text-gray-300 font-bold">Total</span>
             <span className="ml-auto text-yellow-300 font-bold text-xl flex items-center gap-1" data-testid="text-scrap-earned">
