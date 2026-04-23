@@ -1,0 +1,27 @@
+#8 - Apply Strategy/State Pattern to a Future Phase's AI
+What & Why
+In-Class Exercise 7 added the Strategy pattern to src/combat/WSSTwo.tsx (legacy file) as a sandboxed proof-of-concept — a BrainDecisionStrategy interface plus a brainStrategies map keyed by BrainType. That work is isolated and does not touch the production Phase 3 simulation.
+
+This task is a placeholder draft for if/when we decide to bring that same pattern into the active production path (Phase 3, or whichever phase is current at the time). The point is to reduce the long branch chains in zombie/survivor decision logic by routing through small, named strategy objects — making it easier to add new behaviors (e.g. a future "screamer" zombie or a future "scout" brain) without growing one giant switch.
+
+Before activating, Casey will tell us exactly which phase to apply it to and which decision points to refactor. Until then this stays as a Draft.
+
+Done looks like
+Either the active phase's zombie AI or survivor brain dispatch is routed through a strategy map (chosen at activation time).
+Existing behavior is unchanged — same outputs, same tuning, same logs.
+A short note added to replit.md documenting where the pattern now lives and how to add a new strategy.
+Phase 2 stays untouched (it is the stable backup).
+Out of scope
+Tuning AI behavior, weights, or thresholds.
+Migrating the full project to a src/wss2/ folder layout (that is a separate ADR-001 effort).
+Behavior Trees or full Utility AI — those are heavier patterns and belong to their own future tasks.
+Touching the legacy WSSTwo.tsx Strategy demo (it stays as the in-class exercise sandbox).
+Steps
+Pick the target — Casey confirms which decision site to refactor (e.g. zombie state dispatch in the current phase, or survivor brain dispatch). Pick exactly one site.
+Extract the strategy interface — Define a small interface for the chosen decision (e.g. ZombieStateStrategy { tick(ctx): Action }) and move existing branches into one strategy object per case.
+Wire the dispatcher — Replace the existing branch chain with a strategy map lookup. Verify behavior parity by playing a few seeds and checking grade / kill counts are identical.
+Document — Update replit.md with the pattern's new home and how to add a new strategy in 3 lines.
+Relevant files
+src/combat/WSSPhase3.tsx
+src/combat/WSSTwo.tsx
+replit.md
