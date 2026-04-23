@@ -1698,6 +1698,8 @@ function renderWorld(
     const off = getNightOverlayCanvas(canvasW, canvasH);
     const octx = off.getContext("2d");
     if (octx) {
+      octx.globalCompositeOperation = "source-over";
+      octx.clearRect(0, 0, canvasW, canvasH);
       octx.fillStyle = `rgba(20, 30, 80, ${0.5 * nf})`;
       octx.fillRect(0, 0, canvasW, canvasH);
       octx.globalCompositeOperation = "destination-out";
