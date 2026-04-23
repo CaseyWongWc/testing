@@ -188,6 +188,33 @@ const ESCALATION_HP_MULT  = 0.08;
 const ESCALATION_DMG_MULT = 0.05;
 const ESCALATION_SPEED_MULT = 0.06;
 
+const DAY_LENGTH        = 600;
+const NIGHT_LENGTH      = 400;
+const CYCLE_LENGTH      = DAY_LENGTH + NIGHT_LENGTH;
+const PHASE_FADE        = 60;
+const NIGHT_ALERT_MULT  = 1.6;
+
+function cyclePos(tick: number): number {
+  return ((tick % CYCLE_LENGTH) + CYCLE_LENGTH) % CYCLE_LENGTH;
+}
+function isNightTick(tick: number): boolean {
+  return cyclePos(tick) >= DAY_LENGTH;
+}
+function nightFactor(tick: number): number {
+  const t = cyclePos(tick);
+  if (t < DAY_LENGTH - PHASE_FADE) return 0;
+  if (t < DAY_LENGTH) return (t - (DAY_LENGTH - PHASE_FADE)) / PHASE_FADE;
+  if (t < CYCLE_LENGTH - PHASE_FADE) return 1;
+  return 1 - (t - (CYCLE_LENGTH - PHASE_FADE)) / PHASE_FADE;
+}
+function nightAlertMult(tick: number): number {
+  return 1 + nightFactor(tick) * (NIGHT_ALERT_MULT - 1);
+}
+function ticksUntilPhaseFlip(tick: number): number {
+  const t = cyclePos(tick);
+  return t < DAY_LENGTH ? DAY_LENGTH - t : CYCLE_LENGTH - t;
+}
+
 const ZOMBIE_PATROL_RADIUS = 8;
 const ZOMBIE_PATROL_SPEED_MULT = 0.6;
 const ZOMBIE_PATROL_PAUSE_MIN = 30;
@@ -748,9 +775,11 @@ function tickZombie(z: Zombie, state: GameState, addLog: (text: string, type: Lo
 
   const prevState = z.zombieState;
 
+  const alertMult = nightAlertMult(state.tick);
+
   if (!z.alertedByNoise) {
     for (const n of state.noiseEvents) {
-      if (Math.hypot(n.pos.x - z.pos.x, n.pos.y - z.pos.y) < n.radius) {
+      if (Math.hypot(n.pos.x - z.pos.x, n.pos.y - z.pos.y) < n.radius * alertMult) {
         z.alertedByNoise = true;
         z.noiseTarget = { ...n.pos };
         if (z.zombieState === "wandering") {
@@ -765,7 +794,7 @@ function tickZombie(z: Zombie, state: GameState, addLog: (text: string, type: Lo
   for (const e of state.entities) {
     if (e.dead || e.kind !== "survivor" || (e as Survivor).evacuated) continue;
     const dist = Math.hypot(e.pos.x - z.pos.x, e.pos.y - z.pos.y);
-    if (dist < z.alertRadius && dist < nearestDist) {
+    if (dist < z.alertRadius * alertMult && dist < nearestDist) {
       if (hasLineOfSight(z.pos, e.pos, state.tiles, size)) {
         nearestDist = dist;
         nearest = e;
@@ -1159,6 +1188,11 @@ function runTick(state: GameState): GameState {
   const noise   = state.noiseEvents.map(n=>({...n, ticksLeft:n.ticksLeft-1})).filter(n=>n.ticksLeft>0);
 
   const escalation = updateEscalation(state.escalation, state.tick, addLog);
+
+  if (state.tick > 0 && isNightTick(state.tick) !== isNightTick(state.tick - 1)) {
+    if (isNightTick(state.tick)) addLog("NIGHTFALL — zombies grow more alert.", "escalation");
+    else addLog("Dawn breaks — the threat eases.", "objective");
+  }
 
   const {entities:postCombat, effects:newEffects, noiseEvents:newNoise, droppedLoot, nestsKilled, scoreGain} =
     resolveCombat({...state, noiseEvents:noise, attackEffects:effects, escalation}, addLog);
@@ -1651,6 +1685,12 @@ function renderWorld(
     }
   }
 
+  const nf = nightFactor(state.tick);
+  if (nf > 0.001) {
+    ctx.fillStyle = `rgba(20, 30, 80, ${0.5 * nf})`;
+    ctx.fillRect(0, 0, canvasW, canvasH);
+  }
+
   const evacuatedCount = state.entities.filter(e => e.kind === "survivor" && !e.dead && (e as Survivor).evacuated).length;
   if (evacuatedCount > 0 && portal) {
     const ppx = (portal.pos.x - camX) * ts, ppy = (portal.pos.y - camY) * ts;
@@ -1882,6 +1922,16 @@ const WSSPhase3: React.FC<WSSPhase3Props> = ({ loadout = EMPTY_LOADOUT, onRunCom
         <span className="text-green-400 text-xs">PHASE 3</span>
         <span className="text-gray-700">|</span>
         <span className="text-yellow-400 text-xs">T:{tick.toLocaleString()}</span>
+        <span className="text-gray-700">|</span>
+        {(() => {
+          const night = isNightTick(tick);
+          const remain = ticksUntilPhaseFlip(tick);
+          return (
+            <span className={`text-xs font-bold ${night ? "text-indigo-300" : "text-amber-300"}`}>
+              {night ? "🌙 NIGHT" : "☀ DAY"} ({remain})
+            </span>
+          );
+        })()}
         <span className="text-gray-700">|</span>
         <span className="text-purple-400 text-xs">R:{stateRef.current.mapRound}</span>
         <span className="text-gray-700">|</span>
