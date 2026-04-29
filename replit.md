@@ -71,6 +71,9 @@ Preferred communication style: Simple, everyday language.
 ### Sandbox Experiments
 - **Zombie Variants sandbox** (`src/combat/ZombieAISandbox.tsx`) — original prototype for Walker/Runner/Brute. Now also LIVE in Phase 3 (see Shipped log). The sandbox stays as the tuning playground — change variant stats here first, then port deltas into Phase 3's `VARIANT_STATS`.
 
+### Class Deliverables (CS 4800)
+- **In-Class Exercise 8** (`attached_assets/ICE8_TestCaseSpec.md`) — Test Case Specification Document + Traceability Matrix for the front-end team. 8 IEEE-829-style test cases mapped to 8 front-end use cases (Market, Perks, Run Start, AI Combat, Night Bonus, Run Results, Reset, Sim Picker). Document only — no code changes. Casey emails this to the instructor.
+
 ### Live in Phase 3
 - **Zombie Variants — Walker / Runner / Brute (LIVE)**: Phase 3's Zombie type now has a `variant` field. `VARIANT_STATS` table in `src/combat/WSSPhase3.tsx` drives speed (×0.55–×1.55), alert radius (7–12), chase persistence, patrol speed, body size, accent ring color, and HP multiplier (×0.75–×1.60). Each zombie renders with a colored outer ring on the canvas (white = Walker, yellow = Runner, magenta = Brute). Initial spawns are mostly Walkers with a small chance of Runners/Brutes scaling with escalation. Nest spawns use tier-weighted buckets (Tier 0: 70/20/10, Tier 1: 45/35/20, Tier 2+: 35/30/35 walker/runner/brute). Phase 2 is untouched.
 - **Live Night-Bonus HUD pill (LIVE)**: Top toolbar in Phase 3 now shows a small indigo "🌙+N (Xk·Ye)" pill the moment the player earns night-bonus scrap (kills or evacs while `nightFactor(tick) > 0.5`). The number reflects the player's Scrap-Magnet perk multiplier in real time. Pill pulses while it's currently night, sits static during day. Hidden when nothing has been earned yet.
