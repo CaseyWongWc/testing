@@ -31,16 +31,18 @@ export type Perks = {
   scrapMagnet: number;
   quickHands: number;
   sharpSenses: number;
+  starterCache: number;
 };
 
 export const EMPTY_PERKS: Perks = {
-  ironWill: 0, scrapMagnet: 0, quickHands: 0, sharpSenses: 0,
+  ironWill: 0, scrapMagnet: 0, quickHands: 0, sharpSenses: 0, starterCache: 0,
 };
 
 export const PERK_HP_PER_LEVEL = 0.10;
 export const PERK_SCRAP_PER_LEVEL = 0.10;
 export const PERK_ATTACK_COOLDOWN_PER_LEVEL = 0.08;
 export const PERK_MOVE_SPEED_PER_LEVEL = 0.05;
+export const PERK_STARTER_CACHE_PER_LEVEL = 5;
 
 export type RunResult = {
   win: boolean;
@@ -58,6 +60,7 @@ export type RunResult = {
     perEvac: number;
     gradeBonus: number;
     nightBonus: number;
+    starterCache: number;
   };
   nightKills: number;
   nightEvacuations: number;
@@ -1917,6 +1920,7 @@ function computeRunResult(state: GameState): RunResult {
   const perEvac = Math.round(perEvacRaw * mult);
   const gradeBonus = Math.round(gradeBonusRaw * mult);
   const nightBonus = computeNightBonus(nightKills, nightEvacuations, mult);
+  const starterCache = Math.max(0, state.perks.starterCache | 0) * PERK_STARTER_CACHE_PER_LEVEL;
   return {
     win: state.winState === "won",
     grade,
@@ -1926,8 +1930,8 @@ function computeRunResult(state: GameState): RunResult {
     totalSurvivors: allSurvivors.length,
     evacRate: evacuated / Math.max(1, allSurvivors.length),
     survivalRate: alive / Math.max(1, allSurvivors.length),
-    scrapEarned: base + perKill + perEvac + gradeBonus + nightBonus,
-    scrapBreakdown: { base, perKill, perEvac, gradeBonus, nightBonus },
+    scrapEarned: base + perKill + perEvac + gradeBonus + nightBonus + starterCache,
+    scrapBreakdown: { base, perKill, perEvac, gradeBonus, nightBonus, starterCache },
     nightKills,
     nightEvacuations,
     nightBonus,

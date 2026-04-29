@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web"]
+modules = ["nodejs-20", "web", "python-3.11"]
 run = "npm run dev"
 
 [nix]
@@ -52,19 +52,6 @@ runButton = "Run"
 name = "Run"
 author = 27304601
 mode = "parallel"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node server.js"
-
-[[workflows.workflow]]
-name = "arrow"
-mode = "sequential"
-author = 27304601
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "echo \"Starting AI Simulation Server with Express proxy...\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"

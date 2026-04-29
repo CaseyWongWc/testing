@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Coins, Users, Crosshair, Heart, Play, RotateCcw, Trophy,
-  Plus, Minus, ChevronRight, Award, ShieldCheck, Magnet, Zap, Eye, Star, Lock
+  Plus, Minus, ChevronRight, Award, ShieldCheck, Magnet, Zap, Eye, Star, Lock, Package
 } from "lucide-react";
 import WSSPhase3, {
   MarketLoadout, RunResult, EMPTY_LOADOUT,
   Perks, EMPTY_PERKS,
   PERK_HP_PER_LEVEL, PERK_SCRAP_PER_LEVEL, PERK_ATTACK_COOLDOWN_PER_LEVEL, PERK_MOVE_SPEED_PER_LEVEL,
+  PERK_STARTER_CACHE_PER_LEVEL,
 } from "./WSSPhase3";
 
 type GradeType = "S" | "A" | "B" | "C" | "D" | "F";
@@ -85,6 +86,15 @@ const PERK_CATALOG: PerkDef[] = [
     costs: [100, 240],
     icon: <Eye className="w-5 h-5" />,
     accent: "border-sky-700 bg-sky-950/30 text-sky-200",
+  },
+  {
+    key: "starterCache",
+    label: "Starter Cache",
+    shortDesc: `+${PERK_STARTER_CACHE_PER_LEVEL} flat scrap per level, every run`,
+    longDesc: (lvl) => `Adds a flat ${lvl * PERK_STARTER_CACHE_PER_LEVEL} scrap to every run-end reward, banked from your reserve stash. Stacks on top of Scrap Magnet.`,
+    costs: [50, 120, 240],
+    icon: <Package className="w-5 h-5" />,
+    accent: "border-emerald-700 bg-emerald-950/30 text-emerald-200",
   },
 ];
 
@@ -556,6 +566,12 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ result, onContinue }) => 
             <Row
               label={`Night bonus (${result.nightKills} kill·1 + ${result.nightEvacuations} evac·5)`}
               value={result.scrapBreakdown.nightBonus}
+            />
+          )}
+          {result.scrapBreakdown.starterCache > 0 && (
+            <Row
+              label={`Starter Cache (lvl ${Math.round(result.scrapBreakdown.starterCache / PERK_STARTER_CACHE_PER_LEVEL)} × ${PERK_STARTER_CACHE_PER_LEVEL})`}
+              value={result.scrapBreakdown.starterCache}
             />
           )}
           <div className="border-t border-gray-700 pt-2 mt-2 flex items-center">
