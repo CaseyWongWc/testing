@@ -267,10 +267,14 @@ function isNightTick(tick: number): boolean {
 }
 // ───────────────────────────────────────────────────────────────────────────
 // NIGHT-BONUS MATH (single source of truth)
-// Kills count 1 scrap, evacs count 5 scrap, both must have happened during
+// Kills count 2 scrap, evacs count 5 scrap, both must have happened during
 // night (nightFactor > 0.5). Then the player's Scrap-Magnet perk multiplier
 // is applied. Negative inputs are clamped to 0 so corrupted save data can't
 // produce a refund.
+//
+// The "kill × 2" weight aligns with the ICE-8 spec doc and the design intent:
+// night is more dangerous, so a night kill is worth more than a day kill
+// (which only earns the per-kill +1 in computeRunResult).
 //
 // Locked in by a dev-time self-test below — if you change this formula,
 // update the test cases too or the dev console will throw on reload.
@@ -282,7 +286,7 @@ export function computeNightBonus(
 ): number {
   const k = Math.max(0, nightKills);
   const e = Math.max(0, nightEvacuations);
-  const raw = k * 1 + e * 5;
+  const raw = k * 2 + e * 5;
   return Math.round(raw * scrapMultiplier);
 }
 
@@ -290,10 +294,10 @@ if (import.meta.env.DEV) {
   type Case = { k: number; e: number; m: number; want: number; why: string };
   const cases: Case[] = [
     { k: 0,   e: 0,   m: 1.0, want: 0,   why: "no night activity → 0 bonus" },
-    { k: 5,   e: 0,   m: 1.0, want: 5,   why: "5 night kills × 1 = 5" },
+    { k: 5,   e: 0,   m: 1.0, want: 10,  why: "5 night kills × 2 = 10" },
     { k: 0,   e: 3,   m: 1.0, want: 15,  why: "3 night evacs × 5 = 15" },
-    { k: 4,   e: 2,   m: 1.0, want: 14,  why: "4 kills + 2 evacs = 4 + 10" },
-    { k: 10,  e: 4,   m: 1.3, want: 39,  why: "(10 + 20) × 1.3 = 39 with Scrap Magnet" },
+    { k: 4,   e: 2,   m: 1.0, want: 18,  why: "4 kills × 2 + 2 evacs × 5 = 8 + 10 = 18" },
+    { k: 10,  e: 4,   m: 1.3, want: 52,  why: "(10×2 + 4×5) × 1.3 = (20 + 20) × 1.3 = 52 with Scrap Magnet" },
     { k: -7,  e: -2,  m: 1.0, want: 0,   why: "negative inputs clamp to 0" },
     { k: 100, e: 100, m: 0,   want: 0,   why: "zero multiplier → 0 bonus" },
   ];
@@ -2129,7 +2133,7 @@ const WSSPhase3: React.FC<WSSPhase3Props> = ({ loadout = EMPTY_LOADOUT, perks = 
             <>
               <span className="text-gray-700">|</span>
               <span
-                title={`Earned during night so far: ${nk} kill(s) ×1 + ${ne} evac(s) ×5${mult > 1 ? ` (×${mult.toFixed(2)} Scrap Magnet)` : ""}`}
+                title={`Earned during night so far: ${nk} kill(s) ×2 + ${ne} evac(s) ×5${mult > 1 ? ` (×${mult.toFixed(2)} Scrap Magnet)` : ""}`}
                 className={`text-xs font-bold px-1.5 py-0.5 rounded border ${isNight
                   ? "text-indigo-100 bg-indigo-900/60 border-indigo-500 animate-pulse"
                   : "text-indigo-300 bg-indigo-950/50 border-indigo-700"}`}

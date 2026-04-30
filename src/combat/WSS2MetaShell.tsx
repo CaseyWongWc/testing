@@ -564,7 +564,7 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ result, onContinue }) => 
           <Row label={`Grade bonus (${result.grade})`} value={result.scrapBreakdown.gradeBonus} />
           {result.nightBonus > 0 && (
             <Row
-              label={`Night bonus (${result.nightKills} kill·1 + ${result.nightEvacuations} evac·5)`}
+              label={`Night bonus (${result.nightKills} kill·2 + ${result.nightEvacuations} evac·5)`}
               value={result.scrapBreakdown.nightBonus}
             />
           )}
