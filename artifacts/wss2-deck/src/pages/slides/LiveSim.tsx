@@ -11,23 +11,23 @@ export default function LiveSim() {
 
       <div className="absolute left-[6vw] top-[15vh] w-[36vw]">
         <h2 className="font-display font-bold text-[3.6vw] leading-[1.05] tracking-tight text-text [text-wrap:balance]">
-          The shop sets the run.
+          The sim, mid-run.
         </h2>
         <p className="mt-[2.5vh] font-body text-[1.5vw] text-muted leading-relaxed [text-wrap:pretty]">
-          Between runs, the survivor market is the only place you have a voice. Pick your gear, level your perks, hit start.
+          Survivors, zombies, loot, and objectives, all driven by the AI. The HUD on the right is your only feedback loop.
         </p>
         <div className="mt-[3vh] flex flex-col gap-[1.4vh]">
           <div className="flex items-center gap-[1vw]">
             <span className="w-[0.6vw] h-[0.6vw] bg-primary rounded-full" />
-            <span className="font-body text-[1.3vw] text-text">Gear is per-run, perks are permanent</span>
+            <span className="font-body text-[1.3vw] text-text">Live tick counter, day / night phase, score</span>
           </div>
           <div className="flex items-center gap-[1vw]">
             <span className="w-[0.6vw] h-[0.6vw] bg-emerald rounded-full" />
-            <span className="font-body text-[1.3vw] text-text">Scrap carries over between runs</span>
+            <span className="font-body text-[1.3vw] text-text">Survivors alive, evacuated, ammo, loot</span>
           </div>
           <div className="flex items-center gap-[1vw]">
             <span className="w-[0.6vw] h-[0.6vw] bg-amber rounded-full" />
-            <span className="font-body text-[1.3vw] text-text">Save state lives in the browser</span>
+            <span className="font-body text-[1.3vw] text-text">Active objective on the right rail</span>
           </div>
         </div>
       </div>
@@ -36,12 +36,12 @@ export default function LiveSim() {
         <img
           src={`${base}sim-shot.jpg`}
           crossOrigin="anonymous"
-          alt="A Forgotten Place — survivor market screenshot"
+          alt="A Forgotten Place — live in-run gameplay canvas and HUD"
           className="w-full h-full object-contain"
         />
       </div>
       <div className="absolute right-[6vw] bottom-[5vh] font-body text-[1vw] text-muted tracking-wide">
-        Survivor Market — between-run loadout
+        Live run — gameplay canvas + HUD
       </div>
     </div>
   );

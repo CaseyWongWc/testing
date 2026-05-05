@@ -191,6 +191,14 @@ const WSS2MetaShell: React.FC = () => {
 
   useEffect(() => { saveMeta(meta); }, [meta]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("autostart") === "1") {
+      setPhase("running");
+    }
+  }, []);
+
   const handleBuy = (item: CatalogItem) => {
     setMeta(m => {
       const owned = m.loadout[item.key];
