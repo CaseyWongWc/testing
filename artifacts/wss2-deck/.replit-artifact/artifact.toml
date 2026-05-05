@@ -1,0 +1,31 @@
+kind = "slides"
+previewPath = "/wss2-deck/"
+title = "A Forgotten Place"
+version = "1.0.0"
+id = "artifacts/wss2-deck"
+router = "path"
+
+[[integratedSkills]]
+name = "slides"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/wss2-deck/" ]
+localPort = 20993
+
+[services.development]
+run = "pnpm --filter @workspace/wss2-deck run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/wss2-deck", "run", "build" ]
+publicDir = "artifacts/wss2-deck/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20993"
+BASE_PATH = "/wss2-deck/"

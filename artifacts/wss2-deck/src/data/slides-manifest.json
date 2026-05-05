@@ -1,0 +1,106 @@
+[
+  {
+    "id": "11111111-1111-4111-8111-111111111101",
+    "position": 1,
+    "filepath": "src/pages/slides/Title.tsx",
+    "title": "A Forgotten Place",
+    "description": "Title slide",
+    "speakerNotes": ""
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111102",
+    "position": 2,
+    "filepath": "src/pages/slides/Pitch.tsx",
+    "title": "The Pitch",
+    "description": "Survivors fight zombies, you don't",
+    "speakerNotes": ""
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111103",
+    "position": 3,
+    "filepath": "src/pages/slides/WhyZeroPlayer.tsx",
+    "title": "Why Zero-Player",
+    "description": "The player is the meta-strategist",
+    "speakerNotes": ""
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111104",
+    "position": 4,
+    "filepath": "src/pages/slides/LiveSim.tsx",
+    "title": "Live Simulator",
+    "description": "Survivor market screenshot",
+    "speakerNotes": ""
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111105",
+    "position": 5,
+    "filepath": "src/pages/slides/SurvivorAI.tsx",
+    "title": "Survivor AI",
+    "description": "Three-layer behavior",
+    "speakerNotes": ""
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111106",
+    "position": 6,
+    "filepath": "src/pages/slides/ZombieVariants.tsx",
+    "title": "Zombie Variants",
+    "description": "Walker, Runner, Brute",
+    "speakerNotes": ""
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111107",
+    "position": 7,
+    "filepath": "src/pages/slides/DayNight.tsx",
+    "title": "Day / Night Cycle",
+    "description": "600 day ticks, 400 night ticks",
+    "speakerNotes": ""
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111108",
+    "position": 8,
+    "filepath": "src/pages/slides/MetaShop.tsx",
+    "title": "Meta Shop & Scrap",
+    "description": "Gear and perks economy",
+    "speakerNotes": ""
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111109",
+    "position": 9,
+    "filepath": "src/pages/slides/Perks.tsx",
+    "title": "The Five Perks",
+    "description": "Iron Will, Scrap Magnet, Quick Hands, Sharp Senses, Starter Cache",
+    "speakerNotes": ""
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111110",
+    "position": 10,
+    "filepath": "src/pages/slides/NightBonus.tsx",
+    "title": "Night Bonus Economy",
+    "description": "Why night kills pay more",
+    "speakerNotes": ""
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "position": 11,
+    "filepath": "src/pages/slides/Engineering.tsx",
+    "title": "Engineering",
+    "description": "Spec-driven, self-testing",
+    "speakerNotes": ""
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111112",
+    "position": 12,
+    "filepath": "src/pages/slides/WhatsNext.tsx",
+    "title": "What's Next",
+    "description": "The roadmap",
+    "speakerNotes": ""
+  },
+  {
+    "id": "11111111-1111-4111-8111-111111111113",
+    "position": 13,
+    "filepath": "src/pages/slides/Closing.tsx",
+    "title": "Thank You",
+    "description": "Questions and closing",
+    "speakerNotes": ""
+  }
+]
