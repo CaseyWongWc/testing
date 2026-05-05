@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "A Forgotten Place"
+version = "1.0.0"
+id = "artifacts/a-forgotten-place"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25744
+
+[services.development]
+run = "pnpm --filter @workspace/a-forgotten-place run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/a-forgotten-place", "run", "build" ]
+publicDir = "artifacts/a-forgotten-place/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25744"
+BASE_PATH = "/"

@@ -1,0 +1,663 @@
+How To Make Enemies Smarter: AI Weighted Decision-Making
+
+GameMaker
+100K subscribers
+
+Subscribe
+Transcript
+
+
+Search in video
+Introduction
+0:00
+g'day Gamers slider here in this video
+0:02
+we'll explore a method for making the AI
+0:05
+in your game smarter by allowing them to
+0:08
+make choices depending on how the game
+0:10
+plays out if you've ever played
+0:12
+Half-Life you might recall how sneaky
+0:14
+the soldiers were to fight against they
+0:16
+reacted to your actions unlike any other
+0:19
+AI we'd seen before they ran away when
+0:22
+you threw a grenade they Advanced on
+0:24
+your position when you looked away from
+0:26
+them and they attempted to flank you
+0:28
+when you took cover that experience made
+0:31
+the game more engaging and memorable and
+0:33
+that specific AI aspect of Half-Life is
+0:36
+something which is still mentioned years
+0:38
+later I'd like to show you how to make
+0:40
+your games AI more engaging by using a
+0:43
+system of weighted options here's an
+AI Dungeon Demo
+0:46
+example of what we will explore imagine
+0:47
+this instance is either an enemy or an
+0:50
+AI Control player in a multiplayer game
+0:52
+now when I click and drag I'm manually
+0:55
+controlling the characters so I can walk
+0:56
+through the example slowly but the line
+0:58
+shows where the pathing would normally
+1:01
+take them the circle is the area where
+1:03
+they can see so it's the area they are
+1:05
+scanning and calculating if they should
+1:07
+interact with the items found
+1:10
+we have a locked chest a heart a potion
+1:13
+and a key which opens the chest
+1:16
+each item shows a value which is the
+1:19
+weight the character assigns to it so
+1:21
+basically how important it is to them
+1:23
+higher based items are more valuable to
+1:25
+the character so they would pass towards
+1:27
+the highest value setting these weight
+1:29
+values is dependent on some
+1:31
+predetermined rules which I'll show
+1:33
+later on if we simulate the AI playing
+1:35
+our character we would be moving along
+1:37
+the path towards this object as we get
+1:40
+closer the value gets higher it becomes
+1:43
+a higher priority to pick it up as they
+1:45
+are closer to the item and once they
+1:47
+grab it you'll see it's a potion which
+1:50
+increases how far they can see it's
+1:52
+arbitrary what the potion does but
+1:54
+basically it's something the character
+1:55
+wants
+1:57
+so if we go pick it up again you'll see
+1:59
+the next thing it wants to do is move
+2:00
+over to the key and once we have that we
+2:02
+can move towards the chest
+2:05
+once the chest is open then we can go
+2:07
+back to the potion
+2:09
+and we go grab the key and we continue
+2:12
+this nice little Loop
+2:14
+so what about the heart though well if I
+2:16
+right click we can decrease their health
+2:18
+so you'll see as their health decreases
+2:20
+the value of the heart becomes more
+2:23
+important
+2:27
+and if we keep decreasing at one point
+2:29
+the heart's value becomes more important
+2:31
+than picking up a key or a potion and
+2:33
+that's because they've evaluated the
+2:34
+items in the circle and determine what's
+2:37
+more important to them at this point in
+2:39
+time
+2:39
+so if I don't follow the path and I go
+2:41
+over here to the other items you can see
+2:44
+that the potion is actually more
+2:46
+important because of how close we are to
+2:48
+it so they've evaluated that even though
+2:51
+they're low on health it's worth picking
+2:52
+up this potion because we're so close to
+2:54
+it but if I keep decreasing the health
+2:57
+at one point the value of their life is
+3:00
+more important than grabbing the potion
+3:02
+so they'd want to pass towards a health
+3:04
+ensure that's increased before they come
+3:06
+back and grab the other items
+3:08
+if we go here then we'd want to go grab
+3:11
+that and even at this point it's more
+3:13
+important to still pick up that health
+3:14
+so we'll go over and grab that and now
+3:16
+the health is at a point where it's so
+3:18
+high they would rather pick up the
+3:20
+potion or the key and unlock the chest
+3:22
+then go for the heart
+3:26
+so it's all based on the distance they
+3:28
+added the object and how important it is
+3:30
+to them at the time
+AI Multiplayer Demo
+3:32
+for another example of this type of
+3:33
+system here's a game with multiple AI
+3:36
+Control Bots all moving around the
+3:38
+battlefield and making choices based on
+3:40
+some set criteria
+3:42
+they are working their way around
+3:44
+scanning for items and navigating to
+3:46
+those items if they find them important
+3:48
+what this does is make your AI smarter
+3:51
+by allowing them to determine their best
+3:53
+choice based on their position their
+3:55
+health their equipment and even the
+3:57
+opposition's position
+3:59
+they can chase an enemy flag carrier a
+4:02
+Vader grenade and even capture the
+4:04
+opposition flag all based on their
+4:07
+system
+4:08
+so let's have a look at how to implement
+Sample Project Setup
+4:10
+it so I have a sample project here which
+4:12
+is available in the description so if I
+4:15
+go in here and look at the character
+4:17
+so I want to look at the create event
+4:18
+and the step event
+4:20
+and we'll just make these larger
+4:23
+and these two hold the basis of
+4:25
+everything that you'll need to do this
+4:27
+system
+4:28
+there's descriptions for everything else
+4:29
+in the project but this is what you'll
+4:31
+actually need so if we look at the
+Create Event
+4:33
+create event we're setting an initial
+4:35
+range and that's how far the character
+4:37
+can see
+4:38
+now I'm using a target range variable
+4:40
+and this is really vigilony as well
+4:41
+because it basically changes the target
+4:43
+range so that this circle shrinks over
+4:46
+time when the potion wears off we have
+4:48
+some health for the player we have a
+4:50
+color which is what we're displaying
+4:51
+them in when they get hurt how many keys
+4:53
+now the actual pathing uses some Target
+4:56
+position values and we're using that to
+4:58
+determine where we're moving to we're
+5:00
+creating a path that we can move along
+5:02
+and we're adding the current position of
+5:04
+where the character starts as the first
+5:06
+path point we have a simple flag
+5:08
+variable which enables us to check the
+5:10
+path and we're creating an options array
+5:12
+and I'll show you how that's used in a
+5:14
+moment now everything else in the create
+5:15
+event is visual only and I make a note
+5:17
+of saying things are visual only which
+5:19
+means they're not needed to implement
+5:21
+the system so once you have those
+Step Event - Intro
+5:23
+variables established if we look in the
+5:24
+step event this is where we actually do
+5:27
+the mean of the code for the AI
+5:29
+so firstly you'll see these region
+5:31
+sections which are visual only which
+5:33
+means that just for the demo and
+5:34
+therefore drawing light on the objects
+5:36
+and clearing paths and and things that
+5:38
+are not related to getting the AI
+5:39
+working in your game so I'm not going to
+5:42
+show you these region sections but you
+5:43
+can have a look at them in the demo
+5:44
+project if you want
+5:47
+now the first thing we do is create a DS
+5:49
+list and that'll be used to store the
+5:51
+possible targets the character might
+5:52
+want to go towards we then run the
+5:54
+Collision Circle list function within
+5:56
+that range value and we look at the O
+5:59
+Target parent and if you look at that
+Target Parent Object
+6:01
+you'll see that we have our key chest
+6:03
+potion and heart so these are the things
+6:04
+that are interest to the character
+Step Event - Collision Check
+6:08
+and we return any found IDs to this list
+6:10
+and we also store how many are found in
+6:13
+the num variable we then see if we have
+6:15
+any instances found and if we do we
+6:17
+create an array the size of the number
+6:20
+that we found
+6:22
+then we Loop through the instances
+6:23
+grabbing the next ID in the list and
+6:27
+here's where we initiate that weight
+6:28
+value we talked about so the value of
+6:30
+the highest weight is what's important
+6:32
+to us and they're calculated by a set of
+6:35
+rules which we'll have a look at down
+6:37
+below so this is the weight for this
+6:39
+instance so I'm going to store it in a
+6:41
+struct which holds the ID and the weight
+6:43
+for this particular instance if we go
+6:46
+down a little bit further we can see
+6:47
+that we now are checking what to do with
+Step Event - Find Instance Weight
+6:50
+the instance that we find so we base the
+6:52
+weight on the distance to the object
+6:55
+and we set a weight value using
+6:59
+map value
+7:00
+which basically Maps our max range to a
+7:03
+set of values using the distance as the
+7:06
+determining value
+7:07
+and what that means is map value looks
+7:10
+at the distance it allows us to enter an
+7:12
+input range from the start value to an N
+7:15
+value and it maps that range say if this
+7:19
+is 300 to 5 it'll map that from 0 to 70.
+7:24
+basically you'll take one range
+7:27
+and set its values according to another
+7:29
+range now if you want to know more about
+7:31
+what map value does Sam Spade has a
+7:34
+video which breaks down the whole
+7:36
+function but you can also download the
+7:38
+project file and you can take a look at
+7:39
+this it's really handy and we're using
+7:41
+it here so that we end up with a value
+7:43
+from 0 to 70 for the potion the key and
+7:47
+the chest based on basically how far we
+7:50
+are from those items that's the only
+7:52
+priority that we're looking at for those
+7:55
+three items the heart though is a little
+7:57
+bit different because if we have Max
+7:59
+Health already
+8:01
+well then our weight is zero we're not
+8:03
+interested in the heart but once our
+8:05
+health is not equal to our Max well then
+8:08
+we can map a value and we're doing a
+8:10
+similar thing from our range to a small
+8:12
+distance and the reason I haven't put
+8:14
+this to zero is well we never get
+8:16
+exactly the zero because once we get
+8:17
+close to the item we end up picking it
+8:19
+up but we're mapping this between these
+8:22
+values and I'm also multiplying it by 1
+8:25
+minus HP divided HP Max Times by two and
+8:28
+basically this is just a formula which
+8:30
+will make it more important to the
+8:32
+character when they have lower Health
+8:34
+but all of this value for weight signing
+8:37
+is up to you these values are all
+8:39
+determined by you and what how important
+8:41
+you think the items are that you're
+8:43
+asking your instance to look at now we
+8:46
+also do a round and that's only because
+8:48
+it'll make it cleaner to see when we
+8:50
+draw the weight value next to the
+8:51
+character
+8:52
+so this is the meat of the loop and
+8:55
+whatever items you want your character
+8:57
+to be interested in need to have a
+8:59
+switch statement here and a weight
+9:01
+assigned like this
+9:03
+so once the weight is assigned we add it
+9:05
+to the options array and we add it at
+9:07
+the weight variable in the struct there
+9:10
+and we assign that weight value and we
+9:13
+go back to the start and we Loop through
+9:14
+the whole thing over again and go
+9:17
+through every instance that's found
+9:18
+within the range so in the end we have
+9:21
+an options array with an ID and a weight
+9:24
+of the instances that are important to
+9:26
+this character so then we need to look
+9:28
+at the weight and work out which one is
+9:30
+the most important so as a cleanup we're
+9:32
+just destroying that list and then if we
+Step Event - Find Highest Weight
+9:34
+found any objects we're going to go in
+9:36
+here and we're going to initiate our
+9:38
+highest value and we're going to Loop
+9:40
+through the array
+9:42
+and essentially look at the weight of
+9:44
+each one and compare it to the current
+9:46
+highest value and assign that one to be
+9:50
+the highest if it's higher than the
+9:51
+previous so all this code here just
+9:53
+looks for the highest weighted value in
+9:55
+that options array
+9:57
+now once we've found it we go down here
+9:59
+and as long as it's not equal to zero
+10:01
+then we grab the actual ID and we set
+10:04
+that to our Target position and then we
+10:06
+can create a path to it we can fire at
+10:08
+it we can do whatever with it but we
+10:10
+have the ID that's most important and we
+10:12
+have its position now of course you can
+10:14
+get all of these values from just the ID
+10:16
+but for the demonstration and the way
+10:18
+that I'm drawing the path moving this is
+10:21
+why I'm assigning them there but you
+10:22
+really just need this value and you
+10:24
+found the most important instance to the
+10:26
+character at this particular time now
+10:28
+what you do with that well that depends
+10:30
+on your game now I'm running this code
+10:31
+in the step event so we're calculating A
+10:33
+New Path every step but ideally you'd
+10:36
+only need to do this every say 10 to 60
+10:38
+steps and if you want smarter AI you
+10:41
+would lower the time between New Path
+10:43
+calculations or you'd raise it to make
+10:46
+their choices slower effectively making
+10:48
+them easier to defeat
+10:50
+the last thing I wanted to show was the
+10:52
+AI moving along their path and finding
+10:54
+their way to their goals by themselves
+10:56
+over in the create event I've just added
+Allowing AI to Path
+10:59
+a move speed variable
+11:01
+so back in the game if you press the
+11:03
+letter P then the pass speed is assigned
+11:06
+to the character and they'll move
+11:07
+towards their target position
+11:10
+now you can still drag them around and
+11:12
+even press the right Mouse button to
+11:14
+decrease the health
+11:16
+but assigning the speed is how you would
+11:18
+have them move in your game so hopefully
+11:21
+you can use this system in your own game
+11:22
+and give your players an enemy that is
+11:24
+more sneaky or a bot that can present
+11:26
+more of a challenge as they are able to
+11:29
+make better choices thanks for joining
+11:31
+me I'll talk to you in the next one
+11:34
+[Music]
