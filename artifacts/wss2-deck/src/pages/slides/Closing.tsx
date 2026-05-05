@@ -23,7 +23,7 @@ export default function Closing() {
 
       <div className="absolute bottom-[6vh] left-[6vw] right-[6vw] flex items-end justify-between border-t border-line pt-[2.5vh]">
         <div className="font-display text-[1.3vw] text-text">Casey · CS 4800 · Spring 2026</div>
-        <div className="font-display text-[1.3vw] text-muted">WSS2 · Phase 3</div>
+        <div className="font-display text-[1.3vw] text-muted">A Forgotten Place · Phase 3</div>
       </div>
     </div>
   );

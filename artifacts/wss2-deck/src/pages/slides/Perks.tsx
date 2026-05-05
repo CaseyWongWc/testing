@@ -43,7 +43,7 @@ export default function Perks() {
 
       <div className="absolute bottom-[6vh] left-[6vw] right-[6vw] flex items-center justify-between border-t border-line pt-[2vh]">
         <span className="font-body text-[1.1vw] text-muted">Bought between runs with scrap. State persists in the browser.</span>
-        <span className="font-display text-[1.1vw] text-accent tracking-wide">localStorage · wss2_meta_v1</span>
+        <span className="font-display text-[1.1vw] text-accent tracking-wide">localStorage · meta_v1</span>
       </div>
     </div>
   );

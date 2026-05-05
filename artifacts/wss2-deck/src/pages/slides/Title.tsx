@@ -15,7 +15,7 @@ export default function Title() {
       <div className="absolute top-[6vh] left-[6vw] flex items-center gap-[1vw]">
         <div className="w-[0.5vw] h-[2.4vh] bg-primary" />
         <span className="font-display text-[1.3vw] tracking-[0.4em] text-primary uppercase">
-          Survival Sim · Phase 3
+          A Survival Sim · Phase 3
         </span>
       </div>
 
@@ -34,8 +34,8 @@ export default function Title() {
           <div className="font-body text-[1.1vw] text-muted mt-[0.5vh]">CS 4800 · Spring 2026</div>
         </div>
         <div className="text-right">
-          <div className="font-body text-[1.1vw] text-muted">Codename</div>
-          <div className="font-display text-[1.4vw] text-text mt-[0.5vh]">WSS2</div>
+          <div className="font-body text-[1.1vw] text-muted">Build</div>
+          <div className="font-display text-[1.4vw] text-text mt-[0.5vh]">Phase 3</div>
         </div>
       </div>
     </div>
