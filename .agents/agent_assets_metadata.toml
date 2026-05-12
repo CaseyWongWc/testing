@@ -1,8 +1,31 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "qVY-cCNGqSPbf8JvAvLFI"
 uri = "file://artifacts/wss2-deck/public/hero.png"
 type = "image"
 title = "generated_image"
+
+[[outputs]]
+id = "j9_K8PdLsQYYKFEEOqYNU"
+uri = "file://.local/outputs/WSS--Revised-.pdf"
+type = "pdf"
+title = "WSS (Revised).pdf"
+
+[[outputs]]
+id = "ua2E9l4e74jnDDsJ4Yumj"
+uri = "file://WSS2_AForgottenPlace_FinalSubmission.zip"
+type = "unspecified"
+title = "WSS2 — A Forgotten Place — CS 4800 Final Submission (ZIP)"
+
+[[outputs]]
+id = "1VSSBV137g5RTSr9oQ62K"
+uri = "file://WSS2_AForgottenPlace_FinalSubmission.tar.gz"
+type = "unspecified"
+title = "Same package as .tar.gz (fallback)"
+
+[[outputs]]
+id = "B9cpeOKwdNr6-d7ILuzIU"
+uri = "file://submission/00-README.md"
+type = "text"
+title = "Submission Index (README)"
