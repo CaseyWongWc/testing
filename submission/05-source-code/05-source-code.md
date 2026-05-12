@@ -4,7 +4,7 @@
 
 The full source code is available at:
 
-- **GitHub repository:** https://github.com/CaseyWongWc/testing
+- **GitHub repository:** https://github.com/CaseyWongWc/WildernessSurvivalSystem
 - **Branch:** `wss2`
 - **Live deployment:** https://wss-revised.replit.app/
 - **Replit workspace:** the same monorepo this `submission/` folder lives inside
@@ -14,7 +14,7 @@ The full source code is available at:
 ## Repository Layout (high-level)
 
 ```
-testing/                                    pnpm monorepo root
+WildernessSurvivalSystem/                   pnpm monorepo root
 ├── artifacts/
 │   ├── a-forgotten-place/                  ← THE GAME (grade this)
 │   │   ├── src/

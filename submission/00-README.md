@@ -4,7 +4,7 @@
 **Student / Team:** Casey Wong (Front-End)
 **Project:** WSS2 — *A Forgotten Place* (zero-player survival-horror AI simulation)
 **Live App:** https://wss-revised.replit.app/
-**Repository:** https://github.com/CaseyWongWc/testing (branch: `wss2`)
+**Repository:** https://github.com/CaseyWongWc/WildernessSurvivalSystem (branch: `wss2`)
 **Submission Date:** May 15, 2026
 
 ---

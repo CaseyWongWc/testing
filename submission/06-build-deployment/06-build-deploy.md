@@ -42,8 +42,8 @@ npm install -g pnpm@latest
 
 ```bash
 # 1. Clone
-git clone https://github.com/CaseyWongWc/testing.git
-cd testing
+git clone https://github.com/CaseyWongWc/WildernessSurvivalSystem.git
+cd WildernessSurvivalSystem
 git checkout wss2
 
 # 2. Install (installs all workspace packages in one pass)

@@ -42,7 +42,7 @@ flowchart LR
   subgraph Author["💻 Developer Workstation"]
     direction TB
     Repl["Replit Workspace<br/>(VS Code in browser)"]
-    Git[("GitHub<br/>CaseyWongWc/testing<br/>branch: wss2")]
+    Git[("GitHub<br/>CaseyWongWc/WildernessSurvivalSystem<br/>branch: wss2")]
     Repl --- Git
   end
 
